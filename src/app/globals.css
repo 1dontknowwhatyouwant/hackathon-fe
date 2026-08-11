@@ -1,3 +1,4 @@
+@import "maplibre-gl/dist/maplibre-gl.css";
 @import "tailwindcss";
 
 :root {
@@ -27,4 +28,139 @@ body {
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Loader adapted from Uiverse.io by Li-Deheng */
+.pulse-loader {
+  --loader-color: #a88f70;
+  --loader-animation: 2s ease-in-out infinite;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pulse-loader__circle {
+  position: relative;
+  display: flex;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 10px;
+  border: 2px solid var(--loader-color);
+  border-radius: 50%;
+  background-color: transparent;
+  animation: pulse-loader-circle var(--loader-animation);
+}
+
+.pulse-loader__dot {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--loader-color);
+  animation: pulse-loader-dot var(--loader-animation);
+}
+
+.pulse-loader__outline {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  animation: pulse-loader-outline var(--loader-animation);
+}
+
+@keyframes pulse-loader-circle {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 0.5;
+  }
+}
+
+@keyframes pulse-loader-dot {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(0);
+  }
+}
+
+@keyframes pulse-loader-outline {
+  0% {
+    transform: scale(0);
+    outline: 20px solid var(--loader-color);
+    outline-offset: 0;
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    outline: 0 solid transparent;
+    outline-offset: 20px;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-loader__circle,
+  .pulse-loader__dot,
+  .pulse-loader__outline {
+    animation: none;
+  }
+}
+
+.place-map-marker {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 9999px;
+  background: #a88f70;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgb(56 45 33 / 30%);
+}
+
+.place-map-marker:hover,
+.place-map-marker:focus-visible {
+  transform: scale(1.08);
+}
+
+.place-map-marker:focus-visible {
+  outline: 2px solid #15151a;
+  outline-offset: 2px;
+}
+
+.place-map-marker[data-selected="true"] {
+  width: 36px;
+  height: 36px;
+  background: #15151a;
+  font-size: 12px;
+}
+
+.place-map-popup .maplibregl-popup-content {
+  border: 1px solid #e3ded7;
+  border-radius: 12px;
+  padding: 8px 11px;
+  color: #15151a;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgb(36 31 25 / 16%);
+}
+
+.place-map-popup .maplibregl-popup-tip {
+  border-top-color: white;
 }

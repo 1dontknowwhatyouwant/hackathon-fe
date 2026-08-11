@@ -61,7 +61,9 @@ export function BottomNavigation({
               >
                 <span
                   aria-hidden="true"
-                  className="flex h-6 items-center justify-center text-[19px] leading-none font-black [-webkit-text-stroke:1.45px_currentColor]"
+                  className={`flex h-6 items-center justify-center leading-none font-black [-webkit-text-stroke:1.45px_currentColor] ${
+                    item.key === "home" ? "text-[30px] pb-1" : "text-[19px]"
+                  }`}
                 >
                   {item.icon}
                 </span>

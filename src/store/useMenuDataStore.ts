@@ -1,0 +1,107 @@
+"use client";
+
+import { create } from "zustand";
+
+// 실제 백엔드 연결 시 활성화합니다.
+// import { backendApi } from "@/services/backendApi";
+import {
+  dummyClosetItems,
+  dummyRecommendations,
+  dummyUser,
+} from "@/data/menuPageDummies";
+import { useAuthStore, type UserInfo } from "@/store/useAuthStore";
+import type {
+  ClosetItem,
+  ItemCreateInput,
+  RecommendationPreview,
+} from "@/types/menu";
+
+type MenuDataState = {
+  recommendations: RecommendationPreview[];
+  items: ClosetItem[];
+  profile: UserInfo | null;
+  isLoading: boolean;
+  error: string | null;
+  loadRecommendations: () => Promise<void>;
+  loadItems: () => Promise<void>;
+  loadProfile: () => Promise<void>;
+  createItem: (input: ItemCreateInput) => Promise<ClosetItem>;
+};
+
+export const useMenuDataStore = create<MenuDataState>((set) => ({
+  recommendations: [],
+  items: [],
+  profile: null,
+  isLoading: false,
+  error: null,
+
+  loadRecommendations: async () => {
+    set({ isLoading: true, error: null });
+
+    try {
+      // 백엔드 연결 시 아래 호출로 더미 데이터 대입을 교체합니다.
+      // const response = await backendApi.recommendations.list();
+      // set({ recommendations: response.data.data });
+      set({ recommendations: dummyRecommendations });
+    } catch {
+      set({ error: "추천 정보를 불러오지 못했습니다." });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  loadItems: async () => {
+    set({ isLoading: true, error: null });
+
+    try {
+      // 백엔드 연결 시 아래 호출로 더미 데이터 대입을 교체합니다.
+      // const response = await backendApi.items.list();
+      // set({ items: response.data.data });
+      set({ items: dummyClosetItems });
+    } catch {
+      set({ error: "아이템을 불러오지 못했습니다." });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  loadProfile: async () => {
+    set({ isLoading: true, error: null });
+
+    try {
+      // 백엔드 연결 시 응답의 공개 사용자 정보만 useAuthStore에 저장합니다.
+      // const response = await backendApi.users.me();
+      // useAuthStore.getState().setUser(response.data.data);
+      // set({ profile: response.data.data });
+      const storedUser = useAuthStore.getState().user;
+      set({ profile: storedUser ?? dummyUser });
+    } catch {
+      set({ error: "사용자 정보를 불러오지 못했습니다." });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  createItem: async (input) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      // 백엔드 연결 시 아래 호출 결과를 items에 추가합니다.
+      // const response = await backendApi.items.create(input);
+      // const createdItem = response.data.data;
+      const createdItem: ClosetItem = {
+        ...input,
+        id: `preview-${Date.now()}`,
+        colorHex: input.colorHex ?? "#d7cec2",
+      };
+
+      set((state) => ({ items: [createdItem, ...state.items] }));
+      return createdItem;
+    } catch (error) {
+      set({ error: "아이템을 등록하지 못했습니다." });
+      throw error;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+}));
