@@ -66,6 +66,7 @@ import axios from "axios";
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -81,6 +82,19 @@ api.get("/products");
 // 금지: /api가 중복될 수 있음
 api.get("/api/products");
 ```
+
+### 2.4 인증 쿠키와 사용자 정보 저장
+
+- Access Token과 Refresh Token은 백엔드가 쿠키로 발급한다.
+- 인증 쿠키는 가능한 경우 `HttpOnly`, `Secure`, 적절한 `SameSite` 속성을 사용한다.
+- 프런트엔드는 토큰을 읽거나 localStorage, sessionStorage, Zustand 상태에 복사하지 않는다.
+- Axios 공용 인스턴스의 `withCredentials: true` 설정으로 인증 쿠키를 전송한다.
+- 화면 표시에 필요한 공개 사용자 정보만 `useAuthStore`를 통해 localStorage에 저장한다.
+- 인증 상태를 사용하는 화면은 스토어의 `hasHydrated`가 `true`가 된 뒤 사용자 유무를 판단한다.
+- localStorage 값은 인증·인가의 근거로 신뢰하지 않으며, 권한 판단은 서버에서 수행한다.
+- 로그아웃 API는 백엔드가 HttpOnly 쿠키를 만료시켜야 한다. 프런트엔드는 로그아웃 처리 후 localStorage의 사용자 정보를 제거한다.
+- 서로 다른 Origin에서 credential 요청을 사용할 때 백엔드는 명시적인 허용 Origin과 credential 허용 설정을 적용한다.
+- 쿠키 기반의 상태 변경 요청은 백엔드에서 Origin 검증이나 CSRF 토큰 등 서비스 구조에 맞는 CSRF 방어를 적용한다.
 
 ---
 

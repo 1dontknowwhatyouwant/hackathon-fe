@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 
+import { AuthStoreHydrator } from "@/components/AuthStoreHydrator";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Hackathon",
-  description: "Hackathon frontend application",
+  title: "입을래? | Place Match",
+  description: "오늘의 룩과 어울리는 장소 추천",
 };
 
 export default function RootLayout({
@@ -14,7 +16,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        <AuthStoreHydrator />
+        {children}
+      </body>
     </html>
   );
 }
