@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { AuthStoreHydrator } from "@/components/AuthStoreHydrator";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,7 +16,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        <AuthStoreHydrator />
+        {children}
+      </body>
     </html>
   );
 }
