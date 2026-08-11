@@ -21,7 +21,7 @@ const Cover = () => {
     }
 
     const timer = window.setTimeout(() => {
-      router.push("/splash");
+      router.push("/design-system");
     }, 700);
 
     return () => window.clearTimeout(timer);

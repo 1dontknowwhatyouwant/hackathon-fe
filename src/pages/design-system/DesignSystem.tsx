@@ -1,6 +1,6 @@
 "use client";
 
-const Splash = () => {
+const DesignSystem = () => {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f5f5f3] text-[#17181d]">
       <div className="relative mx-auto h-[844px] w-[390px] overflow-hidden">
@@ -89,4 +89,4 @@ const Splash = () => {
   );
 };
 
-export default Splash;
+export default DesignSystem;
