@@ -1,5 +1,5 @@
-import PostsListPage from "@/components/posts/PostsListPage";
+import PostsListScreen from "@/components/posts/PostsListScreen";
 
 export default function PostsPage() {
-  return <PostsListPage />;
+  return <PostsListScreen />;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { MenuPageLayout } from "@/components/menu/MenuPageLayout";
+import { MenuPageLayout } from "@/components/common/layout/MenuPageLayout";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useMenuDataStore } from "@/store/useMenuDataStore";
 

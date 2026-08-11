@@ -10,7 +10,7 @@ import type { PostSummary } from "@/types/menu";
 
 const PAGE_SIZE = 10;
 
-const PostsListPage = () => {
+const PostsListScreen = () => {
   const [currentPage /* 상태 관리 */, setCurrentPage] = useState(1);
   const [posts, setPosts] = useState<PostSummary[]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -94,4 +94,4 @@ const PostsListPage = () => {
   );
 };
 
-export default PostsListPage;
+export default PostsListScreen;

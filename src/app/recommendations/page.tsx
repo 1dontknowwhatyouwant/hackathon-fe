@@ -1,4 +1,4 @@
-import { RecommendationsScreen } from "@/components/menu/RecommendationsScreen";
+import { RecommendationsScreen } from "@/components/recommendations/RecommendationsScreen";
 
 export default function RecommendationsPage() {
   return <RecommendationsScreen />;

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { AuthStoreHydrator } from "@/components/AuthStoreHydrator";
+import { AuthStoreHydrator } from "@/components/providers/AuthStoreHydrator";
 
 import "./globals.css";
 

@@ -1,5 +1,5 @@
-import DesignSystem from "@/pages/design-system/DesignSystem";
+import DesignSystemScreen from "@/components/design-system/DesignSystemScreen";
 
-export default function SplashPage() {
-  return <DesignSystem />;
+export default function DesignSystemPage() {
+  return <DesignSystemScreen />;
 }

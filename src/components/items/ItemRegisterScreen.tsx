@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
-import { MenuPageLayout } from "@/components/menu/MenuPageLayout";
+import { MenuPageLayout } from "@/components/common/layout/MenuPageLayout";
 import { useMenuDataStore } from "@/store/useMenuDataStore";
 
 export function ItemRegisterScreen() {

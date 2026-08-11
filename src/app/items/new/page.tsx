@@ -1,4 +1,4 @@
-import { ItemRegisterScreen } from "@/components/menu/ItemRegisterScreen";
+import { ItemRegisterScreen } from "@/components/items/ItemRegisterScreen";
 
 export default function NewItemPage() {
   return <ItemRegisterScreen />;

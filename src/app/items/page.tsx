@@ -1,4 +1,4 @@
-import { ItemsScreen } from "@/components/menu/ItemsScreen";
+import { ItemsScreen } from "@/components/items/ItemsScreen";
 
 export default function ItemsPage() {
   return <ItemsScreen />;
