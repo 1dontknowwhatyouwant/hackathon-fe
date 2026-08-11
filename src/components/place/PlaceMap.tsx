@@ -188,12 +188,6 @@ export function PlaceMap({
     >
       <div ref={mapContainerRef} className="absolute inset-0" />
 
-      <div className="pointer-events-none absolute top-4 left-4 z-10 rounded-full bg-white/90 px-3 py-1.5 shadow-sm backdrop-blur">
-        <p className="text-[9px] font-bold tracking-[0.14em] text-[#8b7355]">
-          PLACE MAP
-        </p>
-      </div>
-
       {!appKey && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#efebe5] px-8 text-center">
           <p className="text-xs leading-5 text-[#6f665b]">
