@@ -15,6 +15,24 @@ Next.js App Router 기반의 해커톤 Frontend 프로젝트입니다.
 | Zustand        | React 클라이언트 컴포넌트에서 여러 화면이 공유하는 상태를 적은 보일러플레이트로 관리하기 위해 사용합니다. 현재 스토어도 상태와 변경 함수를 TypeScript 타입으로 명시하고 있습니다.                         |
 | ESLint         | Next.js, TypeScript, React Hooks 규칙을 함께 적용해 코드 리뷰 전에 오류 가능성과 규칙 위반을 자동으로 확인합니다. PR CI에서도 별도 lint 단계로 실행됩니다.                                                |
 
+## 인증 및 사용자 정보 저장 정책
+
+인증 토큰과 화면에 필요한 사용자 정보는 보안 수준과 사용 목적이 다르므로 분리해 저장합니다.
+
+| 데이터 | 저장 위치 | 관리 주체 | 사용 원칙 |
+| ------ | --------- | --------- | --------- |
+| Access·Refresh Token | 쿠키 | 백엔드 | 가능하면 `HttpOnly`, `Secure`, 적절한 `SameSite` 속성으로 발급합니다. 프런트엔드 JavaScript에서 토큰을 읽거나 복사하지 않습니다. |
+| 사용자 정보 | localStorage | 프런트엔드 | `useAuthStore`를 통해 `id`, `email`, `nickname`, `profileImageUrl`처럼 화면 표시에 필요한 공개 정보만 저장합니다. |
+
+- Axios 공용 인스턴스는 `withCredentials: true`를 사용해 API 요청에 쿠키를 포함합니다.
+- 토큰을 localStorage, sessionStorage, Zustand 상태 또는 일반 JavaScript 쿠키로 저장하지 않습니다.
+- localStorage의 사용자 정보는 사용자가 수정할 수 있으므로 인증·인가나 권한 판단의 근거로 사용하지 않습니다. 권한이 필요한 동작은 반드시 서버가 쿠키의 토큰을 검증해 결정합니다.
+- 인증 상태를 사용하는 화면은 `hasHydrated`가 `true`가 된 뒤 사용자 유무를 판단해 서버 렌더링과 localStorage 값의 불일치를 방지합니다.
+- 로그아웃할 때는 먼저 백엔드 로그아웃 API가 HttpOnly 쿠키를 만료시키고, 성공 여부에 맞춰 `useAuthStore.getState().clearUser()`로 로컬 사용자 정보를 제거합니다.
+- 사용자 정보 응답 타입이 확정되면 `UserInfo` 타입을 API 계약에 맞춰 갱신하되 토큰 필드는 추가하지 않습니다.
+- 프런트엔드와 API의 출처가 다르면 백엔드는 허용할 프런트엔드 Origin을 명시하고 credential 요청을 허용해야 합니다. credential 요청에서는 와일드카드 Origin을 사용하지 않습니다.
+- 쿠키를 사용하는 상태 변경 요청은 백엔드에서 `SameSite` 정책뿐 아니라 Origin 검증이나 CSRF 토큰 등 서비스 구조에 맞는 CSRF 방어를 적용합니다.
+
 ## 설계 가정
 
 기능 구현 전에 아래 표에 시스템이 정상적으로 동작하기 위해 전제하는 조건을 기록합니다. 가정이 더 이상 유효하지 않으면 관련 구현과 테스트를 함께 갱신합니다.
@@ -124,6 +142,7 @@ npm run type-check # TypeScript 검사
 ```text
 src/
 ├─ app/             # 페이지, 레이아웃, 전역 스타일
+├─ components/      # 전역 초기화 및 공용 컴포넌트
 ├─ lib/axios.ts     # Axios 공용 인스턴스
-└─ store/           # Zustand 전역 상태
+└─ store/           # 앱 및 인증용 Zustand 전역 상태
 ```
