@@ -1,3 +1,4 @@
+@import "maplibre-gl/dist/maplibre-gl.css";
 @import "tailwindcss";
 
 :root {
@@ -27,4 +28,50 @@ body {
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+.place-map-marker {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 9999px;
+  background: #a88f70;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgb(56 45 33 / 30%);
+}
+
+.place-map-marker:hover,
+.place-map-marker:focus-visible {
+  transform: scale(1.08);
+}
+
+.place-map-marker:focus-visible {
+  outline: 2px solid #15151a;
+  outline-offset: 2px;
+}
+
+.place-map-marker[data-selected="true"] {
+  width: 36px;
+  height: 36px;
+  background: #15151a;
+  font-size: 12px;
+}
+
+.place-map-popup .maplibregl-popup-content {
+  border: 1px solid #e3ded7;
+  border-radius: 12px;
+  padding: 8px 11px;
+  color: #15151a;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgb(36 31 25 / 16%);
+}
+
+.place-map-popup .maplibregl-popup-tip {
+  border-top-color: white;
 }

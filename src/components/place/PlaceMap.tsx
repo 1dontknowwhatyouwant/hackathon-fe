@@ -1,6 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  LngLat,
+  LngLatBounds,
+  Map as MapLibreMap,
+  Marker,
+  Popup,
+  type FillExtrusionLayerSpecification,
+} from "maplibre-gl";
 
 import type { PlaceRecommendation } from "@/types/place";
 
@@ -12,42 +20,90 @@ type PlaceMapProps = {
 };
 
 type MarkerEntry = {
-  marker: KakaoMarker;
-  position: KakaoLatLng;
-  clickHandler: () => void;
+  marker: Marker;
+  element: HTMLButtonElement;
+  handleClick: () => void;
 };
 
-let kakaoMapsSdkPromise: Promise<KakaoMapsNamespace> | undefined;
+const OPEN_FREE_MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
+const MIN_ZOOM_OUT_AMOUNT = 0.45;
+const MAX_ZOOM_OUT_AMOUNT = 1.4;
+const MAX_ZOOM_OUT_DISTANCE_METERS = 2_500;
 
-function loadKakaoMapsSdk(appKey: string) {
-  if (window.kakao?.maps) {
-    return new Promise<KakaoMapsNamespace>((resolve) => {
-      window.kakao?.maps.load(() => resolve(window.kakao!.maps));
-    });
+function getZoomOutAmount(distanceMeters: number) {
+  const distanceRatio = Math.min(
+    Math.max(distanceMeters / MAX_ZOOM_OUT_DISTANCE_METERS, 0),
+    1,
+  );
+
+  return (
+    MIN_ZOOM_OUT_AMOUNT +
+    (MAX_ZOOM_OUT_AMOUNT - MIN_ZOOM_OUT_AMOUNT) * distanceRatio
+  );
+}
+
+const buildingLayer: FillExtrusionLayerSpecification = {
+  id: "place-match-3d-buildings",
+  type: "fill-extrusion",
+  source: "openmaptiles",
+  "source-layer": "building",
+  minzoom: 13.5,
+  paint: {
+    "fill-extrusion-color": [
+      "interpolate",
+      ["linear"],
+      ["coalesce", ["get", "render_height"], ["get", "height"], 8],
+      0,
+      "#ded8cf",
+      30,
+      "#cfc5b8",
+      100,
+      "#b8aa9a",
+    ],
+    "fill-extrusion-height": [
+      "interpolate",
+      ["linear"],
+      ["zoom"],
+      13.5,
+      0,
+      15,
+      ["coalesce", ["get", "render_height"], ["get", "height"], 8],
+    ],
+    "fill-extrusion-base": [
+      "coalesce",
+      ["get", "render_min_height"],
+      ["get", "min_height"],
+      0,
+    ],
+    "fill-extrusion-opacity": 0.82,
+    "fill-extrusion-vertical-gradient": true,
+  },
+};
+
+function addBuildingLayer(map: MapLibreMap) {
+  if (!map.getSource("openmaptiles") || map.getLayer(buildingLayer.id)) {
+    return;
   }
 
-  if (kakaoMapsSdkPromise) {
-    return kakaoMapsSdkPromise;
-  }
+  const labelLayerId = map
+    .getStyle()
+    .layers.find(
+      (layer) =>
+        layer.type === "symbol" && Boolean(layer.layout?.["text-field"]),
+    )?.id;
 
-  kakaoMapsSdkPromise = new Promise<KakaoMapsNamespace>((resolve, reject) => {
-    const script = document.createElement("script");
-    script.id = "kakao-map-sdk";
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false`;
-    script.async = true;
-    script.onload = () => {
-      if (!window.kakao?.maps) {
-        reject(new Error("카카오 지도 SDK를 초기화하지 못했습니다."));
-        return;
-      }
+  map.addLayer(buildingLayer, labelLayerId);
+}
 
-      window.kakao.maps.load(() => resolve(window.kakao!.maps));
-    };
-    script.onerror = () => reject(new Error("카카오 지도 SDK를 불러오지 못했습니다."));
-    document.head.appendChild(script);
-  });
+function createMarkerElement(place: PlaceRecommendation, index: number) {
+  const element = document.createElement("button");
+  element.type = "button";
+  element.className = "place-map-marker";
+  element.dataset.selected = "false";
+  element.setAttribute("aria-label", `${place.name} 마커`);
+  element.textContent = String(index + 1);
 
-  return kakaoMapsSdkPromise;
+  return element;
 }
 
 export function PlaceMap({
@@ -57,162 +113,228 @@ export function PlaceMap({
   onMarkerSelect,
 }: PlaceMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<KakaoMap | null>(null);
-  const mapsRef = useRef<KakaoMapsNamespace | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef(new Map<string, MarkerEntry>());
-  const infoWindowRef = useRef<KakaoInfoWindow | null>(null);
+  const popupRef = useRef<Popup | null>(null);
   const onMarkerSelectRef = useRef(onMarkerSelect);
-  const [sdkStatus, setSdkStatus] = useState<"loading" | "ready" | "error">(
+  const [mapStatus, setMapStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
-
-  const appKey = process.env.NEXT_PUBLIC_KAKAO_MAP_JAVASCRIPT_KEY;
 
   useEffect(() => {
     onMarkerSelectRef.current = onMarkerSelect;
   }, [onMarkerSelect]);
 
   useEffect(() => {
-    if (
-      !appKey ||
-      !mapContainerRef.current ||
-      places.length === 0 ||
-      mapRef.current
-    ) {
+    const container = mapContainerRef.current;
+    const firstPlace = places[0];
+
+    if (!container || !firstPlace || mapRef.current) {
       return;
     }
 
-    let isCancelled = false;
+    const map = new MapLibreMap({
+      container,
+      style: OPEN_FREE_MAP_STYLE,
+      center: [
+        firstPlace.coordinates.longitude,
+        firstPlace.coordinates.latitude,
+      ],
+      zoom: 15.2,
+      pitch: 58,
+      bearing: -18,
+      canvasContextAttributes: { antialias: true },
+      attributionControl: false,
+      maxPitch: 70,
+    });
 
-    loadKakaoMapsSdk(appKey)
-      .then((maps) => {
-        if (isCancelled || !mapContainerRef.current) {
-          return;
-        }
+    let hasInitializedStyle = false;
+    const handleStyleReady = () => {
+      if (hasInitializedStyle || !map.getSource("openmaptiles")) {
+        return;
+      }
 
-        const firstPlace = places[0];
-        const center = new maps.LatLng(
-          firstPlace.coordinates.latitude,
-          firstPlace.coordinates.longitude,
-        );
+      hasInitializedStyle = true;
+      addBuildingLayer(map);
+      setMapStatus("ready");
+    };
+    const handleError = () => {
+      if (!map.loaded()) {
+        setMapStatus("error");
+      }
+    };
 
-        mapsRef.current = maps;
-        mapRef.current = new maps.Map(mapContainerRef.current, {
-          center,
-          level: 5,
-        });
-        infoWindowRef.current = new maps.InfoWindow();
-        setSdkStatus("ready");
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setSdkStatus("error");
-        }
-      });
+    map.on("styledata", handleStyleReady);
+    map.on("load", handleStyleReady);
+    map.on("error", handleError);
+    mapRef.current = map;
+
+    const resizeObserver = new ResizeObserver(() => map.resize());
+    resizeObserver.observe(container);
 
     return () => {
-      isCancelled = true;
+      resizeObserver.disconnect();
+      map.off("styledata", handleStyleReady);
+      map.off("load", handleStyleReady);
+      map.off("error", handleError);
+      map.remove();
+      mapRef.current = null;
     };
-  }, [appKey, places]);
+  }, [places]);
 
   useEffect(() => {
-    const maps = mapsRef.current;
     const map = mapRef.current;
     const markers = markersRef.current;
 
-    if (sdkStatus !== "ready" || !maps || !map) {
+    if (!map || mapStatus !== "ready") {
       return;
     }
 
-    markers.forEach(({ marker, clickHandler }) => {
-      maps.event.removeListener(marker, "click", clickHandler);
-      marker.setMap(null);
+    markers.forEach(({ marker, element, handleClick }) => {
+      element.removeEventListener("click", handleClick);
+      marker.remove();
     });
     markers.clear();
 
-    const bounds = new maps.LatLngBounds();
+    const bounds = new LngLatBounds();
 
-    places.forEach((place) => {
-      const position = new maps.LatLng(
-        place.coordinates.latitude,
+    places.forEach((place, index) => {
+      const coordinates: [number, number] = [
         place.coordinates.longitude,
-      );
-      const marker = new maps.Marker({ map, position, title: place.name });
-      const clickHandler = () => onMarkerSelectRef.current?.(place);
+        place.coordinates.latitude,
+      ];
+      const element = createMarkerElement(place, index);
+      const handleClick = () => onMarkerSelectRef.current?.(place);
+      const marker = new Marker({ element, anchor: "bottom" })
+        .setLngLat(coordinates)
+        .addTo(map);
 
-      maps.event.addListener(marker, "click", clickHandler);
-      markers.set(place.id, { marker, position, clickHandler });
-      bounds.extend(position);
+      element.addEventListener("click", handleClick);
+      markers.set(place.id, { marker, element, handleClick });
+      bounds.extend(coordinates);
     });
 
     if (places.length > 1) {
-      map.setBounds(bounds);
+      map.fitBounds(bounds, {
+        padding: { top: 54, right: 38, bottom: 52, left: 38 },
+        maxZoom: 15.4,
+        pitch: 52,
+        bearing: -18,
+        duration: 0,
+      });
     }
 
     return () => {
-      markers.forEach(({ marker, clickHandler }) => {
-        maps.event.removeListener(marker, "click", clickHandler);
-        marker.setMap(null);
+      markers.forEach(({ marker, element, handleClick }) => {
+        element.removeEventListener("click", handleClick);
+        marker.remove();
       });
       markers.clear();
     };
-  }, [places, sdkStatus]);
+  }, [mapStatus, places]);
 
   useEffect(() => {
     const map = mapRef.current;
-    const infoWindow = infoWindowRef.current;
     const selectedPlace = places.find((place) => place.id === selectedPlaceId);
-    const selectedMarker = selectedPlaceId
-      ? markersRef.current.get(selectedPlaceId)
-      : undefined;
 
-    if (!map || !infoWindow || !selectedPlace || !selectedMarker) {
-      infoWindow?.close();
+    markersRef.current.forEach(({ element }, id) => {
+      const isSelected = id === selectedPlaceId;
+      element.dataset.selected = String(isSelected);
+      element.setAttribute("aria-pressed", String(isSelected));
+    });
+
+    if (!map || mapStatus !== "ready" || !selectedPlace) {
+      popupRef.current?.remove();
       return;
     }
 
-    const label = document.createElement("div");
-    label.className = "px-3 py-2 text-xs font-semibold whitespace-nowrap";
-    label.textContent = selectedPlace.name;
+    const coordinates: [number, number] = [
+      selectedPlace.coordinates.longitude,
+      selectedPlace.coordinates.latitude,
+    ];
 
-    infoWindow.setContent(label);
-    infoWindow.open(map, selectedMarker.marker);
-    map.panTo(selectedMarker.position);
-  }, [places, sdkStatus, selectedPlaceId]);
+    popupRef.current?.remove();
+    popupRef.current = new Popup({
+      anchor: "bottom",
+      className: "place-map-popup",
+      closeButton: false,
+      closeOnClick: false,
+      offset: 42,
+    })
+      .setLngLat(coordinates)
+      .setText(selectedPlace.name)
+      .addTo(map);
+
+    map.stop();
+    const destination = new LngLat(coordinates[0], coordinates[1]);
+    const distanceToDestination = map.getCenter().distanceTo(destination);
+    const zoomOutAmount = getZoomOutAmount(distanceToDestination);
+    const targetZoom = Math.max(map.getZoom(), 15.3);
+    map.flyTo({
+      center: coordinates,
+      zoom: targetZoom,
+      minZoom: Math.max(targetZoom - zoomOutAmount, map.getMinZoom()),
+      pitch: 56,
+      bearing: -18,
+      duration: 2_000,
+      essential: true,
+    });
+
+    return () => {
+      map.stop();
+    };
+  }, [mapStatus, places, selectedPlaceId]);
 
   return (
-    <section
-      id="place-map"
-      aria-label="추천 장소 지도"
-      className="relative h-[180px] overflow-hidden rounded-[20px] border border-[#ebe7e1] bg-[#efebe5]"
-    >
-      <div ref={mapContainerRef} className="absolute inset-0" />
-
-      {!appKey && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#efebe5] px-8 text-center">
-          <p className="text-xs leading-5 text-[#6f665b]">
-            카카오 지도 JavaScript 키를 환경변수에 등록해 주세요.
-          </p>
+    <figure>
+      <section
+        id="place-map"
+        aria-label="추천 장소 3D 지도"
+        className="relative h-[220px] overflow-hidden rounded-[20px] border border-[#ebe7e1] bg-[#efebe5]"
+      >
+        <div className="absolute inset-0">
+          <div ref={mapContainerRef} className="h-full w-full" />
         </div>
-      )}
 
-      {appKey && sdkStatus === "loading" && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#efebe5] text-xs text-[#6f665b]">
-          지도를 불러오는 중입니다.
-        </div>
-      )}
+        {mapStatus === "loading" && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#efebe5] text-xs text-[#6f665b]">
+            3D 지도를 불러오는 중입니다.
+          </div>
+        )}
 
-      {appKey && sdkStatus === "error" && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#efebe5] px-8 text-center">
-          <p className="text-xs leading-5 text-[#6f665b]">
-            지도를 불러오지 못했습니다. 키와 등록 도메인을 확인해 주세요.
-          </p>
-        </div>
-      )}
+        {mapStatus === "error" && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#efebe5] px-8 text-center">
+            <p className="text-xs leading-5 text-[#6f665b]">
+              3D 지도를 불러오지 못했습니다. 네트워크 연결을 확인해 주세요.
+            </p>
+          </div>
+        )}
 
-      <p className="pointer-events-none absolute right-4 bottom-3 z-10 rounded-full bg-white/90 px-2.5 py-1 text-[9px] font-medium tracking-[0.08em] text-[#7f7569] shadow-sm">
-        {areaLabel} · SEOUL
-      </p>
-    </section>
+        <p className="pointer-events-none absolute right-4 bottom-3 z-10 rounded-full bg-white/90 px-2.5 py-1 text-[9px] font-medium tracking-[0.08em] text-[#7f7569] shadow-sm">
+          {areaLabel} · SEOUL
+        </p>
+      </section>
+
+      <figcaption className="mt-2 text-right text-[9px] leading-4 text-[#8b8277]">
+        <a href="https://openfreemap.org/" target="_blank" rel="noreferrer">
+          OpenFreeMap
+        </a>{" "}
+        <a
+          href="https://www.openmaptiles.org/"
+          target="_blank"
+          rel="noreferrer"
+        >
+          © OpenMapTiles
+        </a>{" "}
+        Data from{" "}
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noreferrer"
+        >
+          OpenStreetMap
+        </a>
+      </figcaption>
+    </figure>
   );
 }
