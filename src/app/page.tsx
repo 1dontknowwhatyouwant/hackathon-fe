@@ -1,3 +1,7 @@
+import Cover from "@/pages/cover/Cover";
+
+export default function Home() {
+  return <Cover />;
 import { PlaceResultScreen } from "@/components/place/PlaceResultScreen";
 import {
   placeRecommendations,
