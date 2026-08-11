@@ -10,6 +10,7 @@ import {
   type FillExtrusionLayerSpecification,
 } from "maplibre-gl";
 
+import { PulseLoader } from "@/components/common/feedback/PulseLoader";
 import type { PlaceRecommendation } from "@/types/place";
 
 type PlaceMapProps = {
@@ -120,10 +121,23 @@ export function PlaceMap({
   const [mapStatus, setMapStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
+  const [showLoader, setShowLoader] = useState(false);
 
   useEffect(() => {
     onMarkerSelectRef.current = onMarkerSelect;
   }, [onMarkerSelect]);
+
+  useEffect(() => {
+    if (mapStatus !== "loading") {
+      return;
+    }
+
+    const loaderTimer = window.setTimeout(() => {
+      setShowLoader(true);
+    }, 2_000);
+
+    return () => window.clearTimeout(loaderTimer);
+  }, [mapStatus]);
 
   useEffect(() => {
     const container = mapContainerRef.current;
@@ -297,8 +311,10 @@ export function PlaceMap({
         </div>
 
         {mapStatus === "loading" && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#efebe5] text-xs text-[#6f665b]">
-            3D 지도를 불러오는 중입니다.
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#efebe5]">
+            {showLoader ? (
+              <PulseLoader label="3D 지도를 불러오는 중입니다." />
+            ) : null}
           </div>
         )}
 
