@@ -2,23 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Pagination from "@/components/common/pagination/Pagination";
-import { api } from "@/lib/axios";
+import { dummyPosts } from "@/data/menuPageDummies";
+import type { PostSummary } from "@/types/menu";
 
-type Post = {
-  id: number;
-  title: string;
-};
-
-type PostsResponse = {
-  content: Post[];
-  totalPages: number;
-};
+// 실제 백엔드 연결 시 활성화합니다.
+// import { backendApi } from "@/services/backendApi";
 
 const PAGE_SIZE = 10;
 
 const PostsListPage = () => {
   const [currentPage /* 상태 관리 */, setCurrentPage] = useState(1);
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<PostSummary[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,15 +26,13 @@ const PostsListPage = () => {
       setError(null);
 
       try {
-        const response = await api.get<PostsResponse>("/posts", {
-          params: {
-            page: apiPage,
-            size: PAGE_SIZE,
-          },
-        });
-
-        setPosts(response.data.content);
-        setTotalPages(response.data.totalPages);
+        // 백엔드 연결 시 아래 호출로 더미 데이터 계산을 교체합니다.
+        // const response = await backendApi.posts.list(apiPage, PAGE_SIZE);
+        // setPosts(response.data.content);
+        // setTotalPages(response.data.totalPages);
+        const startIndex = apiPage * PAGE_SIZE;
+        setPosts(dummyPosts.slice(startIndex, startIndex + PAGE_SIZE));
+        setTotalPages(Math.ceil(dummyPosts.length / PAGE_SIZE));
       } catch {
         setError("목록을 불러오지 못했습니다.");
       } finally {
