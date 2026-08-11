@@ -1,6 +1,6 @@
-export type MapPosition = {
-  x: number;
-  y: number;
+export type MapCoordinates = {
+  latitude: number;
+  longitude: number;
 };
 
 export type PlaceRecommendation = {
@@ -9,5 +9,5 @@ export type PlaceRecommendation = {
   description: string;
   category: string;
   area: string;
-  mapPosition: MapPosition;
+  coordinates: MapCoordinates;
 };

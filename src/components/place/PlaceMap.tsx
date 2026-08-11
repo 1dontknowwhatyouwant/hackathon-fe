@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 import type { PlaceRecommendation } from "@/types/place";
 
 type PlaceMapProps = {
@@ -9,60 +11,212 @@ type PlaceMapProps = {
   onMarkerSelect?: (place: PlaceRecommendation) => void;
 };
 
+type MarkerEntry = {
+  marker: KakaoMarker;
+  position: KakaoLatLng;
+  clickHandler: () => void;
+};
+
+let kakaoMapsSdkPromise: Promise<KakaoMapsNamespace> | undefined;
+
+function loadKakaoMapsSdk(appKey: string) {
+  if (window.kakao?.maps) {
+    return new Promise<KakaoMapsNamespace>((resolve) => {
+      window.kakao?.maps.load(() => resolve(window.kakao!.maps));
+    });
+  }
+
+  if (kakaoMapsSdkPromise) {
+    return kakaoMapsSdkPromise;
+  }
+
+  kakaoMapsSdkPromise = new Promise<KakaoMapsNamespace>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.id = "kakao-map-sdk";
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false`;
+    script.async = true;
+    script.onload = () => {
+      if (!window.kakao?.maps) {
+        reject(new Error("카카오 지도 SDK를 초기화하지 못했습니다."));
+        return;
+      }
+
+      window.kakao.maps.load(() => resolve(window.kakao!.maps));
+    };
+    script.onerror = () => reject(new Error("카카오 지도 SDK를 불러오지 못했습니다."));
+    document.head.appendChild(script);
+  });
+
+  return kakaoMapsSdkPromise;
+}
+
 export function PlaceMap({
   places,
   areaLabel = "추천 지역",
   selectedPlaceId,
   onMarkerSelect,
 }: PlaceMapProps) {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<KakaoMap | null>(null);
+  const mapsRef = useRef<KakaoMapsNamespace | null>(null);
+  const markersRef = useRef(new Map<string, MarkerEntry>());
+  const infoWindowRef = useRef<KakaoInfoWindow | null>(null);
+  const onMarkerSelectRef = useRef(onMarkerSelect);
+  const [sdkStatus, setSdkStatus] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
+
+  const appKey = process.env.NEXT_PUBLIC_KAKAO_MAP_JAVASCRIPT_KEY;
+
+  useEffect(() => {
+    onMarkerSelectRef.current = onMarkerSelect;
+  }, [onMarkerSelect]);
+
+  useEffect(() => {
+    if (
+      !appKey ||
+      !mapContainerRef.current ||
+      places.length === 0 ||
+      mapRef.current
+    ) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    loadKakaoMapsSdk(appKey)
+      .then((maps) => {
+        if (isCancelled || !mapContainerRef.current) {
+          return;
+        }
+
+        const firstPlace = places[0];
+        const center = new maps.LatLng(
+          firstPlace.coordinates.latitude,
+          firstPlace.coordinates.longitude,
+        );
+
+        mapsRef.current = maps;
+        mapRef.current = new maps.Map(mapContainerRef.current, {
+          center,
+          level: 5,
+        });
+        infoWindowRef.current = new maps.InfoWindow();
+        setSdkStatus("ready");
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setSdkStatus("error");
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [appKey, places]);
+
+  useEffect(() => {
+    const maps = mapsRef.current;
+    const map = mapRef.current;
+    const markers = markersRef.current;
+
+    if (sdkStatus !== "ready" || !maps || !map) {
+      return;
+    }
+
+    markers.forEach(({ marker, clickHandler }) => {
+      maps.event.removeListener(marker, "click", clickHandler);
+      marker.setMap(null);
+    });
+    markers.clear();
+
+    const bounds = new maps.LatLngBounds();
+
+    places.forEach((place) => {
+      const position = new maps.LatLng(
+        place.coordinates.latitude,
+        place.coordinates.longitude,
+      );
+      const marker = new maps.Marker({ map, position, title: place.name });
+      const clickHandler = () => onMarkerSelectRef.current?.(place);
+
+      maps.event.addListener(marker, "click", clickHandler);
+      markers.set(place.id, { marker, position, clickHandler });
+      bounds.extend(position);
+    });
+
+    if (places.length > 1) {
+      map.setBounds(bounds);
+    }
+
+    return () => {
+      markers.forEach(({ marker, clickHandler }) => {
+        maps.event.removeListener(marker, "click", clickHandler);
+        marker.setMap(null);
+      });
+      markers.clear();
+    };
+  }, [places, sdkStatus]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const infoWindow = infoWindowRef.current;
+    const selectedPlace = places.find((place) => place.id === selectedPlaceId);
+    const selectedMarker = selectedPlaceId
+      ? markersRef.current.get(selectedPlaceId)
+      : undefined;
+
+    if (!map || !infoWindow || !selectedPlace || !selectedMarker) {
+      infoWindow?.close();
+      return;
+    }
+
+    const label = document.createElement("div");
+    label.className = "px-3 py-2 text-xs font-semibold whitespace-nowrap";
+    label.textContent = selectedPlace.name;
+
+    infoWindow.setContent(label);
+    infoWindow.open(map, selectedMarker.marker);
+    map.panTo(selectedMarker.position);
+  }, [places, sdkStatus, selectedPlaceId]);
+
   return (
     <section
       id="place-map"
       aria-label="추천 장소 지도"
       className="relative h-[180px] overflow-hidden rounded-[20px] border border-[#ebe7e1] bg-[#efebe5]"
     >
-      <div aria-hidden="true" className="absolute inset-0 opacity-80">
-        <span className="absolute top-[22px] left-[-30px] h-[16px] w-[440px] rotate-[7deg] bg-white/80" />
-        <span className="absolute top-[98px] left-[-34px] h-[20px] w-[430px] -rotate-[12deg] bg-white/80" />
-        <span className="absolute top-[-40px] left-[86px] h-[270px] w-[14px] rotate-[18deg] bg-white/70" />
-        <span className="absolute top-[-30px] right-[68px] h-[250px] w-[18px] -rotate-[20deg] bg-white/70" />
-        <span className="absolute top-[59px] left-0 h-px w-full bg-[#d9d3ca]" />
-        <span className="absolute top-[139px] left-0 h-px w-full bg-[#d9d3ca]" />
-      </div>
+      <div ref={mapContainerRef} className="absolute inset-0" />
 
-      <div className="absolute top-4 left-4 z-10 rounded-full bg-white/90 px-3 py-1.5 shadow-sm backdrop-blur">
+      <div className="pointer-events-none absolute top-4 left-4 z-10 rounded-full bg-white/90 px-3 py-1.5 shadow-sm backdrop-blur">
         <p className="text-[9px] font-bold tracking-[0.14em] text-[#8b7355]">
           PLACE MAP
         </p>
       </div>
 
-      {places.map((place, index) => {
-        const isSelected = selectedPlaceId === place.id;
+      {!appKey && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#efebe5] px-8 text-center">
+          <p className="text-xs leading-5 text-[#6f665b]">
+            카카오 지도 JavaScript 키를 환경변수에 등록해 주세요.
+          </p>
+        </div>
+      )}
 
-        return (
-          <button
-            key={place.id}
-            type="button"
-            aria-label={`${place.name} 마커`}
-            aria-pressed={isSelected}
-            title={place.name}
-            onClick={() => onMarkerSelect?.(place)}
-            className={`absolute z-20 flex -translate-x-1/2 -translate-y-full items-center justify-center rounded-full border-2 border-white font-bold shadow-[0_4px_12px_rgba(56,45,33,0.25)] transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8b7355] ${
-              isSelected
-                ? "size-9 bg-[#15151a] text-[12px] text-white"
-                : "size-7 bg-[#a88f70] text-[10px] text-white"
-            }`}
-            style={{
-              left: `${place.mapPosition.x}%`,
-              top: `${place.mapPosition.y}%`,
-            }}
-          >
-            {index + 1}
-          </button>
-        );
-      })}
+      {appKey && sdkStatus === "loading" && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#efebe5] text-xs text-[#6f665b]">
+          지도를 불러오는 중입니다.
+        </div>
+      )}
 
-      <p className="absolute right-4 bottom-3 text-[9px] font-medium tracking-[0.08em] text-[#a89b8a]">
+      {appKey && sdkStatus === "error" && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#efebe5] px-8 text-center">
+          <p className="text-xs leading-5 text-[#6f665b]">
+            지도를 불러오지 못했습니다. 키와 등록 도메인을 확인해 주세요.
+          </p>
+        </div>
+      )}
+
+      <p className="pointer-events-none absolute right-4 bottom-3 z-10 rounded-full bg-white/90 px-2.5 py-1 text-[9px] font-medium tracking-[0.08em] text-[#7f7569] shadow-sm">
         {areaLabel} · SEOUL
       </p>
     </section>

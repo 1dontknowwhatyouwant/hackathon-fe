@@ -9,7 +9,7 @@ export const placeRecommendations: PlaceRecommendation[] = [
     description: "성수의 산업적인 무드와 전시를 함께 즐겨요",
     category: "전시",
     area: "성수",
-    mapPosition: { x: 33, y: 34 },
+    coordinates: { latitude: 37.5415, longitude: 127.0563 },
   },
   {
     id: "yeonmujang-cafe",
@@ -17,7 +17,7 @@ export const placeRecommendations: PlaceRecommendation[] = [
     description: "룩의 분위기와 어울리는 카페에서 쉬어가요",
     category: "카페",
     area: "성수",
-    mapPosition: { x: 69, y: 42 },
+    coordinates: { latitude: 37.5434, longitude: 127.0548 },
   },
   {
     id: "seoul-forest-walk",
@@ -25,6 +25,6 @@ export const placeRecommendations: PlaceRecommendation[] = [
     description: "여유로운 산책으로 오늘의 룩을 완성해요",
     category: "산책",
     area: "성수",
-    mapPosition: { x: 52, y: 72 },
+    coordinates: { latitude: 37.5444, longitude: 127.0374 },
   },
 ];
