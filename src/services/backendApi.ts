@@ -4,8 +4,11 @@ import type {
   ClosetItem,
   ItemCreateInput,
   PostSummary,
-  RecommendationPreview,
 } from "@/types/menu";
+import type {
+  ProductCategoryFilter,
+  RecommendedProduct,
+} from "@/types/product";
 
 export type ApiResponse<T> = {
   data: T;
@@ -42,9 +45,19 @@ export const backendApi = {
         params: { page, size },
       }),
   },
-  recommendations: {
-    list: () =>
-      api.get<ApiResponse<RecommendationPreview[]>>("/recommendations"),
+  products: {
+    recommendations: (
+      category: ProductCategoryFilter,
+      signal?: AbortSignal,
+    ) =>
+      api.get<ApiResponse<RecommendedProduct[]>>("/products/recommendations", {
+        params: category === "ALL" ? undefined : { category },
+        signal,
+      }),
+    detail: (productId: string, signal?: AbortSignal) =>
+      api.get<ApiResponse<RecommendedProduct>>(`/products/${productId}`, {
+        signal,
+      }),
   },
   items: {
     list: () => api.get<ApiResponse<ClosetItem[]>>("/items"),

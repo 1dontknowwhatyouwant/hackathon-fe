@@ -30,6 +30,26 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+.luxury-reveal {
+  animation: luxury-reveal 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--luxury-reveal-delay, 0ms);
+  will-change: opacity, transform, filter;
+}
+
+@keyframes luxury-reveal {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+    transform: translate3d(0, 12px, 0);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 /* Loader adapted from Uiverse.io by Li-Deheng */
 .pulse-loader {
   --loader-color: #a88f70;
@@ -112,10 +132,16 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .luxury-reveal,
   .pulse-loader__circle,
   .pulse-loader__dot,
   .pulse-loader__outline {
     animation: none;
+  }
+
+  .luxury-reveal {
+    filter: none;
+    transform: none;
   }
 }
 
