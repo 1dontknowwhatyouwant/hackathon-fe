@@ -44,7 +44,7 @@ export const dummyClosetItems: ClosetItem[] = [
 ];
 
 export const dummyUser: UserInfo = {
-  id: "preview-user",
+  userId: "preview-user",
   email: "preview@wear-it.example",
   nickname: "오늘도입을래",
   profileImageUrl: null,
