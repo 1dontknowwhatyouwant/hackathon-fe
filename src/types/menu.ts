@@ -3,13 +3,6 @@ export type PostSummary = {
   title: string;
 };
 
-export type RecommendationPreview = {
-  id: string;
-  title: string;
-  description: string;
-  keyword: string;
-};
-
 export type ClosetItem = {
   id: string;
   name: string;
