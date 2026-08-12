@@ -1,23 +1,36 @@
 "use client";
 
+import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
+import { useAuthStore } from "@/store/useAuthStore";
+import {
+  createUserInfo,
+  findLocalAccount,
+} from "@/components/auth/authStorage";
 
 function TextField({
   label,
   placeholder,
   type = "text",
+  value,
+  onChange,
 }: {
   label: string;
   placeholder?: string;
   type?: string;
+  value: string;
+  onChange: (value: string) => void;
 }) {
   return (
     <label className="block">
       <span className="sr-only">{label}</span>
       <input
         type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder ?? label}
         className="h-[54px] w-full rounded-[16px] border border-[#d8d6dd] bg-white px-4 text-[13px] leading-4 text-[#15151a] outline-none transition placeholder:text-[#9999a1] focus:border-[#15151a]"
       />
@@ -52,7 +65,7 @@ function SocialButton({
 function PrimaryButton({ children }: { children: string }) {
   return (
     <button
-      type="button"
+      type="submit"
       className="flex h-[54px] w-full items-center justify-center rounded-[18px] bg-[#15151a] text-[15px] font-bold text-white transition hover:bg-[#202028]"
     >
       {children}
@@ -61,6 +74,27 @@ function PrimaryButton({ children }: { children: string }) {
 }
 
 export function LoginScreen() {
+  const router = useRouter();
+  const setUser = useAuthStore((state) => state.setUser);
+  const [id, setId] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const account = findLocalAccount(id.trim(), password);
+
+    if (!account) {
+      setError("저장된 계정을 찾을 수 없습니다.");
+      return;
+    }
+
+    setError("");
+    setUser(createUserInfo(account));
+    router.push("/dashboard");
+  };
+
   return (
     <MobileScreenLayout contentClassName="bg-white px-6 pb-[32px] pt-[48px] text-[#17181d]">
       <section className="flex min-h-full flex-col">
@@ -76,24 +110,41 @@ export function LoginScreen() {
           </p>
         </div>
 
-        <div className="mt-10 space-y-5">
-          <TextField label="아이디" placeholder="아이디" />
-          <TextField label="비밀번호" placeholder="비밀번호" type="password" />
-        </div>
-
-        <div className="mt-[40px] space-y-4">
-          <PrimaryButton>로그인</PrimaryButton>
-          <div className="grid grid-cols-2 gap-3">
-            <SocialButton brand="kakao">카카오 로그인</SocialButton>
-            <SocialButton brand="naver">네이버 로그인</SocialButton>
+        <form onSubmit={handleSubmit} className="mt-10">
+          <div className="space-y-5">
+            <TextField
+              label="아이디"
+              placeholder="아이디"
+              value={id}
+              onChange={setId}
+            />
+            <TextField
+              label="비밀번호"
+              placeholder="비밀번호"
+              type="password"
+              value={password}
+              onChange={setPassword}
+            />
           </div>
-          <p className="text-center text-[12px] font-bold text-[#55555d]">
-            계정이 없나요?{" "}
-            <Link href="/signup" className="underline underline-offset-2">
-              회원가입
-            </Link>
-          </p>
-        </div>
+
+          {error ? (
+            <p className="mt-3 text-[12px] font-medium text-[#c23535]">{error}</p>
+          ) : null}
+
+          <div className="mt-[40px] space-y-4">
+            <PrimaryButton>로그인</PrimaryButton>
+            <div className="grid grid-cols-2 gap-3">
+              <SocialButton brand="kakao">카카오 로그인</SocialButton>
+              <SocialButton brand="naver">네이버 로그인</SocialButton>
+            </div>
+            <p className="text-center text-[12px] font-bold text-[#55555d]">
+              계정이 없나요?{" "}
+              <Link href="/signup" className="underline underline-offset-2">
+                회원가입
+              </Link>
+            </p>
+          </div>
+        </form>
       </section>
     </MobileScreenLayout>
   );
