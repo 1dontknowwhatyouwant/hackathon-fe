@@ -13,6 +13,10 @@ export type RecommendedProduct = {
   utilityScore: number;
   closetMatchScore: number;
   expectedUseCount: number;
+  valueScore: number;
+  outfitCombinationCount: number;
+  resaleValueLabel: string;
+  careDifficultyLabel: string;
   price: number;
   imageUrl?: string;
 };

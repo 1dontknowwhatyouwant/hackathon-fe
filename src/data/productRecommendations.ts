@@ -14,6 +14,10 @@ export const dummyRecommendedProducts: readonly RecommendedProduct[] = [
     utilityScore: 82,
     closetMatchScore: 92,
     expectedUseCount: 12,
+    valueScore: 87,
+    outfitCombinationCount: 9,
+    resaleValueLabel: "높음",
+    careDifficultyLabel: "보통",
     price: 950_000,
   },
   {
@@ -26,6 +30,10 @@ export const dummyRecommendedProducts: readonly RecommendedProduct[] = [
     utilityScore: 75,
     closetMatchScore: 86,
     expectedUseCount: 9,
+    valueScore: 82,
+    outfitCombinationCount: 7,
+    resaleValueLabel: "높음",
+    careDifficultyLabel: "쉬움",
     price: 1_190_000,
   },
   {
@@ -38,6 +46,10 @@ export const dummyRecommendedProducts: readonly RecommendedProduct[] = [
     utilityScore: 68,
     closetMatchScore: 84,
     expectedUseCount: 10,
+    valueScore: 80,
+    outfitCombinationCount: 8,
+    resaleValueLabel: "높음",
+    careDifficultyLabel: "보통",
     price: 1_250_000,
   },
   {
@@ -50,6 +62,10 @@ export const dummyRecommendedProducts: readonly RecommendedProduct[] = [
     utilityScore: 61,
     closetMatchScore: 78,
     expectedUseCount: 7,
+    valueScore: 74,
+    outfitCombinationCount: 6,
+    resaleValueLabel: "보통",
+    careDifficultyLabel: "보통",
     price: 1_050_000,
   },
 ];
