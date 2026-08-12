@@ -54,6 +54,10 @@ export const backendApi = {
         params: category === "ALL" ? undefined : { category },
         signal,
       }),
+    detail: (productId: string, signal?: AbortSignal) =>
+      api.get<ApiResponse<RecommendedProduct>>(`/products/${productId}`, {
+        signal,
+      }),
   },
   items: {
     list: () => api.get<ApiResponse<ClosetItem[]>>("/items"),

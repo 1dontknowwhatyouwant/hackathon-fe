@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
@@ -20,6 +21,7 @@ const categoryFilters: ReadonlyArray<{
 ];
 
 export function ProductListScreen() {
+  const router = useRouter();
   const [retryCount, setRetryCount] = useState(0);
   const selectedCategory = useProductRecommendationStore(
     (state) => state.selectedCategory,
@@ -96,6 +98,9 @@ export function ProductListScreen() {
         <ProductList
           products={products}
           isLoading={status === "idle" || status === "loading"}
+          onProductSelect={(product) =>
+            router.push(`/recommendations/${product.id}`)
+          }
           revealStartDelay={120}
           revealRowInterval={60}
         />

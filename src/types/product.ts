@@ -6,7 +6,13 @@ export type ProductCategoryFilter = "ALL" | ProductCategory;
 export type RecommendedProduct = {
   id: string;
   name: string;
+  brand: string;
+  modelName: string;
+  displayName: string;
   category: ProductCategory;
   utilityScore: number;
+  closetMatchScore: number;
+  expectedUseCount: number;
+  price: number;
   imageUrl?: string;
 };
