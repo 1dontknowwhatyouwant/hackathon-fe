@@ -64,7 +64,10 @@ type CreateStylePlanRequest = {
   }>;
 };
 
-type StylePlanDetail = StylePlanSummary & {
+type StylePlanDetail = Pick<
+  StylePlanSummary,
+  "stylePlanId" | "title" | "occasion" | "plannedAt" | "status" | "createdAt"
+> & {
   weatherCondition: string | null;
   description: string | null;
   generationType: "AI" | "RULE_BASED" | "MANUAL";
