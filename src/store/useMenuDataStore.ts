@@ -6,49 +6,29 @@ import { create } from "zustand";
 // import { backendApi } from "@/services/backendApi";
 import {
   dummyClosetItems,
-  dummyRecommendations,
   dummyUser,
 } from "@/data/menuPageDummies";
 import { useAuthStore, type UserInfo } from "@/store/useAuthStore";
 import type {
   ClosetItem,
   ItemCreateInput,
-  RecommendationPreview,
 } from "@/types/menu";
 
 type MenuDataState = {
-  recommendations: RecommendationPreview[];
   items: ClosetItem[];
   profile: UserInfo | null;
   isLoading: boolean;
   error: string | null;
-  loadRecommendations: () => Promise<void>;
   loadItems: () => Promise<void>;
   loadProfile: () => Promise<void>;
   createItem: (input: ItemCreateInput) => Promise<ClosetItem>;
 };
 
 export const useMenuDataStore = create<MenuDataState>((set) => ({
-  recommendations: [],
   items: [],
   profile: null,
   isLoading: false,
   error: null,
-
-  loadRecommendations: async () => {
-    set({ isLoading: true, error: null });
-
-    try {
-      // 백엔드 연결 시 아래 호출로 더미 데이터 대입을 교체합니다.
-      // const response = await backendApi.recommendations.list();
-      // set({ recommendations: response.data.data });
-      set({ recommendations: dummyRecommendations });
-    } catch {
-      set({ error: "추천 정보를 불러오지 못했습니다." });
-    } finally {
-      set({ isLoading: false });
-    }
-  },
 
   loadItems: async () => {
     set({ isLoading: true, error: null });

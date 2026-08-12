@@ -1,5 +1,5 @@
-import { RecommendationsScreen } from "@/components/recommendations/RecommendationsScreen";
+import { ProductListScreen } from "@/components/products/ProductListScreen";
 
 export default function RecommendationsPage() {
-  return <RecommendationsScreen />;
+  return <ProductListScreen />;
 }
