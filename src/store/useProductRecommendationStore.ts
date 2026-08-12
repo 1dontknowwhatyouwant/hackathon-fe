@@ -3,7 +3,7 @@
 import { create } from "zustand";
 
 import { getDummyRecommendedProducts } from "@/data/productRecommendations";
-// import { backendApi } from "@/services/backendApi";
+// import { backendApi } from "@/services/api";
 import type {
   ProductCategoryFilter,
   RecommendedProduct,
@@ -52,11 +52,13 @@ export const useProductRecommendationStore =
       void (async () => {
         try {
           // 백엔드 연결 시 아래 호출로 더미 데이터 조회를 교체합니다.
-          // const response = await backendApi.products.recommendations(
-          //   category,
+          // const response = await backendApi.catalog.createRecommendation(
+          //   { category: category === "ALL" ? null : category, limit: 20 },
           //   request.controller.signal,
           // );
-          // const nextProducts = response.data.data;
+          // const nextProducts = response.data.data.products.map(
+          //   mapApiRecommendationToViewModel,
+          // );
           const nextProducts = getDummyRecommendedProducts(category);
 
           await Promise.resolve();
