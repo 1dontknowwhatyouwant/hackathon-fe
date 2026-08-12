@@ -1,10 +1,14 @@
 import type { RecommendedProduct } from "@/types/product";
 
+import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
+
 type ProductListProps = {
   products: readonly RecommendedProduct[];
   isLoading?: boolean;
   emptyMessage?: string;
   onProductSelect?: (product: RecommendedProduct) => void;
+  revealStartDelay?: number;
+  revealRowInterval?: number;
 };
 
 type ProductCardProps = {
@@ -77,6 +81,8 @@ export function ProductList({
   isLoading = false,
   emptyMessage = "조건에 맞는 추천 제품이 없습니다.",
   onProductSelect,
+  revealStartDelay = 0,
+  revealRowInterval = 60,
 }: ProductListProps) {
   if (isLoading && products.length === 0) {
     return <ProductListSkeleton />;
@@ -95,9 +101,13 @@ export function ProductList({
       aria-label="추천 제품 목록"
       className="grid grid-cols-2 gap-x-[10px] gap-y-6"
     >
-      {products.map((product) => (
+      {products.map((product, index) => (
         <li key={product.id}>
-          <ProductCard product={product} onSelect={onProductSelect} />
+          <LuxuryReveal
+            delay={revealStartDelay + Math.floor(index / 2) * revealRowInterval}
+          >
+            <ProductCard product={product} onSelect={onProductSelect} />
+          </LuxuryReveal>
         </li>
       ))}
     </ul>

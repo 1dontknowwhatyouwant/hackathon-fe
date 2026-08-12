@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
+import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BottomNavigation } from "@/components/common/navigation/BottomNavigation";
 import { ScreenHeader } from "@/components/common/section/ScreenHeader";
 import { ProductList } from "@/components/products/ProductList";
@@ -43,33 +44,37 @@ export function ProductListScreen() {
       contentClassName="px-6 pt-[47px] pb-8"
       bottomNavigation={<BottomNavigation activeItem="recommendation" />}
     >
-      <ScreenHeader
-        eyebrow="DISCOVER MORE"
-        title="추천 제품"
-        description="내 아이템과 조합하기 좋은 제품"
-      />
+      <LuxuryReveal>
+        <ScreenHeader
+          eyebrow="DISCOVER MORE"
+          title="추천 제품"
+          description="내 아이템과 조합하기 좋은 제품"
+        />
+      </LuxuryReveal>
 
-      <div aria-label="상품 카테고리" className="mt-[30px] flex gap-2">
-        {categoryFilters.map((filter) => {
-          const isSelected = filter.value === selectedCategory;
+      <LuxuryReveal delay={60}>
+        <div aria-label="상품 카테고리" className="mt-[30px] flex gap-2">
+          {categoryFilters.map((filter) => {
+            const isSelected = filter.value === selectedCategory;
 
-          return (
-            <button
-              key={filter.value}
-              type="button"
-              aria-pressed={isSelected}
-              className={`h-[38px] min-w-[70px] rounded-full border px-5 text-[12px] font-bold transition-colors ${
-                isSelected
-                  ? "border-[#15151a] bg-[#15151a] text-white"
-                  : "border-[#d1d1d8] bg-white text-[#55555d] hover:border-[#a8a8af]"
-              }`}
-              onClick={() => setSelectedCategory(filter.value)}
-            >
-              {filter.label}
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={filter.value}
+                type="button"
+                aria-pressed={isSelected}
+                className={`h-[38px] min-w-[70px] rounded-full border px-5 text-[12px] font-bold transition-colors ${
+                  isSelected
+                    ? "border-[#15151a] bg-[#15151a] text-white"
+                    : "border-[#d1d1d8] bg-white text-[#55555d] hover:border-[#a8a8af]"
+                }`}
+                onClick={() => setSelectedCategory(filter.value)}
+              >
+                {filter.label}
+              </button>
+            );
+          })}
+        </div>
+      </LuxuryReveal>
 
       <section className="mt-6" aria-live="polite">
         {error ? (
@@ -90,7 +95,9 @@ export function ProductListScreen() {
 
         <ProductList
           products={products}
-          isLoading={status === "loading"}
+          isLoading={status === "idle" || status === "loading"}
+          revealStartDelay={120}
+          revealRowInterval={60}
         />
       </section>
     </MobileScreenLayout>

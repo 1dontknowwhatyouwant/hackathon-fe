@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
+import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BottomNavigation } from "@/components/common/navigation/BottomNavigation";
 import { ScreenHeader } from "@/components/common/section/ScreenHeader";
 import { PlaceKeywords } from "@/components/place/PlaceKeywords";
@@ -33,28 +34,30 @@ export function PlaceResultScreen({
       contentClassName="px-6 pt-[47px] pb-6"
       bottomNavigation={<BottomNavigation activeItem="home" />}
     >
-      <ScreenHeader
-        eyebrow="PLACE MATCH"
-        title="이 룩과 어울리는 곳"
-        description={<PlaceKeywords keywords={keywords} />}
-      />
+      <LuxuryReveal>
+        <ScreenHeader
+          eyebrow="PLACE MATCH"
+          title="이 룩과 어울리는 곳"
+          description={<PlaceKeywords keywords={keywords} />}
+        />
+      </LuxuryReveal>
 
-      <div className="mt-10">
+      <LuxuryReveal className="mt-10" delay={70}>
         <PlaceList
           places={places}
           selectedPlaceId={selectedPlaceId}
           onPlaceSelect={handlePlaceSelect}
         />
-      </div>
+      </LuxuryReveal>
 
-      <div className="mt-[52px]">
+      <LuxuryReveal className="mt-[52px]" delay={140}>
         <PlaceMap
           places={places}
           areaLabel={places[0]?.area ?? keywords[0]}
           selectedPlaceId={selectedPlaceId}
           onMarkerSelect={handlePlaceSelect}
         />
-      </div>
+      </LuxuryReveal>
     </MobileScreenLayout>
   );
 }
