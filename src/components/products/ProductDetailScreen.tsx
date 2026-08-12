@@ -1,6 +1,9 @@
+import Link from "next/link";
+
 import { DetailActionCard } from "@/components/common/card/DetailActionCard";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
+import { BackButton } from "@/components/common/navigation/BackButton";
 import { ScreenHeader } from "@/components/common/section/ScreenHeader";
 import type { RecommendedProduct } from "@/types/product";
 
@@ -14,15 +17,21 @@ export function ProductDetailScreen({ product }: ProductDetailScreenProps) {
   return (
     <MobileScreenLayout
       figmaNodeId="1:441"
-      contentClassName="pt-[47px] pb-9"
+      contentClassName="pt-4 pb-9"
     >
-      <LuxuryReveal className="px-6">
-        <ScreenHeader
-          eyebrow={product.brand}
-          title={product.modelName}
-          description={`활용 예상 ${product.expectedUseCount}회 · 매치도 ${product.closetMatchScore}%`}
-        />
-      </LuxuryReveal>
+      <div className="px-6">
+        <LuxuryReveal>
+          <BackButton fallbackHref="/recommendations" />
+        </LuxuryReveal>
+
+        <LuxuryReveal className="mt-3" delay={40}>
+          <ScreenHeader
+            eyebrow={product.brand}
+            title={product.modelName}
+            description={`활용 예상 ${product.expectedUseCount}회 · 매치도 ${product.closetMatchScore}%`}
+          />
+        </LuxuryReveal>
+      </div>
 
       <LuxuryReveal className="mt-4" delay={70}>
         <div
@@ -68,12 +77,12 @@ export function ProductDetailScreen({ product }: ProductDetailScreenProps) {
         </div>
 
         <LuxuryReveal className="mt-5" delay={310}>
-          <button
-            type="button"
+          <Link
+            href={`/recommendations/${product.id}/value-check`}
             className="flex h-[52px] w-full items-center justify-center rounded-[16px] bg-[#15151a] text-[15px] font-bold text-white transition-colors hover:bg-[#2a2a30] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15151a]"
           >
             활용 가능성 확인
-          </button>
+          </Link>
         </LuxuryReveal>
       </div>
     </MobileScreenLayout>
