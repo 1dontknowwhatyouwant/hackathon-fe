@@ -37,8 +37,10 @@ export const catalogApi = {
   createRecommendation: (body: {
     category: ItemCategory | null;
     limit: number;
-  }) =>
-    api.post<ApiSuccessResponse<Recommendation>>("/recommendations", body),
+  }, signal?: AbortSignal) =>
+    api.post<ApiSuccessResponse<Recommendation>>("/recommendations", body, {
+      signal,
+    }),
 
   getRecommendation: (recommendationId: string) =>
     api.get<ApiSuccessResponse<Recommendation>>(
