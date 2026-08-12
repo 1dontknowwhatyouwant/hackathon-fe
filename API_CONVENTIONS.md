@@ -1,6 +1,8 @@
 # 입을래? API 공통 규칙
 
 > 프론트엔드와 백엔드가 분리된 저장소에서 동일한 기준으로 API를 설계하고 연동하기 위한 팀 공통 규칙이다.
+>
+> 기준 명세: `입을래? 프론트–백엔드 API 명세서 검토 반영본 v0.2` (2026-08-12)
 
 ## 1. 핵심 합의 사항
 
@@ -9,6 +11,7 @@
 | API 공통 경로   | 도메인 말단에 `/api`를 사용하며 `v1,v2,MVP`와 같은 경로는 사용하지 않는다. |
 | 환경별 주소     | 소스 코드에 직접 작성하지 않고 환경변수로 관리한다.                        |
 | 요청 경로       | 환경변수에 `/api`를 포함하고, 개별 요청에는 리소스 경로만 작성한다.        |
+| 인증            | Access Token은 프런트 메모리, Refresh Token은 HttpOnly Cookie로 관리한다.  |
 | 성공 응답       | `{ "success": true, "data": ... }`                                         |
 | 오류 응답       | `{ "success": false, "error": { "code", "message" } }`                     |
 | Validation 오류 | `error.fields` 배열에 필드별 오류를 담는다.                                |
@@ -19,6 +22,8 @@
 | ID              | API에서는 문자열로 전달한다.                                               |
 | 원화 금액       | 원 단위 정수로 전달한다.                                                   |
 | 목록 조회       | `page`, `size`, `sort` 기반 페이지네이션을 사용한다.                       |
+| 동시 수정       | `version` 기반 낙관적 잠금과 `RESOURCE_VERSION_CONFLICT`를 사용한다.       |
+| AI 요청         | `Idempotency-Key`로 중복 생성과 부분 반영을 방지한다.                      |
 
 ---
 
@@ -31,6 +36,12 @@ API의 공통 경로는 `/api`로 통일한다. 별도의 버전 경로인 `/v1`
 ```text
 로컬 개발: http://localhost:8080/api
 운영 환경: https://서비스도메인/api
+```
+
+운영 브라우저는 Railway 백엔드를 직접 호출하지 않고 프런트 도메인의 `/api/**` 프록시를 사용한다.
+
+```text
+Browser → Vercel /api/** → Railway Backend
 ```
 
 프론트엔드와 백엔드가 운영 환경에서 같은 도메인을 사용한다면 운영 환경의 값은 다음처럼 상대 경로로 둘 수 있다.
@@ -83,18 +94,23 @@ api.get("/products");
 api.get("/api/products");
 ```
 
-### 2.4 인증 쿠키와 사용자 정보 저장
+### 2.4 인증 토큰과 사용자 정보 저장
 
-- Access Token과 Refresh Token은 백엔드가 쿠키로 발급한다.
-- 인증 쿠키는 가능한 경우 `HttpOnly`, `Secure`, 적절한 `SameSite` 속성을 사용한다.
-- 프런트엔드는 토큰을 읽거나 localStorage, sessionStorage, Zustand 상태에 복사하지 않는다.
-- Axios 공용 인스턴스의 `withCredentials: true` 설정으로 인증 쿠키를 전송한다.
-- 화면 표시에 필요한 공개 사용자 정보만 `useAuthStore`를 통해 localStorage에 저장한다.
-- 인증 상태를 사용하는 화면은 스토어의 `hasHydrated`가 `true`가 된 뒤 사용자 유무를 판단한다.
-- localStorage 값은 인증·인가의 근거로 신뢰하지 않으며, 권한 판단은 서버에서 수행한다.
-- 로그아웃 API는 백엔드가 HttpOnly 쿠키를 만료시켜야 한다. 프런트엔드는 로그아웃 처리 후 localStorage의 사용자 정보를 제거한다.
-- 서로 다른 Origin에서 credential 요청을 사용할 때 백엔드는 명시적인 허용 Origin과 credential 허용 설정을 적용한다.
-- 쿠키 기반의 상태 변경 요청은 백엔드에서 Origin 검증이나 CSRF 토큰 등 서비스 구조에 맞는 CSRF 방어를 적용한다.
+| 데이터 | 저장 위치 | 전송 방식 | 수명 |
+| --- | --- | --- | --- |
+| Access Token | Zustand 메모리 상태 | `Authorization: Bearer` | 30분 |
+| Refresh Token | 백엔드 발급 HttpOnly Cookie | Cookie | 14일 |
+| 공개 사용자 정보 | Zustand persist를 통한 localStorage | API Body에 사용하지 않음 | 로그아웃까지 |
+
+- Access Token은 로그인·회원가입·재발급 성공 응답 Body에서 받는다.
+- Access Token을 localStorage나 sessionStorage에 저장하거나 Zustand persist 대상에 포함하지 않는다.
+- 새로고침으로 Access Token이 사라지면 `/auth/refresh`를 한 번 호출해 메모리 상태를 복원한다.
+- Refresh Token은 JavaScript로 읽지 않으며 Axios의 `withCredentials: true`로 전송한다.
+- 화면 표시용 사용자 정보만 `userId`, `email`, `nickname`, `gender`, `profileImageUrl` 범위에서 localStorage에 저장한다.
+- localStorage 값은 인증·인가의 근거로 신뢰하지 않으며 권한 판단은 서버가 JWT `sub`로 수행한다.
+- 로그아웃은 Access Token과 Refresh Cookie를 함께 보내며, 성공 여부와 관계없이 프런트 메모리 세션을 제거한다.
+- 운영 Refresh Cookie는 `refresh_token`, `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/api/auth`, `Max-Age=1209600`을 기준으로 한다.
+- 브라우저의 인증 관련 POST는 신뢰 Origin을 검증하고 OAuth Callback은 `oauth_state` Cookie와 Query `state`를 검증한다.
 
 ---
 
@@ -166,12 +182,16 @@ GET  /api/getProducts
 | --------------------------- | --------------------------: |
 | 조회·수정 성공              |                    `200 OK` |
 | 생성 성공                   |               `201 Created` |
+| 비동기 작업 접수·탈퇴 요청  |              `202 Accepted` |
 | 성공했지만 반환할 본문 없음 |            `204 No Content` |
 | 잘못된 요청·Validation 실패 |           `400 Bad Request` |
 | 인증 필요                   |          `401 Unauthorized` |
 | 권한 없음                   |             `403 Forbidden` |
 | 리소스 없음                 |             `404 Not Found` |
 | 중복 또는 현재 상태와 충돌  |              `409 Conflict` |
+| 호출 제한 초과              |   `429 Too Many Requests` |
+| 외부 서비스 장애            |           `502 Bad Gateway` |
+| 외부 서비스 Timeout         |         `504 Gateway Timeout` |
 | 서버 내부 오류              | `500 Internal Server Error` |
 
 ---
@@ -272,7 +292,7 @@ if (error.code === "PRODUCT_NOT_FOUND") {
 ```text
 PRODUCT_NOT_FOUND
 EMAIL_ALREADY_EXISTS
-AUTH_TOKEN_EXPIRED
+ACCESS_TOKEN_EXPIRED
 FILE_SIZE_EXCEEDED
 ```
 
@@ -355,6 +375,42 @@ const statusLabel = {
 } as const;
 ```
 
+상품 태그는 종류를 섞지 않고 `STYLE`, `SEASON`, `OCCASION`, `FEATURE`로 구분한다.
+
+```text
+STYLE
+- CASUAL
+- FORMAL
+- NEAT
+- GLAMOROUS
+
+SEASON
+- SPRING
+- SUMMER
+- AUTUMN
+- WINTER
+- ALL_SEASON
+
+OCCASION
+- DAILY
+- DATE
+- TRAVEL
+- GATHERING
+- CEREMONY
+- OUTDOOR
+- OTHER
+
+FEATURE
+- LIGHTWEIGHT
+- COMPACT
+- SPACIOUS
+- MULTIWAY
+- STATEMENT
+- LOGO
+```
+
+`MULTIWAY`는 여러 방식으로 착용·변형할 수 있는 구체적인 제품 특성을 뜻하며 `VERSATILE`은 사용하지 않는다. `EXHIBITION`, `CAFE`는 Occasion이 아니라 장소 카테고리다.
+
 ---
 
 ## 10. `null`, 빈 배열, 빈 문자열
@@ -414,18 +470,134 @@ API에서 `"1,250,000원"`처럼 표시용 문자열을 보내지 않는다. 쉼
 
 ---
 
-## 12. API 변경의 분류
+## 12. 인증 재발급과 로그아웃
+
+### 12.1 앱 시작
+
+```text
+Zustand 사용자 정보 복원
+→ POST /auth/refresh
+→ 성공 시 Access Token을 메모리에 저장
+→ 실패 시 비로그인 상태로 확정
+→ 인증 초기화 완료 표시
+```
+
+Refresh Cookie가 없는 방문자의 `401`은 정상적인 비로그인 초기 상태이므로 사용자 오류로 표시하지 않는다.
+
+### 12.2 보호 API의 401
+
+1. 실패한 요청이 이미 재시도된 요청인지 확인한다.
+2. 진행 중인 재발급 Promise가 있으면 새 재발급을 만들지 않고 같은 Promise를 기다린다.
+3. 재발급 성공 시 새 Access Token을 저장하고 원래 요청을 한 번만 재시도한다.
+4. 재발급 실패 시 메모리 토큰과 공개 사용자 정보를 제거한다.
+5. 로그인·회원가입·이메일 인증 같은 공개 인증 API의 `401`은 재발급하지 않는다.
+
+무한 재시도와 여러 Refresh Token의 동시 회전을 방지하기 위해 재발급은 항상 단일 실행으로 잠근다.
+
+### 12.3 로그아웃
+
+```http
+POST /api/auth/logout
+Authorization: Bearer {accessToken}
+Cookie: refresh_token=...
+```
+
+- 백엔드는 Refresh Token을 폐기하고 Cookie를 삭제한다.
+- 이미 폐기된 Token이나 없는 Cookie도 멱등 성공으로 처리할 수 있다.
+- 성공 응답은 `204 No Content`다.
+- 프런트는 요청 성공 여부와 관계없이 로컬 세션을 제거한다.
+
+---
+
+## 13. 동시성·중복 요청·부분 쓰기
+
+### 13.1 조회 요청 경합
+
+- 필터나 페이지가 바뀌면 이전 조회의 `AbortController`를 취소한다.
+- 요청 번호를 증가시키고 최신 번호와 일치하는 응답만 상태에 반영한다.
+- 검증이 끝난 응답 스냅샷을 한 번의 Zustand `set`으로 반영한다.
+
+### 13.2 수정 충돌
+
+- 사용자, 취향, 아이템, 스타일 플랜 수정 요청에는 현재 `version`을 포함한다.
+- 서버는 낙관적 잠금으로 버전을 확인한다.
+- 충돌 시 `409 RESOURCE_VERSION_CONFLICT`를 반환한다.
+- 프런트는 최신 데이터를 다시 불러온 뒤 사용자가 재시도하도록 안내한다.
+
+### 13.3 생성 요청 멱등성
+
+AI Job 생성은 호출자가 만든 UUID를 `Idempotency-Key` Header로 전달한다.
+
+```http
+POST /api/ai-jobs
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+```
+
+- 같은 사용자·같은 Key·같은 Body는 기존 Job을 반환한다.
+- 같은 Key에 다른 Body가 오면 `IDEMPOTENCY_KEY_CONFLICT`를 반환한다.
+- 네트워크 재시도에서는 새 Key를 만들지 않고 최초 Key를 재사용한다.
+- 여러 테이블을 변경하는 서버 작업은 하나의 DB 트랜잭션으로 처리하고 실패 시 전체 롤백한다.
+- 프런트는 서버 성공 전에 영구 상태로 확정하지 않으며 낙관적 UI를 사용하면 롤백 상태를 함께 정의한다.
+
+---
+
+## 14. 이미지와 AI Job
+
+### 14.1 아이템 이미지 등록 순서
+
+```text
+원본 File을 브라우저 메모리에 보관
+→ AI_INPUT 서명 발급과 업로드
+→ ITEM_ANALYSIS Job 완료
+→ 사용자가 분석 결과 확인·수정
+→ UserItem 생성
+→ 같은 원본 File을 ITEM 용도로 다시 업로드
+→ AI_INPUT 정리
+```
+
+- `AI_INPUT` 이미지를 `ITEM` 이미지로 직접 승격하지 않는다.
+- ITEM 이미지는 최대 3장, PROFILE은 최대 1장이다.
+- 허용 형식은 JPG·PNG·WebP, 최대 크기는 10MB, 긴 변은 최대 1600px이다.
+- 이미지 삭제는 `DELETE_PENDING`으로 전환한 뒤 외부 저장소에서 처리하며 재요청은 멱등 성공이다.
+
+### 14.2 AI Job 정책
+
+- 사용자당 동시 실행은 1개다.
+- 사용자당 하루 최대 10회다.
+- 외부 처리 Timeout은 20초다.
+- 서버 자동 재시도는 최대 1회다.
+- 동일 사용자·동일 입력 결과는 24시간 캐시할 수 있다.
+- `PURCHASE_UTILITY`가 `INSUFFICIENT_DATA`이면 분석 Row를 억지로 생성하지 않는다.
+- 클라이언트 폴링은 화면 이탈 시 취소하고 완료·실패·제한시간 초과에서 종료한다.
+
+---
+
+## 15. 확정 전 P0와 제안 Endpoint
+
+다음 항목은 팀 합의 전 구현 계약으로 고정하지 않는다.
+
+- 회원 탈퇴 시 LOCAL 비밀번호 재확인과 소셜 재인증 범위
+- 상품 추천 점수 항목과 가중치
+- 구매 활용성 점수 항목과 가중치
+- 장소 추천을 서버 규칙 기반으로 확정할지 여부
+- `/favorites`, `/saved-places` Endpoint명 최종 승인
+
+홈 API는 기존 결과를 집계하는 조회 전용이며 새 추천, AI Job, OpenAI, Kakao Local 호출을 시작하지 않는다.
+
+---
+
+## 16. API 변경의 분류
 
 변경 전에 프론트 영향도를 기준으로 다음과 같이 분류한다.
 
-### 12.1 호환 가능한 변경
+### 16.1 호환 가능한 변경
 
 - 응답에 새로운 선택 필드 추가
 - 새로운 API Endpoint 추가
 - 새로운 선택 Query Parameter 추가
 - 기존 동작을 바꾸지 않는 문서·설명 수정
 
-### 12.2 호환성이 깨지는 변경
+### 16.2 호환성이 깨지는 변경
 
 - Endpoint 또는 HTTP Method 변경
 - 기존 요청·응답 필드의 삭제 또는 이름 변경
@@ -438,7 +610,7 @@ API에서 `"1,250,000원"`처럼 표시용 문자열을 보내지 않는다. 쉼
 
 ---
 
-## 13. 분리된 프론트·백엔드 저장소에서 API 변경 공유 방법
+## 17. 분리된 프론트·백엔드 저장소에서 API 변경 공유 방법
 
 ---
 
@@ -469,7 +641,7 @@ Issue 제목 예시:
 
 ---
 
-## 14. API 변경 PR 템플릿
+## 18. API 변경 PR 템플릿
 
 백엔드 저장소의 `.github/pull_request_template.md` 또는 API 변경 PR 본문에 다음 양식을 사용한다.
 
@@ -554,7 +726,7 @@ Issue 제목 예시:
 - [ ] 팀 채널에 PR 링크와 적용 환경을 공유했습니다.
 ````
 
-### PR 제목 규칙
+### 18.1 PR 제목 규칙
 
 ```text
 [API] 상품 목록 페이지네이션 적용
@@ -566,7 +738,7 @@ Issue 제목 예시:
 
 ---
 
-## 15. 프론트 대응 PR 템플릿
+## 19. 프론트 대응 PR 템플릿
 
 ```md
 ## 관련 API 변경
@@ -598,7 +770,7 @@ Issue 제목 예시:
 
 ---
 
-## 16. API 변경 완료 조건
+## 20. API 변경 완료 조건
 
 다음 조건을 모두 만족해야 API 변경이 완료된 것으로 본다.
 
