@@ -5,11 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
+import { getApiErrorMessage } from "@/lib/apiError";
+import { authApi } from "@/services/api";
 import { useAuthStore } from "@/store/useAuthStore";
-import {
-  createUserInfo,
-  findLocalAccount,
-} from "@/components/auth/authStorage";
+import type { OAuthProvider } from "@/types/api";
 
 function TextField({
   label,
@@ -41,15 +40,18 @@ function TextField({
 function SocialButton({
   children,
   brand,
+  onClick,
 }: {
   children: string;
-  brand: "kakao" | "naver";
+  brand: OAuthProvider;
+  onClick: () => void;
 }) {
   const isKakao = brand === "kakao";
 
   return (
     <button
       type="button"
+      onClick={onClick}
       className={[
         "flex h-[54px] w-full items-center justify-center rounded-[18px] border text-[15px] font-bold transition",
         isKakao
@@ -62,11 +64,18 @@ function SocialButton({
   );
 }
 
-function PrimaryButton({ children }: { children: string }) {
+function PrimaryButton({
+  children,
+  disabled,
+}: {
+  children: string;
+  disabled: boolean;
+}) {
   return (
     <button
       type="submit"
-      className="flex h-[54px] w-full items-center justify-center rounded-[18px] bg-[#15151a] text-[15px] font-bold text-white transition hover:bg-[#202028]"
+      disabled={disabled}
+      className="flex h-[54px] w-full items-center justify-center rounded-[18px] bg-[#15151a] text-[15px] font-bold text-white transition hover:bg-[#202028] disabled:cursor-not-allowed disabled:opacity-60"
     >
       {children}
     </button>
@@ -75,24 +84,46 @@ function PrimaryButton({ children }: { children: string }) {
 
 export function LoginScreen() {
   const router = useRouter();
-  const setUser = useAuthStore((state) => state.setUser);
+  const setSession = useAuthStore((state) => state.setSession);
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const loginId = id.trim();
 
-    const account = findLocalAccount(id.trim(), password);
-
-    if (!account) {
-      setError("저장된 계정을 찾을 수 없습니다.");
+    if (!loginId || !password) {
+      setError("아이디와 비밀번호를 입력해 주세요.");
       return;
     }
 
+    setIsSubmitting(true);
     setError("");
-    setUser(createUserInfo(account));
-    router.push("/dashboard");
+
+    try {
+      const response = await authApi.login({ loginId, password });
+      setSession(response.data.data);
+      router.replace("/dashboard");
+    } catch (submitError) {
+      setError(
+        getApiErrorMessage(
+          submitError,
+          "로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+        ),
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const startOAuth = (provider: OAuthProvider) => {
+    try {
+      window.location.assign(authApi.getOAuthStartUrl(provider));
+    } catch (oauthError) {
+      setError(getApiErrorMessage(oauthError, "로그인 주소를 확인해 주세요."));
+    }
   };
 
   return (
@@ -132,10 +163,22 @@ export function LoginScreen() {
           ) : null}
 
           <div className="mt-[40px] space-y-4">
-            <PrimaryButton>로그인</PrimaryButton>
+            <PrimaryButton disabled={isSubmitting}>
+              {isSubmitting ? "로그인 중..." : "로그인"}
+            </PrimaryButton>
             <div className="grid grid-cols-2 gap-3">
-              <SocialButton brand="kakao">카카오 로그인</SocialButton>
-              <SocialButton brand="naver">네이버 로그인</SocialButton>
+              <SocialButton
+                brand="kakao"
+                onClick={() => startOAuth("kakao")}
+              >
+                카카오 로그인
+              </SocialButton>
+              <SocialButton
+                brand="naver"
+                onClick={() => startOAuth("naver")}
+              >
+                네이버 로그인
+              </SocialButton>
             </div>
             <p className="text-center text-[12px] font-bold text-[#55555d]">
               계정이 없나요?{" "}
