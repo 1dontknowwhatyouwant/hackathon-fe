@@ -211,7 +211,7 @@ export type MyItemSummary = {
   createdAt: string;
 };
 
-export type MyItemDetail = MyItemSummary & {
+export type MyItemDetail = Omit<MyItemSummary, "primaryImageUrl"> & {
   linkedProductId: string | null;
   materialSource: "PRODUCT_DATA" | "USER_CONFIRMED" | "AI_ESTIMATED";
   status: "OWNED" | "REPAIRING" | "SOLD" | "DISPOSED";
