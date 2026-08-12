@@ -5,9 +5,6 @@ import Pagination from "@/components/common/pagination/Pagination";
 import { dummyPosts } from "@/data/menuPageDummies";
 import type { PostSummary } from "@/types/menu";
 
-// 실제 백엔드 연결 시 활성화합니다.
-// import { backendApi } from "@/services/backendApi";
-
 const PAGE_SIZE = 10;
 
 const PostsListScreen = () => {
@@ -26,10 +23,7 @@ const PostsListScreen = () => {
       setError(null);
 
       try {
-        // 백엔드 연결 시 아래 호출로 더미 데이터 계산을 교체합니다.
-        // const response = await backendApi.posts.list(apiPage, PAGE_SIZE);
-        // setPosts(response.data.content);
-        // setTotalPages(response.data.totalPages);
+        // 게시글은 API v0.2 범위 밖의 페이지네이션 UI 확인용 데이터입니다.
         const startIndex = apiPage * PAGE_SIZE;
         setPosts(dummyPosts.slice(startIndex, startIndex + PAGE_SIZE));
         setTotalPages(Math.ceil(dummyPosts.length / PAGE_SIZE));
