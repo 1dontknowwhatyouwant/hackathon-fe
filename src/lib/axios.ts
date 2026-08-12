@@ -8,6 +8,7 @@ import type { ApiErrorResponse, ApiSuccessResponse, AuthTokenData } from "@/type
 
 const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const timeout = 10_000;
+const paramsSerializer = { indexes: null } as const;
 
 export const api = axios.create({
   baseURL,
@@ -15,6 +16,7 @@ export const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  paramsSerializer,
   timeout,
 });
 
@@ -24,6 +26,7 @@ const refreshClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  paramsSerializer,
   timeout,
 });
 
@@ -77,8 +80,21 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiErrorResponse>) => {
     const request = error.config as RetryableRequestConfig | undefined;
+    const requestUrl = request?.url ?? "";
+    const isPublicAuthRequest = [
+      "/auth/login",
+      "/auth/signup",
+      "/auth/email-verifications",
+      "/auth/login-ids/",
+      "/auth/oauth/",
+    ].some((path) => requestUrl.startsWith(path));
 
-    if (error.response?.status !== 401 || !request || request._authRetry) {
+    if (
+      error.response?.status !== 401 ||
+      !request ||
+      request._authRetry ||
+      isPublicAuthRequest
+    ) {
       return Promise.reject(error);
     }
 
