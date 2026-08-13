@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AuthStoreHydrator } from "@/components/providers/AuthStoreHydrator";
+import { DevelopmentCacheReset } from "@/components/providers/DevelopmentCacheReset";
 
 import "./globals.css";
 
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
+        <DevelopmentCacheReset />
         <AuthStoreHydrator />
         {children}
       </body>
