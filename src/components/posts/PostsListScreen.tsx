@@ -23,7 +23,7 @@ const PostsListScreen = () => {
       setError(null);
 
       try {
-        // 게시글은 API v0.2 범위 밖의 페이지네이션 UI 확인용 데이터입니다.
+        // 게시글은 API v0.3 범위 밖의 페이지네이션 UI 확인용 데이터입니다.
         const startIndex = apiPage * PAGE_SIZE;
         setPosts(dummyPosts.slice(startIndex, startIndex + PAGE_SIZE));
         setTotalPages(Math.ceil(dummyPosts.length / PAGE_SIZE));

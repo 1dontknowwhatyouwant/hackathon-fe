@@ -1,306 +1,308 @@
-# 입을래? API 공통 규칙
+# 입을래? 프론트–백엔드 API 명세서 검토 반영본 v0.3
 
-> 프론트엔드와 백엔드가 분리된 저장소에서 동일한 기준으로 API를 설계하고 연동하기 위한 팀 공통 규칙이다.
->
-> 기준 명세: `입을래? 프론트–백엔드 API 명세서 검토 반영본 v0.2` (2026-08-12)
-
-## 1. 핵심 합의 사항
-
-| 항목            | 팀 규칙                                                                    |
-| --------------- | -------------------------------------------------------------------------- |
-| API 공통 경로   | 도메인 말단에 `/api`를 사용하며 `v1,v2,MVP`와 같은 경로는 사용하지 않는다. |
-| 환경별 주소     | 소스 코드에 직접 작성하지 않고 환경변수로 관리한다.                        |
-| 요청 경로       | 환경변수에 `/api`를 포함하고, 개별 요청에는 리소스 경로만 작성한다.        |
-| 인증            | Access Token은 프런트 메모리, Refresh Token은 HttpOnly Cookie로 관리한다.  |
-| 성공 응답       | `{ "success": true, "data": ... }`                                         |
-| 오류 응답       | `{ "success": false, "error": { "code", "message" } }`                     |
-| Validation 오류 | `error.fields` 배열에 필드별 오류를 담는다.                                |
-| 날짜·시간       | ISO 8601 형식을 사용한다.                                                  |
-| 기준 시간대     | 서버·DB·API는 UTC, 화면 표시는 `Asia/Seoul`을 사용한다.                    |
-| Enum            | 영문 대문자 `SNAKE_CASE`를 사용한다.                                       |
-| 값 없음         | 단일 값은 `null`, 목록은 `[]`을 반환한다.                                  |
-| ID              | API에서는 문자열로 전달한다.                                               |
-| 원화 금액       | 원 단위 정수로 전달한다.                                                   |
-| 목록 조회       | `page`, `size`, `sort` 기반 페이지네이션을 사용한다.                       |
-| 동시 수정       | `version` 기반 낙관적 잠금과 `RESOURCE_VERSION_CONFLICT`를 사용한다.       |
-| AI 요청         | `Idempotency-Key`로 중복 생성과 부분 반영을 방지한다.                      |
+> 기준일: 2026-08-13
+> 목적: 프론트엔드 연동 계약 정리, Springdoc OpenAPI/Swagger 구현 기준, 최신 팀 회의 결정의 단일 문서화
+> 상태: **API v0.2 + 2026-08-13 팀 회의 확정사항 + 현재 `feat/database-schema` Flyway V1~V9 + API_CONVENTIONS 정합성 반영본**
+> 원칙: 이 문서에서 **확정**으로 표시한 정책은 구현 기준으로 사용한다. DB 정리처럼 후속 검토가 명시된 항목은 기존 Migration을 수정하지 않고 별도 후속 Migration으로 처리한다.
 
 ---
 
-## 2. API 기본 주소와 `/api` 위치
+# 0. 기준 문서·우선순위
 
-### 2.1 기본 주소
+이 문서는 다음 자료를 종합한다.
 
-API의 공통 경로는 `/api`로 통일한다. 별도의 버전 경로인 `/v1`은 붙이지 않는다.
+1. 2026-08-13 최신 팀 회의 결정
+2. `Hackathon_BE/API_CONVENTIONS.md`
+3. `login-auth-handoff-final-review-v5.md`
+4. `image-ai-external-services-handoff-final-review-v6.md`
+5. `erd-domain-handoff-final-review-v6.md`
+6. 기존 `입을래_API_명세서_검토반영_v0.2.md`
+7. 현재 `feat/database-schema`의 Flyway V1~V9
+
+충돌 시 우선순위:
 
 ```text
-로컬 개발: http://localhost:8080/api
-운영 환경: https://서비스도메인/api
+최신 팀 명시적 합의
+→ API_CONVENTIONS의 공통 계약
+→ 최신 FINAL-REVIEW 정책
+→ 현재 적용된 DB 구조
+→ API v0.2
+→ 이전 초안
 ```
 
-운영 브라우저는 Railway 백엔드를 직접 호출하지 않고 프런트 도메인의 `/api/**` 프록시를 사용한다.
+DB가 최신 제품 정책보다 우선하지 않는다. 다만 이미 적용된 Flyway Versioned Migration을 과거 시점에서 수정하지 않는다.
 
 ```text
-Browser → Vercel /api/** → Railway Backend
+정책 변경
+→ 현재 DB 영향 확인
+→ 필요하면 새 Migration
 ```
 
-프론트엔드와 백엔드가 운영 환경에서 같은 도메인을 사용한다면 운영 환경의 값은 다음처럼 상대 경로로 둘 수 있다.
+---
 
-```env
-NEXT_PUBLIC_API_BASE_URL=/api
+## 0.1 v0.3 핵심 변경 요약
+
+### ProductTag
+
+- 최종 ProductTag 19개 확정.
+- FEATURE는 `COMPACT`, `SPACIOUS`, `MULTIWAY`만 사용.
+- `LIGHTWEIGHT`, `LOGO`, `STATEMENT` 제외.
+- DB의 `product_tags.display_name` 제거 완료.
+- 화면 표시 한글/다국어 문구는 프론트가 `code → label`로 관리.
+- 기존 “V9 태그 기준 데이터” 계획은 변경됨.
+  - V9: `display_name` 컬럼 제거
+  - V10: ProductTag 19개 기준 데이터 삽입 예정
+
+### 기능 범위
+
+v0.2에서 API 범위 밖이었던 다음 기능을 MVP 범위에 다시 포함한다.
+
+- 착용/사용 기록
+- 활용도 분석
+- 장기 미사용 제품 안내
+- 다시 활용할 제품 추천
+- 제품 패스포트
+- 관리 가이드/관리 일정
+
+다음은 제외한다.
+
+- 관리 기록(Care Record) 사용자 기능
+- 제품 상태 표시
+- 중고 판매/리셀
+- 장기 미사용 아이템 재활용 **AI**
+- 독립 MCM 상품 추천 AI
+- 장소 추천 AI
+
+### 추천·분석
+
+독립 MCM 상품 추천은 `RULE_BASED`.
+
+```text
+STYLE       최대 30
+OCCASION    최대 25
+SEASON      최대 25
+FEATURE     최대 20
+총          최대 100
 ```
 
-브라우저가 백엔드 서버를 직접 호출하는 로컬 개발 환경의 예시는 다음과 같다.
+FEATURE 부분 일치:
 
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
+```text
+FEATURE 점수
+= 20 × (일치 FEATURE 개수 / 사용자가 선택한 FEATURE 개수)
 ```
 
-`NEXT_PUBLIC_`이 붙은 환경변수는 브라우저에 공개될 수 있다. API 기본 주소는 공개되어도 되는 값이지만, API 키나 비밀번호 같은 비밀 값은 절대 넣지 않는다.
+구매 전 활용 가능성은 **Rule-Based 점수 + AI 자연어 설명**으로 역할을 분리한다.
 
-### 2.2 환경변수 파일 관리
-
-- 실제 값은 `.env.local` 등 배포 환경에 맞는 파일이나 배포 서비스 설정에 저장한다.
-- 실제 환경변수 파일은 Git에 올리지 않는다.
-- 변수 이름과 예시만 담은 `.env.example`은 저장소에 올린다.
-
-`.env.example` 예시:
-
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
+```text
+취향 태그 일치                 최대 30
+내 아이템과 스타일 조합 가능     최대 25
+계절 활용성                    최대 25
+현재 보유 카테고리와의 조합       최대 20
+총                            최대 100
 ```
 
-### 2.3 Axios 공통 인스턴스
+### 장소
+
+```text
+FE 위치 + OCCASION
+→ BE
+→ Kakao Local
+→ places Upsert
+→ 서버 Rule-Based
+→ FE
+→ OpenFreeMap 3D 지도
+```
+
+추천 점수:
+
+```text
+카테고리 적합도 최대 60
+거리 적합도      최대 40
+총               최대 100
+```
+
+Kakao는 지도 렌더링이 아니라 장소 데이터 공급자로 사용한다.
+
+### 회원 탈퇴
+
+- LOCAL: 비밀번호 재인증
+- NAVER/KAKAO: Provider 재로그인 + OAuth state 검증 + Provider 사용자 ID 일치 확인
+- 성공 시 `ACCOUNT_DELETE` 용도의 1회용 `reauthToken`
+- 유효시간 5분
+- 1회 사용 후 재사용 금지
+- 탈퇴 API는 유효한 재인증 증명이 있어야 실행
+
+### AI Job
+
+- `PENDING → PROCESSING → SUCCEEDED | FAILED`
+- AI 처리 실패 Job 조회는 `HTTP 200 + status=FAILED`
+- `error`와 선택적 `fallback` 제공
+- 실제 서버 장애는 별도의 5xx
+- FE Polling: 2초 간격, 최대 약 30초
+- `DORMANT_ITEM_REUSE`는 MVP AI Job Type에서 사용하지 않는다.
+
+### 명칭
+
+사용자 화면 명칭:
+
+```text
+스타일 플랜
+→ 스마트 착용 추천
+```
+
+DB/코드 호환성을 위해 이번 v0.3에서는 기술 리소스 이름을 유지한다.
+
+```text
+DB: style_plans
+API: /style-plans
+AiJobType: STYLE_PLAN
+```
+
+즉 화면 문구만 “스마트 착용 추천”을 사용하고, 기존 V8 Migration을 이름 변경 목적으로 다시 만들지 않는다.
+
+---
+
+## 0.2 v0.3에서 제외하는 기능
+
+- 관리 기록 생성·조회·수정·삭제 API
+- 중고 판매·판매 글·소유권 이전
+- 장바구니·결제·재고·배송
+- 정품 인증
+- 비회원 체험
+- 자동 날씨 조회
+- 실제 이메일 알림 발송
+- AI 기반 장기 미사용 아이템 재활용 추천
+- 독립 MCM 상품 추천용 AI Job
+- 장소 추천용 AI Job
+- 얼굴·신체 이미지 분석
+- 동영상
+- 다른 브랜드를 추천 후보로 사용하는 기능
+
+---
+
+# 1. 공통 API 계약
+
+## 1.1 Base URL
+
+```text
+로컬: http://localhost:8080/api
+운영: https://{frontend-domain}/api
+```
+
+운영:
+
+```text
+Browser
+→ Vercel /api/**
+→ Railway Backend
+```
+
+프론트 Axios:
 
 ```ts
-import axios from "axios";
-
-export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-  withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-```
-
-환경변수에 이미 `/api`가 포함되어 있으므로 개별 요청에는 `/api`를 다시 붙이지 않는다.
-
-```ts
-// 권장: GET http://localhost:8080/api/products
-api.get("/products");
-
-// 금지: /api가 중복될 수 있음
-api.get("/api/products");
-```
-
-### 2.4 인증 토큰과 사용자 정보 저장
-
-| 데이터 | 저장 위치 | 전송 방식 | 수명 |
-| --- | --- | --- | --- |
-| Access Token | Zustand 메모리 상태 | `Authorization: Bearer` | 30분 |
-| Refresh Token | 백엔드 발급 HttpOnly Cookie | Cookie | 14일 |
-| 공개 사용자 정보 | Zustand persist를 통한 localStorage | API Body에 사용하지 않음 | 로그아웃까지 |
-
-- Access Token은 로그인·회원가입·재발급 성공 응답 Body에서 받는다.
-- Access Token을 localStorage나 sessionStorage에 저장하거나 Zustand persist 대상에 포함하지 않는다.
-- 새로고침으로 Access Token이 사라지면 `/auth/refresh`를 한 번 호출해 메모리 상태를 복원한다.
-- Refresh Token은 JavaScript로 읽지 않으며 Axios의 `withCredentials: true`로 전송한다.
-- 화면 표시용 사용자 정보만 `userId`, `email`, `nickname`, `gender`, `profileImageUrl` 범위에서 localStorage에 저장한다.
-- localStorage 값은 인증·인가의 근거로 신뢰하지 않으며 권한 판단은 서버가 JWT `sub`로 수행한다.
-- 로그아웃은 Access Token과 Refresh Cookie를 함께 보내며, 성공 여부와 관계없이 프런트 메모리 세션을 제거한다.
-- 운영 Refresh Cookie는 `refresh_token`, `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/api/auth`, `Max-Age=1209600`을 기준으로 한다.
-- 브라우저의 인증 관련 POST는 신뢰 Origin을 검증하고 OAuth Callback은 `oauth_state` Cookie와 Query `state`를 검증한다.
-
----
-
-## 3. URL 및 요청 작성 규칙
-
-- 리소스 이름은 복수 명사와 소문자 케밥 표기법을 사용한다.
-- 동작을 URL에 넣기보다 HTTP Method로 표현한다.
-- 경로의 ID 이름은 어떤 리소스의 ID인지 알 수 있게 작성한다.
-- 검색·필터·정렬·페이지 정보는 Query Parameter로 전달한다.
-
-```http
-GET    /api/products
-GET    /api/products/{productId}
-POST   /api/products
-PATCH  /api/products/{productId}
-DELETE /api/products/{productId}
-
-GET /api/style-recommendations?page=0&size=20&sort=createdAt,desc
-```
-
-다음과 같이 동사를 URL에 중복해서 쓰는 방식은 피한다.
-
-```http
-POST /api/createProduct
-GET  /api/getProducts
+api.get("/products");       // O
+api.get("/api/products");   // X
 ```
 
 ---
 
-## 4. 성공 응답 형식
+## 1.2 인증
 
-### 4.1 단일 객체
+| 토큰 | 형식 | 저장 위치 | 전송 | 수명 |
+|---|---|---|---|---|
+| Access Token | JWT | 프론트 메모리 | `Authorization: Bearer` | 30분 |
+| Refresh Token | 난수 Token | HttpOnly Cookie | Cookie | 14일 |
 
-```json
-{
-  "success": true,
-  "data": {
-    "id": "123",
-    "name": "MCM 가방",
-    "price": 1250000,
-    "currency": "KRW"
-  }
-}
+Access Token은 `localStorage`, `sessionStorage`에 저장하지 않는다.
+
+보호 API:
+
+```http
+Authorization: Bearer {accessToken}
 ```
 
-### 4.2 배열
-
-페이지네이션을 사용하지 않는 작은 목록은 `data`에 배열을 담는다.
-
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "code": "CASUAL",
-      "label": "캐주얼"
-    }
-  ]
-}
-```
-
-### 4.3 응답 본문이 없는 성공
-
-삭제처럼 반환할 데이터가 없다면 `204 No Content`를 사용하고 응답 본문을 보내지 않는다. `204` 응답에 JSON 본문을 함께 보내지 않는다.
-
-### 4.4 HTTP 상태 코드
-
-| 상황                        |                   상태 코드 |
-| --------------------------- | --------------------------: |
-| 조회·수정 성공              |                    `200 OK` |
-| 생성 성공                   |               `201 Created` |
-| 비동기 작업 접수·탈퇴 요청  |              `202 Accepted` |
-| 성공했지만 반환할 본문 없음 |            `204 No Content` |
-| 잘못된 요청·Validation 실패 |           `400 Bad Request` |
-| 인증 필요                   |          `401 Unauthorized` |
-| 권한 없음                   |             `403 Forbidden` |
-| 리소스 없음                 |             `404 Not Found` |
-| 중복 또는 현재 상태와 충돌  |              `409 Conflict` |
-| 호출 제한 초과              |   `429 Too Many Requests` |
-| 외부 서비스 장애            |           `502 Bad Gateway` |
-| 외부 서비스 Timeout         |         `504 Gateway Timeout` |
-| 서버 내부 오류              | `500 Internal Server Error` |
+사용자 ID는 요청 Body/Query의 `userId`를 신뢰하지 않고 JWT `sub`에서 얻는다.
 
 ---
 
-## 5. 페이지네이션 규칙
+## 1.3 Refresh Cookie
 
-### 5.1 요청 형식
+운영 기본값:
 
-목록이 계속 늘어날 수 있는 API는 기본적으로 페이지네이션을 적용한다.
-
-```http
-GET /api/products?page=0&size=20&sort=createdAt,desc
+```text
+Name: refresh_token
+HttpOnly: true
+Secure: true
+SameSite: Lax
+Path: /api/auth
+Max-Age: 1209600
+Domain: 지정하지 않음
 ```
 
-| 파라미터 | 규칙                                   |           기본값 |
-| -------- | -------------------------------------- | ---------------: |
-| `page`   | `0`부터 시작한다. 첫 페이지는 `0`이다. |              `0` |
-| `size`   | 한 페이지의 항목 수이다.               |             `20` |
-| `sort`   | `필드명,정렬방향` 형식이다.            | `createdAt,desc` |
+로컬 cross-origin Cookie 요청:
 
-- `size`의 최댓값은 `100`으로 제한한다.
-- 정렬 방향은 `asc` 또는 `desc`만 사용한다.
-- 여러 정렬 조건이 필요하면 `sort`를 반복해서 보낼 수 있다.
-- 지원하지 않는 정렬 필드는 `400 Bad Request`로 처리한다.
-
-```http
-GET /api/products?page=0&size=20&sort=status,asc&sort=createdAt,desc
+```text
+FE: credentials/include 또는 Axios withCredentials=true
+BE: allowCredentials(true)
+Access-Control-Allow-Origin: 정확한 Origin
+Wildcard 금지
 ```
 
-### 5.2 페이지 응답 형식
-
-```json
-{
-  "success": true,
-  "data": {
-    "items": [
-      {
-        "id": "123",
-        "name": "MCM 가방"
-      }
-    ],
-    "page": 0,
-    "size": 20,
-    "totalElements": 41,
-    "totalPages": 3,
-    "hasNext": true,
-    "hasPrevious": false
-  }
-}
-```
-
-조회 결과가 없을 때도 `items`는 `null`이 아니라 빈 배열을 반환한다.
-
-```json
-{
-  "success": true,
-  "data": {
-    "items": [],
-    "page": 0,
-    "size": 20,
-    "totalElements": 0,
-    "totalPages": 0,
-    "hasNext": false,
-    "hasPrevious": false
-  }
-}
-```
-
-프론트 화면에서 사용자에게 보이는 페이지 번호는 필요하면 `page + 1`로 표시한다. API 요청과 응답의 `page` 값은 항상 0부터 시작한다.
+CORS 허용 Origin과 인증 POST 신뢰 Origin 검증은 별개다.
 
 ---
 
-## 6. 일반 오류 응답 형식
+## 1.4 이름·자료형
+
+| 대상 | 규칙 |
+|---|---|
+| Endpoint | 소문자 `kebab-case` |
+| JSON/Query/Path | `lowerCamelCase` |
+| DB | `snake_case` |
+| Enum | 대문자 `SNAKE_CASE` |
+| API ID | JSON String |
+| 금액 | KRW 원 단위 정수 |
+| 점수 | JSON Number, 0~100 |
+| 시각 | UTC ISO 8601 |
+| 날짜 | `YYYY-MM-DD` |
+| 위도/경도 | Decimal |
+
+DB에서 `BIGINT`여도 API ID는 문자열로 전달한다.
+
+---
+
+## 1.5 성공 응답
+
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
+
+- 생성: `201`
+- 조회/수정: `200`
+- 비동기 접수: `202`
+- Body 없는 삭제/해제: `204`
+
+`204`에는 Body를 넣지 않는다.
+
+---
+
+## 1.6 오류 응답
 
 ```json
 {
   "success": false,
   "error": {
     "code": "PRODUCT_NOT_FOUND",
-    "message": "상품을 찾을 수 없습니다."
+    "message": "제품을 찾을 수 없습니다."
   }
 }
 ```
 
-- `code`는 프론트엔드가 오류 종류를 구분할 때 사용하는 고정된 영문 코드이다.
-- `message`는 사용자 안내 또는 개발 중 확인을 위한 설명이다.
-- 프론트엔드는 `message` 문자열을 비교하지 않고 `code`를 기준으로 분기한다.
-- 서버의 예외 메시지, SQL, 파일 경로, 스택 트레이스 등 내부 정보는 응답에 노출하지 않는다.
-
-```ts
-if (error.code === "PRODUCT_NOT_FOUND") {
-  // 상품 없음 화면 표시
-}
-```
-
-오류 코드는 대문자 `SNAKE_CASE`를 사용하며, 가능한 한 `대상_원인` 형태로 작성한다.
-
-```text
-PRODUCT_NOT_FOUND
-EMAIL_ALREADY_EXISTS
-ACCESS_TOKEN_EXPIRED
-FILE_SIZE_EXCEEDED
-```
-
----
-
-## 7. Validation 오류 형식
-
-입력값 검증이 실패하면 `400 Bad Request`와 함께 잘못된 필드를 배열로 반환한다.
+Validation에서만:
 
 ```json
 {
@@ -310,552 +312,39 @@ FILE_SIZE_EXCEEDED
     "message": "입력값을 확인해 주세요.",
     "fields": [
       {
-        "field": "email",
-        "reason": "올바른 이메일 형식이 아닙니다."
-      },
-      {
-        "field": "password",
-        "reason": "비밀번호는 8자 이상이어야 합니다."
+        "field": "size",
+        "reason": "size는 1 이상 100 이하여야 합니다."
       }
     ]
   }
 }
 ```
 
-- `field`는 프론트 요청 DTO의 필드명과 정확히 일치시킨다.
-- 한 필드에 오류가 여러 개여도 우선순위가 가장 높은 오류 하나만 반환한다.
-- 여러 필드가 잘못되었다면 가능한 한 한 번에 모두 반환한다.
-- 요청 본문 자체가 없거나 JSON 문법이 잘못된 경우에는 `fields` 없이 일반 오류 형식을 사용할 수 있다.
-
 ---
 
-## 8. 날짜·시간과 기준 시간대
-
-### 8.1 형식
-
-ISO 8601 형식으로 통일한다.
-
-| 데이터 종류        | 형식          | 예시                   |
-| ------------------ | ------------- | ---------------------- |
-| 특정 시각          | UTC 날짜·시간 | `2026-08-05T07:30:00Z` |
-| 날짜만 의미하는 값 | `YYYY-MM-DD`  | `2026-08-05`           |
-| 시간만 의미하는 값 | `HH:mm:ss`    | `16:30:00`             |
-
-`2026/08/05`, `08-05-2026`, `2026년 8월 5일`처럼 화면 표시용으로 가공한 값을 API에서 보내지 않는다.
-
-### 8.2 시간대
-
-- 서버와 DB 저장: UTC
-- API 요청·응답: UTC
-- 프론트 화면 표시: `Asia/Seoul`
-- 생일, 행사일 등 날짜 자체만 의미하는 값: 시간대 변환 없이 `YYYY-MM-DD`
-
-예를 들어 API가 `2026-08-05T07:30:00Z`를 반환하면 프론트는 한국 시간 `2026-08-05 16:30`으로 표시한다.
-
----
-
-## 9. Enum 표현
-
-Enum은 영문 대문자 `SNAKE_CASE`로 전달한다.
-
-```json
-{
-  "status": "IN_PROGRESS",
-  "style": "STREET_CASUAL",
-  "season": "SPRING"
-}
-```
-
-사용자에게 보일 한글 문구는 프론트에서 변환한다.
-
-```ts
-const statusLabel = {
-  IN_PROGRESS: "진행 중",
-  COMPLETED: "완료",
-} as const;
-```
-
-상품 태그는 종류를 섞지 않고 `STYLE`, `SEASON`, `OCCASION`, `FEATURE`로 구분한다.
+## 1.7 정상 빈 결과
 
 ```text
-STYLE
-- CASUAL
-- FORMAL
-- NEAT
-- GLAMOROUS
-
-SEASON
-- SPRING
-- SUMMER
-- AUTUMN
-- WINTER
-- ALL_SEASON
-
-OCCASION
-- DAILY
-- DATE
-- TRAVEL
-- GATHERING
-- CEREMONY
-- OUTDOOR
-- OTHER
-
-FEATURE
-- LIGHTWEIGHT
-- COMPACT
-- SPACIOUS
+목록 없음          → 200 + []
+페이지 결과 없음    → 200 + items:[]
+선택 단일 값 없음   → null
+특정 ID 리소스 없음 → 404
 ```
 
-`EXHIBITION`, `CAFE`는 Occasion이 아니라 장소 카테고리다.
+정상적인 추천 없음·활용 데이터 부족·장소 없음은 서버 장애가 아니다.
 
 ---
 
-## 10. `null`, 빈 배열, 빈 문자열
-
-| 상황                               | 반환값                                         |
-| ---------------------------------- | ---------------------------------------------- |
-| 선택값이 아직 없거나 설정되지 않음 | `null`                                         |
-| 목록에 항목이 없음                 | `[]`                                           |
-| 문자열 입력이 비어 있음            | 빈 문자열 자체가 의미 있을 때만 `""`           |
-| 필드가 API 계약에 있지만 값이 없음 | 필드를 생략하지 않고 `null` 또는 정해진 기본값 |
-
-```json
-{
-  "nickname": null,
-  "profileImageUrl": null,
-  "items": []
-}
-```
-
-- 배열은 항상 배열로 반환하여 프론트에서 바로 `map`, `filter` 등을 사용할 수 있게 한다.
-- 선택 필드가 응답마다 사라지지 않게 하여 프론트 타입을 안정적으로 유지한다.
-- 공백 문자열을 `null` 대신 사용하지 않는다.
-
----
-
-## 11. ID와 금액 자료형
-
-### 11.1 ID
-
-DB에서 숫자로 저장하더라도 API 요청과 응답에서는 문자열로 전달한다.
-
-```json
-{
-  "id": "1234567890123456789",
-  "productId": "987654321"
-}
-```
-
-JavaScript의 안전한 정수 범위를 넘는 ID가 숫자로 전달될 때 값이 달라질 수 있으므로, 모든 ID를 문자열로 통일한다.
-
-### 11.2 금액
-
-원화 금액은 원 단위 정수와 통화 코드를 함께 전달한다.
-
-```json
-{
-  "price": 1250000,
-  "currency": "KRW"
-}
-```
-
-API에서 `"1,250,000원"`처럼 표시용 문자열을 보내지 않는다. 쉼표와 통화 표시는 프론트에서 처리한다.
-
-```ts
-`${price.toLocaleString("ko-KR")}원`;
-```
-
----
-
-## 12. 인증 재발급과 로그아웃
-
-### 12.1 앱 시작
+## 1.8 페이지네이션
 
 ```text
-Zustand 사용자 정보 복원
-→ POST /auth/refresh
-→ 성공 시 Access Token을 메모리에 저장
-→ 실패 시 비로그인 상태로 확정
-→ 인증 초기화 완료 표시
+page 기본 0
+size 기본 20
+size 허용 1~100
+sort=field,direction
 ```
 
-Refresh Cookie가 없는 방문자의 `401`은 정상적인 비로그인 초기 상태이므로 사용자 오류로 표시하지 않는다.
-
-### 12.2 보호 API의 401
-
-1. 실패한 요청이 이미 재시도된 요청인지 확인한다.
-2. 진행 중인 재발급 Promise가 있으면 새 재발급을 만들지 않고 같은 Promise를 기다린다.
-3. 재발급 성공 시 새 Access Token을 저장하고 원래 요청을 한 번만 재시도한다.
-4. 재발급 실패 시 메모리 토큰과 공개 사용자 정보를 제거한다.
-5. 로그인·회원가입·이메일 인증 같은 공개 인증 API의 `401`은 재발급하지 않는다.
-
-무한 재시도와 여러 Refresh Token의 동시 회전을 방지하기 위해 재발급은 항상 단일 실행으로 잠근다.
-
-### 12.3 로그아웃
-
-```http
-POST /api/auth/logout
-Authorization: Bearer {accessToken}
-Cookie: refresh_token=...
-```
-
-- 백엔드는 Refresh Token을 폐기하고 Cookie를 삭제한다.
-- 이미 폐기된 Token이나 없는 Cookie도 멱등 성공으로 처리할 수 있다.
-- 성공 응답은 `204 No Content`다.
-- 프런트는 요청 성공 여부와 관계없이 로컬 세션을 제거한다.
-
----
-
-## 13. 동시성·중복 요청·부분 쓰기
-
-### 13.1 조회 요청 경합
-
-- 필터나 페이지가 바뀌면 이전 조회의 `AbortController`를 취소한다.
-- 요청 번호를 증가시키고 최신 번호와 일치하는 응답만 상태에 반영한다.
-- 검증이 끝난 응답 스냅샷을 한 번의 Zustand `set`으로 반영한다.
-
-### 13.2 수정 충돌
-
-- 사용자, 취향, 아이템, 스타일 플랜 수정 요청에는 현재 `version`을 포함한다.
-- 서버는 낙관적 잠금으로 버전을 확인한다.
-- 충돌 시 `409 RESOURCE_VERSION_CONFLICT`를 반환한다.
-- 프런트는 최신 데이터를 다시 불러온 뒤 사용자가 재시도하도록 안내한다.
-
-### 13.3 생성 요청 멱등성
-
-AI Job 생성은 호출자가 만든 UUID를 `Idempotency-Key` Header로 전달한다.
-
-```http
-POST /api/ai-jobs
-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
-```
-
-- 같은 사용자·같은 Key·같은 Body는 기존 Job을 반환한다.
-- 같은 Key에 다른 Body가 오면 `IDEMPOTENCY_KEY_CONFLICT`를 반환한다.
-- 네트워크 재시도에서는 새 Key를 만들지 않고 최초 Key를 재사용한다.
-- 여러 테이블을 변경하는 서버 작업은 하나의 DB 트랜잭션으로 처리하고 실패 시 전체 롤백한다.
-- 프런트는 서버 성공 전에 영구 상태로 확정하지 않으며 낙관적 UI를 사용하면 롤백 상태를 함께 정의한다.
-
----
-
-## 14. 이미지와 AI Job
-
-### 14.1 아이템 이미지 등록 순서
-
-이미지는 UserItem 생성의 필수 조건이 아니다.
-
-이미지를 정상적으로 분석하고 등록하는 흐름:
-
-```text
-원본 File을 브라우저 메모리에 보관
-→ AI_INPUT 서명 발급과 업로드
-→ ITEM_ANALYSIS Job 완료
-→ 사용자가 분석 결과 확인·수정
-→ UserItem 생성
-→ 같은 원본 File을 ITEM 용도로 다시 업로드
-→ AI_INPUT 정리
-```
-
-이미지를 선택하지 않았거나 업로드에 실패한 흐름:
-
-```text
-사용자가 아이템 정보를 직접 입력·확인
-→ POST /my-items
-→ 이미지 없이 생성 완료
-→ 다음 화면으로 이동
-→ 필요하면 아이템 상세에서 ITEM 이미지 추가
-```
-
-- `AI_INPUT` 이미지를 `ITEM` 이미지로 직접 승격하지 않는다.
-- ITEM 이미지는 최대 3장, PROFILE은 최대 1장이다.
-- 허용 형식은 JPG·PNG·WebP, 최대 크기는 10MB, 긴 변은 최대 1600px이다.
-- 이미지 삭제는 `DELETE_PENDING`으로 전환한 뒤 외부 저장소에서 처리하며 재요청은 멱등 성공이다.
-- 이미지 미선택, 서명 실패, 외부 업로드 실패, 완료 등록 실패는 UserItem 생성 차단 사유가 아니다.
-- 이미지 없이 생성된 아이템은 목록의 `primaryImageUrl`을 `null`, 상세의 `images`를 `[]`로 반환한다.
-- 이미지 실패 때문에 UserItem에 별도 상태값을 추가하지 않는다. 이미지 생명주기는 `ImageAssetStatus`로 관리한다.
-- 아이템이 먼저 생성된 뒤 ITEM 이미지 업로드가 실패하면 아이템을 롤백하거나 삭제하지 않는다.
-- 프런트는 입력 폼과 미리보기를 유지하고 `다시 시도`, `다른 사진 선택`, `이미지 없이 계속`을 제공한다.
-- `이미지 없이 계속`을 선택하면 업로드 요청을 취소하고 아이템 생성 성공 화면으로 이동한다.
-- 완료 등록 API만 실패했다면 같은 `publicId`와 업로드 결과로 완료 등록만 멱등 재시도하며 파일을 중복 업로드하지 않는다.
-
-### 14.2 AI Job 정책
-
-- AI Job 유형은 `PREFERENCE_ANALYSIS`, `ITEM_ANALYSIS`, `STYLE_PLAN`만 사용한다.
-- `PURCHASE_UTILITY`는 AI Job 유형에서 제거한다.
-- 상태는 `PENDING → PROCESSING → SUCCEEDED` 또는 `PENDING → PROCESSING → FAILED`로만 전이한다.
-- `SUCCEEDED`, `FAILED`는 종료 상태다.
-- 사용자당 동시 실행은 1개다.
-- 사용자당 하루 최대 10회다.
-- 외부 처리 Timeout은 20초다.
-- 서버 자동 재시도는 최대 1회다.
-- 동일 사용자·동일 입력 결과는 24시간 캐시할 수 있다.
-- 클라이언트 Polling은 2초 간격으로 최대 30초 동안 수행한다.
-- 최대 Polling 조회 횟수는 15회다.
-- `SUCCEEDED` 또는 `FAILED`를 받으면 즉시 Polling을 종료한다.
-- 화면 이탈 시 진행 중 요청을 취소하고 다음 Polling을 예약하지 않는다.
-- 30초 경과는 프런트 자동 조회 중단을 뜻하며 백엔드 Job을 취소하지 않는다.
-- 시간 초과 후 사용자가 `다시 확인`을 선택하면 새 Job을 만들지 않고 같은 `jobId`를 조회한다.
-- Polling은 고정 2초 간격이며 지수 백오프를 사용하지 않는다.
-
-AI Provider 처리 실패와 HTTP API 실패는 구분한다.
-
-- Job 생성·조회 요청 자체가 정상 처리됐다면 Job이 `FAILED`여도 `200 OK`와 성공 Envelope를 반환한다.
-- 프런트는 HTTP 상태가 아니라 `data.status`를 기준으로 Job 완료 여부를 판단한다.
-- `FAILED`에서는 `result`가 `null`, `fallback`과 `error`는 필수다.
-- `fallback`은 AI 유형별 대체 화면을 구성할 수 있는 정상 데이터 객체다.
-- 인증·인가 실패, 잘못된 요청, 존재하지 않는 Job은 기존 일반 오류 Envelope를 사용한다.
-
-`FAILED` Job 조회 예시:
-
-```json
-{
-  "success": true,
-  "data": {
-    "jobId": "9001",
-    "type": "PREFERENCE_ANALYSIS",
-    "status": "FAILED",
-    "cached": false,
-    "result": null,
-    "fallback": {
-      "preferredColors": [],
-      "preferredCategories": [],
-      "preferredStyleTags": [],
-      "summary": "기본 제품을 먼저 보여드릴게요."
-    },
-    "error": {
-      "code": "AI_PROVIDER_UNAVAILABLE",
-      "message": "AI 취향 분석을 완료하지 못했습니다."
-    },
-    "createdAt": "2026-08-13T01:30:00Z",
-    "completedAt": "2026-08-13T01:30:20Z"
-  }
-}
-```
-
----
-
-## 15. 확정 전 P0와 제안 Endpoint
-
-다음 항목은 팀 합의 전 구현 계약으로 고정하지 않는다.
-
-- 회원 탈퇴 시 LOCAL 비밀번호 재확인과 소셜 재인증 범위
-- 추천 항목 안에서 복수 태그 일치율을 계산하는 세부 공식
-- 구매 활용성 네 기준의 배점과 최종 점수 계산식
-- 장소 추천의 카테고리·거리·기타 조건별 가중치
-- `/favorites`, `/saved-places` Endpoint명 최종 승인
-
-홈 API는 기존 결과를 집계하는 조회 전용이며 새 추천, AI Job, OpenAI, Kakao Local 호출을 시작하지 않는다.
-
-### 15.1 AI 취향 분석과 홈 제품 리스트
-
-취향 분석은 사용자의 취향을 분석해 홈 화면의 제품 리스트를 구성하는 용도로 사용한다.
-
-```text
-사용자 취향 입력
-→ PREFERENCE_ANALYSIS AI Job 생성·완료
-→ preferredColors / preferredCategories / preferredStyleTags / summary 저장
-→ 저장된 취향 결과를 기준으로 홈 제품 목록 구성
-→ GET /home의 preferenceProducts로 반환
-```
-
-- 홈 API 호출 시 새 AI Job을 만들지 않는다.
-- 가장 최근에 저장된 취향 분석 결과만 조회한다.
-- 취향 분석 전이거나 매칭 상품이 없으면 `preferenceProducts: []`를 반환한다.
-- 홈의 `preferenceProducts`는 보유 제품 기반 추천 API의 `products`와 다른 결과다.
-- 홈 제품 Item은 `productId`, `name`, `preferenceMatchScore`, `primaryImageUrl`을 반환한다.
-
-### 15.2 추천 기능 분리
-
-#### 스마트 착용 추천
-
-```text
-사용자가 원하는 무드 선택
-→ 드래그바로 스타일 강도 선택
-→ 선택한 조건에 맞는 제품 추천
-```
-
-- 사용자가 이번 추천의 의도를 직접 입력하는 기능이다.
-- 추천 제품 리스트와 Request DTO, Zustand 상태, 캐시 Key를 공유하지 않는다.
-- 무드 Enum, 드래그바 축·범위·단계, Endpoint는 별도 합의 후 확정한다.
-
-#### 추천 제품 리스트
-
-추천 제품 리스트는 사용자가 보유한 제품의 분석 결과를 입력으로 사용하는 서버 `RULE_BASED` 기능이다.
-
-| 항목 | 최대 점수 | JSON 필드 |
-| --- | ---: | --- |
-| STYLE | 30 | `styleScore` |
-| OCCASION | 25 | `occasionScore` |
-| SEASON | 25 | `seasonScore` |
-| FEATURE | 20 | `featureScore` |
-| 합계 | 100 | `totalScore` |
-
-```text
-보유 제품 분석 결과
-+ 후보 MCM 상품의 STYLE / OCCASION / SEASON / FEATURE 태그
-→ 항목별 점수와 총점 계산
-→ 총점 내림차순 순위와 추천 이유 반환
-```
-
-- AI가 후보 상품 중 추천 상품을 선택하지 않는다.
-- 추천 응답의 `generationType`은 `RULE_BASED`다.
-- 응답의 기존 `score`와 `scoreBreakdown.totalScore`는 같은 값이어야 한다.
-- 각 점수는 0 이상이며 항목별 최대 점수를 넘을 수 없다.
-- `totalScore = styleScore + occasionScore + seasonScore + featureScore`다.
-- 총점 동률 정렬 기준과 복수 태그 일치율의 세부 계산식은 별도로 확정한다.
-- 추천 결과가 없으면 `200`과 `products: []`를 반환한다.
-- MCM 상품에 연결되지 않은 보유 아이템은 현재 `ITEM_ANALYSIS`와 DB에 추천용 태그가 없어 분석·저장 계약을 추가로 합의해야 한다.
-
-### 15.3 구매 전 활용 가능성 분석
-
-구매 전 활용 가능성은 AI를 사용하지 않고 백엔드 `RULE_BASED` 방식으로 다음 네 가지 기준을 계산한다.
-
-| 기준 | JSON 필드 | 설명 |
-| --- | --- | --- |
-| 내 아이템과 스타일 조합 가능 | `itemStyleCompatibility` | 구매 후보와 현재 보유 아이템의 스타일 조합 가능성 |
-| 취향 태그 일치 | `preferenceTagMatch` | 구매 후보 태그와 사용자 취향 태그의 일치도 |
-| 현재 보유 카테고리와의 조합 | `ownedCategoryCompatibility` | 구매 후보 카테고리와 보유 카테고리 구성의 조합 가능성 |
-| 계절 활용성 | `seasonalUtility` | 상품의 SEASON 태그를 기준으로 한 계절 활용 범위 |
-
-- 기존 `categoryCompatibility`, `colorCompatibility`, `styleCompatibility`, `duplicationPenalty` 계약은 사용하지 않는다.
-- 중고·재판매 기능이 없으므로 재판매 가치와 관리 난이도는 구매 활용 가능성 평가 기준에서 제외한다.
-- 네 점수는 `factors` 객체에 구조화해 반환한다.
-- 항목별 최대 점수, 가중치와 최종 `utilityScore` 계산식은 별도로 확정한다.
-- `POST /api/purchase-utility-analyses`는 `{ "productId": "101" }`를 받아 동기식으로 분석한다.
-- 이 요청은 AI Job, `Idempotency-Key`, AI 폴링을 사용하지 않는다.
-- 분석이 완료되면 `status: READY`와 `analysis`를 반환한다.
-- 분석 근거가 부족하면 분석 Row를 만들지 않고 `status: INSUFFICIENT_DATA`, `analysis: null`, 안내 메시지를 반환한다.
-
-### 15.4 장소 추천 방식
-
-장소 추천은 Kakao Local의 실제 장소 데이터와 백엔드 `RULE_BASED` 점수 계산을 사용한다.
-
-```text
-Backend → Kakao Local API로 장소 후보 검색
-→ (provider, providerPlaceId) 기준 places Upsert
-→ category / distance / 요청 조건 등으로 점수 계산
-→ score 내림차순으로 rank와 reason 생성
-→ Frontend에 장소 좌표와 추천 결과 반환
-→ MapLibre GL JS가 OpenFreeMap 지도에 마커 표시
-```
-
-역할을 다음과 같이 분리한다.
-
-| 구성 요소 | 역할 |
-| --- | --- |
-| Kakao Local API | 실제 장소명, 카테고리, 주소, 좌표, 장소 URL 제공 |
-| Backend | 장소 캐시, 카테고리·거리·조건 점수 계산, 정렬, 추천 이유 생성 |
-| MapLibre GL JS + OpenFreeMap | 백엔드가 반환한 좌표와 순위를 지도와 마커로 표시 |
-
-- Kakao REST API Key는 백엔드 비밀 환경변수에서만 관리한다.
-- 프런트는 Kakao JavaScript SDK Key를 사용하지 않고 Kakao Local API를 직접 호출하지 않는다.
-- 추천 결과는 `rank`, `score`, `reason`, `place`를 반환한다.
-- `score`는 서버가 계산하며 프런트는 다시 계산하거나 순서를 변경하지 않는다.
-- 추천 결과는 필요하면 `style_plan_places`에 저장한다.
-- 별도 OpenAI 호출과 `PLACE_RECOMMENDATION` AI Job은 사용하지 않는다.
-- 카테고리·거리·기타 조건별 가중치와 동률 정렬 기준은 별도로 확정한다.
-- Kakao 장애·Timeout은 각각 `PLACE_PROVIDER_UNAVAILABLE`과 외부 서비스 상태 코드로 처리한다.
-
-### 15.5 마이 아이템 구매 후 MVP 범위
-
-세척·수선·보관 등의 관리 기록은 MVP에서 제외한다.
-
-- 중고 거래, 판매 글, 소유권 이전, 재판매 가치 분석 기능을 만들지 않는다.
-- 관리 기록 화면을 만들지 않는다.
-- 관리 기록 Controller와 Endpoint를 정의하지 않는다.
-- 기존 DB에 `CareRecord` 구조가 있더라도 이번 API 연동 범위에는 포함하지 않는다.
-- 착용·사용 기록, 활용도 분석, 미사용 아이템 재활용 추천, 제품 패스포트·디지털 ID, 관리 가이드·일정은 별도 합의 전까지 포함 여부를 확정하지 않는다.
-
----
-
-## 16. API 변경의 분류
-
-변경 전에 프론트 영향도를 기준으로 다음과 같이 분류한다.
-
-### 16.1 호환 가능한 변경
-
-- 응답에 새로운 선택 필드 추가
-- 새로운 API Endpoint 추가
-- 새로운 선택 Query Parameter 추가
-- 기존 동작을 바꾸지 않는 문서·설명 수정
-
-### 16.2 호환성이 깨지는 변경
-
-- Endpoint 또는 HTTP Method 변경
-- 기존 요청·응답 필드의 삭제 또는 이름 변경
-- 필드 자료형 변경
-- 필수 요청 필드 추가
-- Enum 값의 삭제 또는 이름 변경
-- `null` 가능 여부 변경
-- 페이지네이션 구조 또는 시작 번호 변경
-- 기존 상태 코드나 오류 코드의 의미 변경
-
----
-
-## 17. 분리된 프론트·백엔드 저장소에서 API 변경 공유 방법
-
----
-
-프론트가 원하는 응답 구조가 있다고 해서 프론트 저장소에서 API 계약을 먼저 확정하지 않는다.
-
-1. 프론트에서 백엔드 저장소에 API 변경 요청 Issue를 생성한다.
-2. 현재 불편한 점과 원하는 요청·응답 예시를 작성한다.
-3. 백엔드 담당자와 변경 가능 여부 및 형식을 합의한다.
-4. 백엔드 담당자는 해당 협의안을 코드에 적용한다.(PR 또는 직접 작성)
-5. 프론트는 확정된 백엔드 PR을 기준으로 구현한다.
-
-Issue 제목 예시:
-
-```text
-[API 요청] 상품 목록 응답에 대표 이미지 URL 추가
-```
-
-기존 프론트가 바로 깨지는 변경이라면 백엔드가 잠시 이전 필드와 새 필드를 함께 제공하는 방식이 가장 안전하다.(배포 후 참고)
-
-```json
-{
-  "image": "https://example.com/old.jpg",
-  "imageUrl": "https://example.com/new.jpg"
-}
-```
-
-프론트 전환과 배포가 끝난 뒤 별도 백엔드 PR에서 이전 필드를 제거한다.
-
----
-
-## 18. API 변경 PR 템플릿
-
-백엔드 저장소의 `.github/pull_request_template.md` 또는 API 변경 PR 본문에 다음 양식을 사용한다.
-
-````md
-## 변경 유형
-
-- [ ] 새로운 API 추가
-- [ ] 호환 가능한 변경
-- [ ] 호환성이 깨지는 변경
-- [ ] 문서만 변경
-
-## 대상 API
-
-- Method: `GET`
-- Path: `/api/products`
-
-이후 카톡 또는 깃허브 PR로 변경했다고 알려주기.
-
-## 변경 이유
-
-상품 목록 데이터가 많아질 때 전체 데이터를 한 번에 불러오는 문제를 막기 위해 페이지네이션을 적용합니다.
-
-## 변경 전
-
-```json
-{
-  "success": true,
-  "data": []
-}
-```
-
-## 변경 후
+Response:
 
 ```json
 {
@@ -872,97 +361,2600 @@ Issue 제목 예시:
 }
 ```
 
-## 요청 규칙
+---
 
-- `page`: 0부터 시작, 기본값 0
-- `size`: 기본값 20, 최댓값 100
-- `sort`: `필드명,asc|desc`
+## 1.9 HTTP 상태 코드
 
-## 프론트 영향
+| HTTP | 의미 |
+|---:|---|
+| 200 | 조회·수정·정상 빈 결과·AI FAILED Job 조회 |
+| 201 | 리소스 생성 |
+| 202 | AI Job 접수·회원 탈퇴 처리 접수 |
+| 204 | Body 없는 삭제·해제 |
+| 400 | 형식·Validation·도메인 입력 오류 |
+| 401 | 인증 실패·토큰 실패 |
+| 403 | 계정 상태·Origin·권한 오류 |
+| 404 | 특정 리소스 없음 |
+| 409 | 중복·멱등성·버전·상태 충돌 |
+| 429 | 호출 제한 |
+| 500 | 처리되지 않은 서버 내부 오류 |
+| 502 | 외부 Provider 장애 |
+| 504 | 외부 Provider Timeout |
 
-- 목록 타입을 배열에서 페이지 객체로 변경해야 합니다.
-- `data.items`를 기준으로 렌더링해야 합니다.
-- 페이지 이동 시 `page`, `size`를 Query Parameter로 전달해야 합니다.
+---
 
-## 오류 및 상태 코드
+# 2. v0.3 전체 Endpoint 목록
 
-- `200`: 조회 성공
-- `400`: 잘못된 페이지·정렬 조건
+> `인증`이 `Access`인 Endpoint는 Bearer Access Token이 필요하다.
 
-## 관련 작업
+| 영역 | Method | Path | 인증 | v0.3 |
+|---|---|---|---|---|
+| 상태 | GET | `/api/health` | 공개 | 유지 |
+| 이메일 인증 | POST | `/api/auth/email-verifications` | 공개 | 유지 |
+| 이메일 인증 | POST | `/api/auth/email-verifications/confirm` | 공개 | 유지 |
+| 로그인 ID | GET | `/api/auth/login-ids/{loginId}/availability` | 공개 | 유지 |
+| 회원가입 | POST | `/api/auth/signup` | 공개 | 유지 |
+| 로그인 | POST | `/api/auth/login` | 공개 | 유지 |
+| OAuth | GET | `/api/auth/oauth/{provider}` | 공개 | 유지 |
+| OAuth | GET | `/api/auth/oauth/{provider}/callback` | 공개 | 유지 |
+| OAuth 가입 | POST | `/api/auth/oauth/signup` | Onboarding Cookie | 유지 |
+| 토큰 갱신 | POST | `/api/auth/refresh` | Refresh Cookie | 유지 |
+| 로그아웃 | POST | `/api/auth/logout` | Access + Refresh | 유지 |
+| 탈퇴 재인증 LOCAL | POST | `/api/auth/reauth/password` | Access | 신규 |
+| 탈퇴 재인증 SOCIAL | GET | `/api/auth/reauth/oauth/{provider}` | Access | 신규 |
+| 탈퇴 재인증 SOCIAL | GET | `/api/auth/reauth/oauth/{provider}/callback` | OAuth state | 신규 |
+| 사용자 | GET | `/api/users/me` | Access | 유지 |
+| 사용자 | PATCH | `/api/users/me` | Access | 유지 |
+| 회원 탈퇴 | DELETE | `/api/users/me` | Access + reauth | 확정 |
+| 취향 | GET | `/api/preferences/me` | Access | 유지 |
+| 취향 | PUT | `/api/preferences/me` | Access | 유지 |
+| 제품 | GET | `/api/products` | Access | 유지 |
+| 제품 | GET | `/api/products/{productId}` | Access | 유지 |
+| MCM 추천 | POST | `/api/recommendations` | Access | Rule-Based 확정 |
+| MCM 추천 | GET | `/api/recommendations/{recommendationId}` | Access | 유지 |
+| 찜 | GET | `/api/products/favorites` | Access | v0.3 정규화 |
+| 찜 | PUT | `/api/products/{productId}/favorite` | Access | v0.3 정규화 |
+| 찜 | DELETE | `/api/products/{productId}/favorite` | Access | v0.3 정규화 |
+| 마이 아이템 | GET | `/api/my-items` | Access | 유지 |
+| 마이 아이템 | GET | `/api/my-items/{myItemId}` | Access | 유지 |
+| 마이 아이템 | POST | `/api/my-items` | Access | 유지 |
+| 마이 아이템 | PATCH | `/api/my-items/{myItemId}` | Access | 상태 필드 제외 예정 |
+| 마이 아이템 | DELETE | `/api/my-items/{myItemId}` | Access | 유지 |
+| 제품 패스포트 | GET | `/api/my-items/{myItemId}/passport` | Access | 신규 범위 |
+| 활용도 | GET | `/api/my-items/{myItemId}/utilization` | Access | 신규 범위 |
+| 착용/사용 기록 | POST | `/api/usage-records` | Access | 신규 범위 |
+| 착용/사용 기록 | GET | `/api/usage-records` | Access | 신규 범위 |
+| 착용/사용 기록 | GET | `/api/usage-records/{usageRecordId}` | Access | 신규 범위 |
+| 착용/사용 기록 | PATCH | `/api/usage-records/{usageRecordId}` | Access | 신규 범위 |
+| 착용/사용 기록 | DELETE | `/api/usage-records/{usageRecordId}` | Access | 신규 범위 |
+| 아이템별 기록 | GET | `/api/my-items/{myItemId}/usage-records` | Access | 신규 범위 |
+| 재활용 추천 | GET | `/api/reuse-recommendations` | Access | Rule-Based |
+| 관리 가이드 | GET | `/api/my-items/{myItemId}/care-guide` | Access | 신규 범위 |
+| 이미지 | POST | `/api/image-uploads/signature` | Access | 유지 |
+| 이미지 | POST | `/api/image-uploads/complete` | Access | 유지 |
+| 이미지 | DELETE | `/api/images/{imageId}` | Access | 유지 |
+| AI Job | POST | `/api/ai-jobs` | Access | 유지 |
+| AI Job | GET | `/api/ai-jobs/{jobId}` | Access | FAILED 계약 변경 |
+| 구매 활용성 | GET | `/api/purchase-utility-analyses/{analysisId}` | Access | 공식 변경 |
+| 스마트 착용 추천 저장 | POST | `/api/style-plans` | Access | 기술 경로 유지 |
+| 스마트 착용 추천 목록 | GET | `/api/style-plans` | Access | 기술 경로 유지 |
+| 스마트 착용 추천 상세 | GET | `/api/style-plans/{stylePlanId}` | Access | 기술 경로 유지 |
+| 스마트 착용 추천 수정 | PATCH | `/api/style-plans/{stylePlanId}` | Access | 기술 경로 유지 |
+| 스마트 착용 추천 삭제 | DELETE | `/api/style-plans/{stylePlanId}` | Access | 기술 경로 유지 |
+| 장소 검색 | GET | `/api/places` | Access | Kakao |
+| 장소 추천 | POST | `/api/style-plans/{stylePlanId}/place-recommendations` | Access | Rule-Based |
+| 저장 장소 | GET | `/api/places/saved` | Access | v0.3 정규화 |
+| 장소 저장 | PUT | `/api/places/{placeId}/saved` | Access | v0.3 정규화 |
+| 장소 해제 | DELETE | `/api/places/{placeId}/saved` | Access | v0.3 정규화 |
+| 홈 | GET | `/api/home` | Access | 조회 전용 |
 
-- Backend Issue: #번호
-- Frontend Issue/PR: 상대 저장소 URL 또는 `없음`
+### Endpoint 정규화 메모
 
-## 적용 및 배포 순서
-
-1. 백엔드 개발 서버 배포
-2. 프론트 연동 확인
-3. 프론트 병합 및 배포
-
-## 확인 체크리스트
-
-- [ ] 프론트 담당자가 변경 내용을 확인했습니다.
-- [ ] 기존 API 사용자에게 미치는 영향을 확인했습니다.
-- [ ] 테스트와 CI가 통과했습니다.
-- [ ] 팀 채널에 PR 링크와 적용 환경을 공유했습니다.
-````
-
-### 18.1 PR 제목 규칙
+v0.2에서 P0였던 `/favorites`, `/saved-places`는 v0.3에서 `API_CONVENTIONS.md`의 “대상 리소스 + 원하는 최종 상태” 규칙과 v0.1 구조에 맞춰 다음으로 통일한다.
 
 ```text
-[API] 상품 목록 페이지네이션 적용
-[API] 추천 결과에 reason 필드 추가
-[API][Breaking] image 필드를 imageUrl로 변경
+GET    /api/products/favorites
+PUT    /api/products/{productId}/favorite
+DELETE /api/products/{productId}/favorite
+
+GET    /api/places/saved
+PUT    /api/places/{placeId}/saved
+DELETE /api/places/{placeId}/saved
 ```
 
-호환성이 깨지는 변경은 제목에 `[Breaking]`을 추가한다.
+같은 PUT/DELETE를 반복해도 최종 상태가 달라지지 않는 멱등 동작으로 구현한다.
 
 ---
 
-## 19. 프론트 대응 PR 템플릿
+# 3. 인증·회원 탈퇴 재인증
 
-```md
-## 관련 API 변경
+기존 로그인·회원가입·OAuth·Refresh 계약은 v0.2를 유지한다.
 
-- Backend PR: 상대 백엔드 저장소 PR URL
-- 대상 API: `GET /api/products`
+## 3.1 LOCAL 회원 탈퇴 재인증
 
-## 프론트 변경 내용
+```http
+POST /api/auth/reauth/password
+Authorization: Bearer {accessToken}
+```
 
-- 페이지 응답 타입을 추가했습니다.
-- 상품 목록을 `data.items`로 렌더링하도록 수정했습니다.
-- 페이지 이동 시 `page`, `size`를 전달하도록 수정했습니다.
+Request:
 
-## 연동 환경
+```json
+{
+  "password": "current-password"
+}
+```
 
-- [ ] Mock 데이터
-- [ ] 로컬 백엔드
-- [ ] 개발 서버
+정책:
 
-## 확인 항목
+```text
+현재 Access 사용자 확인
+→ LocalCredential 존재 확인
+→ 비밀번호 검증
+→ 성공
+→ purpose=ACCOUNT_DELETE 재인증 증명 발급
+→ 5분 유효
+→ 1회 사용
+```
 
-- [ ] 첫 페이지 조회
-- [ ] 다음·이전 페이지 이동
-- [ ] 빈 목록 처리
-- [ ] 로딩 처리
-- [ ] 일반 오류 처리
-- [ ] Validation 오류 처리
+v0.3 보안 구현 계약:
+
+- 원문 reauth Token은 DB에 장기 저장하지 않는다.
+- URL Query/Fragment에 넣지 않는다.
+- 민감 값은 로그에 남기지 않는다.
+- 재사용은 거부한다.
+- 다른 사용자에게 사용할 수 없다.
+- `purpose=ACCOUNT_DELETE` 외 용도로 사용할 수 없다.
+
+Response 예시:
+
+```json
+{
+  "success": true,
+  "data": {
+    "reauthenticated": true,
+    "expiresInSeconds": 300
+  }
+}
+```
+
+> 회의는 “5분·1회용 reauthToken”의 의미를 확정했다. 실제 브라우저 전달 세부는 v0.3에서 URL 노출을 피하기 위해 HttpOnly 단기 Cookie 방식 사용을 권장한다. 구현 시 `reauth_token` Cookie를 사용하면 LOCAL과 SOCIAL 흐름을 동일하게 만들 수 있다.
+
+---
+
+## 3.2 SOCIAL 회원 탈퇴 재인증
+
+지원:
+
+```text
+NAVER
+KAKAO
+```
+
+시작:
+
+```http
+GET /api/auth/reauth/oauth/{provider}
+Authorization: Bearer {accessToken}
+```
+
+처리:
+
+```text
+현재 로그인 사용자
+→ OAuth 재로그인 시작
+→ reauth 전용 state 발급
+→ Provider
+→ callback
+→ state 검증
+→ provider 사용자 ID 획득
+→ 현재 SocialAccount(provider, providerUserId)와 비교
+→ 일치 시 ACCOUNT_DELETE 재인증 증명 발급
+```
+
+Callback:
+
+```http
+GET /api/auth/reauth/oauth/{provider}/callback
+```
+
+금지:
+
+- Provider 이메일만으로 동일인 판단
+- Provider 사용자 ID 불일치 상태에서 토큰 발급
+- 재인증 Token을 URL Query/Fragment에 노출
+
+---
+
+## 3.3 회원 탈퇴
+
+```http
+DELETE /api/users/me
+Authorization: Bearer {accessToken}
+Cookie: reauth_token=...
+```
+
+조건:
+
+- Access 사용자와 reauth 사용자 동일
+- `purpose=ACCOUNT_DELETE`
+- 미사용 Token
+- 발급 후 5분 이내
+
+성공:
+
+```http
+202 Accepted
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "DELETION_PENDING"
+  }
+}
+```
+
+기존 탈퇴 정책을 유지한다.
+
+```text
+DELETION_PENDING
+→ 이후 인증/토큰 차단
+→ Refresh Token 폐기
+→ 사용자 데이터 정리
+→ 24시간 이내 익명화
+→ DELETED + deletedAt
+```
+
+회의에서 재인증 방식만 변경·확정했으며, 기존 “24시간 이내 익명화” 정책을 폐기하지 않았으므로 v0.3에서도 유지한다.
+
+---
+
+# 4. 사용자·취향 API
+
+## 4.1 내 정보
+
+```http
+GET /api/users/me
+PATCH /api/users/me
+```
+
+기존 계약 유지.
+
+---
+
+## 4.2 내 취향 조회
+
+```http
+GET /api/preferences/me
+```
+
+현재 V4 DB에 영속되는 필드는:
+
+```text
+preferredColors
+preferredCategories
+preferredStyleTags
+summary
+confidence
+analysisVersion
+aiJobId
+analyzedAt
+version
+```
+
+응답 예시:
+
+```json
+{
+  "success": true,
+  "data": {
+    "completed": true,
+    "preferredColors": ["BLACK", "BEIGE"],
+    "preferredCategories": ["BAG", "CLOTHING"],
+    "preferredStyleTags": ["CASUAL", "NEAT"],
+    "summary": "차분하고 깔끔한 스타일을 선호해요.",
+    "confidence": 0.84,
+    "analysisVersion": "preference-v1",
+    "analyzedAt": "2026-08-13T06:00:00Z",
+    "version": 2
+  }
+}
+```
+
+아직 프로필이 없다면 404 대신 정상 미완료 상태를 반환한다.
+
+---
+
+## 4.3 내 취향 저장·수정
+
+```http
+PUT /api/preferences/me
+```
+
+Request:
+
+```json
+{
+  "preferredColors": ["BLACK", "BEIGE"],
+  "preferredCategories": ["BAG", "CLOTHING"],
+  "preferredStyleTags": ["CASUAL", "NEAT"],
+  "aiJobId": "9001",
+  "version": 2
+}
+```
+
+`preferredStyleTags`에는 최종 STYLE 코드만 사용한다.
+
+```text
+CASUAL
+FORMAL
+NEAT
+GLAMOROUS
+```
+
+### 추천 점수용 OCCASION/SEASON/FEATURE 입력 위치
+
+현재 V4에는 `preferredOccasionTags`, `preferredSeasonTags`, `preferredFeatureTags` 컬럼이 없다.
+
+따라서 v0.3에서는 DB 구조를 억지로 해석하지 않고 다음처럼 분리한다.
+
+```text
+지속 취향 STYLE
+→ PreferenceProfile.preferredStyleTags
+
+추천 시점 조건 OCCASION/SEASON/FEATURE
+→ POST /api/recommendations Request
+```
+
+추후 OCCASION/SEASON/FEATURE도 장기 취향으로 영속화하기로 팀이 결정하면 기존 V4를 고치는 대신 후속 Migration을 추가한다.
+
+---
+
+# 5. ProductTag·제품 API
+
+## 5.1 최종 ProductTag
+
+### ProductTagType
+
+```text
+STYLE
+SEASON
+OCCASION
+FEATURE
+```
+
+### STYLE
+
+```text
+CASUAL
+FORMAL
+NEAT
+GLAMOROUS
+```
+
+### SEASON
+
+```text
+SPRING
+SUMMER
+AUTUMN
+WINTER
+ALL_SEASON
+```
+
+### OCCASION
+
+```text
+DAILY
+DATE
+TRAVEL
+GATHERING
+CEREMONY
+OUTDOOR
+OTHER
+```
+
+### FEATURE
+
+```text
+COMPACT
+SPACIOUS
+MULTIWAY
+```
+
+제외:
+
+```text
+LIGHTWEIGHT
+LOGO
+STATEMENT
+VERSATILE
+WORK
+```
+
+`WORK`는 필요한 경우 `DAILY` 또는 `OTHER` 문맥으로 처리한다.
+
+---
+
+## 5.2 ProductTag 표시명
+
+DB:
+
+```text
+id
+type
+code
+```
+
+`display_name` 없음.
+
+API도 ProductTag의 localized label을 Source of Truth로 제공하지 않는다.
+
+프론트:
+
+```ts
+CASUAL -> "캐주얼"
+DATE -> "데이트"
+COMPACT -> "컴팩트"
+```
+
+처럼 화면 표시명을 자체 관리한다.
+
+---
+
+## 5.3 제품 목록
+
+```http
+GET /api/products
+```
+
+예:
+
+```http
+GET /api/products?keyword=쇼퍼&category=BAG&color=BROWN&minPrice=500000&maxPrice=2000000&page=0&size=20&sort=price,asc
+```
+
+기존 필터·페이지 계약 유지.
+
+---
+
+## 5.4 제품 상세
+
+```http
+GET /api/products/{productId}
+```
+
+Response 예시:
+
+```json
+{
+  "success": true,
+  "data": {
+    "productId": "101",
+    "brand": "MCM",
+    "sku": "MCM-AREN-001",
+    "name": "Aren Shopper",
+    "category": "BAG",
+    "description": "MCM 샘플 제품 설명",
+    "price": 1450000,
+    "primaryColor": "BROWN",
+    "material": "LEATHER",
+    "productUrl": "https://www.mcmworldwide.com/...",
+    "images": [
+      {
+        "url": "https://example.com/product.webp",
+        "altText": "Aren Shopper 정면",
+        "sortOrder": 0,
+        "primary": true
+      }
+    ],
+    "tags": {
+      "style": ["CASUAL", "NEAT"],
+      "season": ["ALL_SEASON"],
+      "occasion": ["DAILY", "DATE"],
+      "feature": ["COMPACT"]
+    },
+    "favorited": false,
+    "isSample": true
+  }
+}
+```
+
+서로 다른 ProductTagType을 하나의 배열에 섞지 않는다.
+
+---
+
+# 6. MCM Rule-Based 추천 API
+
+## 6.1 생성
+
+```http
+POST /api/recommendations
+Authorization: Bearer {accessToken}
+```
+
+독립 MCM 추천에는 OpenAI를 호출하지 않는다.
+
+Request:
+
+```json
+{
+  "occasion": "DATE",
+  "season": "AUTUMN",
+  "preferredFeatures": ["COMPACT", "MULTIWAY"],
+  "category": "BAG",
+  "limit": 3
+}
+```
+
+| 필드 | 필수 | 규칙 |
+|---|---:|---|
+| `occasion` | O | 최종 OCCASION 7개 |
+| `season` | O | `SPRING/SUMMER/AUTUMN/WINTER` |
+| `preferredFeatures` | O | 1~3개, 중복 금지 |
+| `category` | X | 제품 카테고리 제한 |
+| `limit` | X | 기본 3, 1~3 |
+
+`ALL_SEASON`은 상품 태그 값이며 추천 요청의 현재 계절 값으로 사용하지 않는다.
+
+---
+
+## 6.2 추천 점수
+
+총점:
+
+```text
+STYLE       30
+OCCASION    25
+SEASON      25
+FEATURE     20
+TOTAL      100
+```
+
+### STYLE
+
+Source:
+
+```text
+PreferenceProfile.preferredStyleTags
+vs
+Product STYLE tags
+```
+
+v0.3 계산:
+
+```text
+하나 이상 일치 → 30
+일치 없음      → 0
+```
+
+### OCCASION
+
+```text
+Request occasion과 Product OCCASION 일치 → 25
+불일치                               → 0
+```
+
+### SEASON
+
+```text
+Product가 요청 season 보유 → 25
+또는 Product가 ALL_SEASON 보유 → 25
+그 외 → 0
+```
+
+### FEATURE
+
+확정 공식:
+
+```text
+20 × (일치 FEATURE 개수 / preferredFeatures 개수)
+```
+
+예:
+
+```text
+사용자: [COMPACT, MULTIWAY]
+상품:   [COMPACT]
+
+20 × 1/2 = 10
+```
+
+내부 점수는 소수 둘째 자리까지 보관 가능하고, FE 표시 시 반올림 정수를 사용할 수 있다.
+
+---
+
+## 6.3 추천 처리
+
+```text
+현재 사용자 취향 조회
+→ ACTIVE MCM 후보 조회
+→ Request 조건 적용
+→ ProductTag 점수 계산
+→ 총점 내림차순
+→ 동점이면 안정적인 2차 정렬
+→ 최대 limit개
+→ Recommendation + RecommendationProduct 저장
+```
+
+저장:
+
+```text
+generationType = RULE_BASED
+aiJobId = null
+```
+
+`RecommendationProduct.score`는 0~100.
+
+동점 2차 정렬은 구현에서 `productId ASC` 등 결정론적 기준을 사용한다.
+
+---
+
+## 6.4 추천 Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "recommendationId": "301",
+    "generationType": "RULE_BASED",
+    "scorePolicyVersion": "product-recommendation-v1",
+    "products": [
+      {
+        "rank": 1,
+        "score": 90.0,
+        "scoreBreakdown": {
+          "style": 30.0,
+          "occasion": 25.0,
+          "season": 25.0,
+          "feature": 10.0
+        },
+        "reason": "선호 스타일과 데이트 상황, 가을 시즌에 잘 맞는 제품입니다.",
+        "product": {
+          "productId": "101",
+          "name": "Aren Shopper",
+          "category": "BAG",
+          "price": 1450000,
+          "primaryImageUrl": "https://example.com/product.webp",
+          "favorited": false
+        }
+      }
+    ],
+    "generatedAt": "2026-08-13T06:00:00Z"
+  }
+}
+```
+
+추천 결과가 없으면:
+
+```json
+"products": []
 ```
 
 ---
 
-## 20. API 변경 완료 조건
+## 6.5 추천 상세
 
-다음 조건을 모두 만족해야 API 변경이 완료된 것으로 본다.
+```http
+GET /api/recommendations/{recommendationId}
+```
 
-- [ ] 구현 코드가 완료되었다.
-- [ ] 성공, 일반 오류, Validation 오류가 공통 형식을 따른다.
-- [ ] 페이지네이션이 필요한 목록에 공통 페이지 형식을 적용했다.
-- [ ] 백엔드 테스트와 CI가 통과했다.
-- [ ] 프론트 영향도를 PR에 작성했다.
-- [ ] 필요한 프론트 Issue/PR과 상호 링크했다.
-- [ ] 프론트 담당자가 개발 환경에서 연동을 확인했다.
-- [ ] 병합·배포 순서가 필요한 경우 양쪽 담당자가 확인했다.
+다른 사용자의 추천 ID는 존재 여부를 과도하게 노출하지 않도록 `RECOMMENDATION_NOT_FOUND` 404.
 
 ---
+
+# 7. 찜 API
+
+```http
+GET    /api/products/favorites?page=0&size=20&sort=createdAt,desc
+PUT    /api/products/{productId}/favorite
+DELETE /api/products/{productId}/favorite
+```
+
+PUT 재요청:
+
+```text
+이미 찜 상태
+→ 성공
+→ 계속 찜
+```
+
+DELETE 재요청:
+
+```text
+이미 해제 상태
+→ 204
+```
+
+---
+
+# 8. 마이 아이템 API
+
+## 8.1 등록 흐름
+
+현재 이미지 정책 유지:
+
+```text
+AI_INPUT 업로드
+→ ITEM_ANALYSIS
+→ 분석 결과 확인
+→ UserItem 생성
+→ 같은 로컬 원본 파일을 ITEM 용도로 별도 업로드
+```
+
+`AI_INPUT`을 `ITEM`으로 승격하지 않는다.
+
+---
+
+## 8.2 아이템 생성
+
+```http
+POST /api/my-items
+```
+
+Request 예시:
+
+```json
+{
+  "productId": null,
+  "brandName": "MCM",
+  "name": "브라운 토트백",
+  "category": "BAG",
+  "primaryColor": "BROWN",
+  "material": "LEATHER",
+  "materialSource": "AI_ESTIMATED",
+  "purchaseDate": "2026-08-01",
+  "purchasePrice": 1200000,
+  "memo": "선물받은 가방",
+  "aiJobId": "9001"
+}
+```
+
+Response:
+
+```http
+201 Created
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "myItemId": "501"
+  }
+}
+```
+
+### UserItem status 정책
+
+2026-08-13 회의에서 중고 판매 기능을 제거했으므로 사용자 기능에서는 상태값을 사용하지 않는다.
+
+현재 V5 DB에는 `user_items.status`가 아직 존재한다. 따라서:
+
+- v0.3 Request/Response에서는 `status`를 신규 계약으로 노출하지 않는다.
+- V10 ProductTag 완료 후 V5/V6 구조를 확인한다.
+- 실제 컬럼/인덱스 제거 여부는 후속 Migration에서 결정한다.
+- 기존 V5를 수정하지 않는다.
+
+그 전까지 서버 내부에서 기존 NOT NULL 조건을 만족시키기 위한 임시 내부값이 필요하면 사용자 API 계약과 분리한다.
+
+---
+
+## 8.3 이미지 0장 허용
+
+아이템 정보 저장과 ITEM 이미지 저장을 하나의 전체 롤백 Transaction으로 묶지 않는다.
+
+```text
+UserItem 생성 성공
+→ 이미지 업로드 시도
+   ├─ 성공
+   └─ 실패
+       → UserItem 유지
+       → 이미지 0장 상태 임시 허용
+       → 같은 myItemId로 재업로드
+```
+
+마이 아이템 조회 응답은 이미지가 없을 수 있으므로:
+
+```json
+{
+  "images": []
+}
+```
+
+을 정상 상태로 처리한다.
+
+---
+
+## 8.4 목록
+
+```http
+GET /api/my-items?keyword=토트&category=BAG&view=ALL&page=0&size=20&sort=createdAt,desc
+```
+
+`view`:
+
+```text
+ALL
+LOW_USAGE
+```
+
+`LOW_USAGE`는 장기 미사용 안내 화면에서 사용한다.
+
+장기 미사용 판정의 정확한 일수 임계값은 API 필드가 아니라 서버 Rule Policy로 관리하며, 별도 정책 버전을 둔다.
+
+---
+
+## 8.5 상세
+
+```http
+GET /api/my-items/{myItemId}
+```
+
+status는 v0.3 응답에서 제외한다.
+
+---
+
+## 8.6 수정
+
+```http
+PATCH /api/my-items/{myItemId}
+```
+
+`version` 기반 낙관적 잠금을 유지한다.
+
+status 변경은 v0.3 계약에서 제거한다.
+
+---
+
+## 8.7 삭제
+
+```http
+DELETE /api/my-items/{myItemId}
+```
+
+- UserItem: Soft Delete
+- 연결 ITEM 이미지: 삭제 대기
+- 재삭제: 멱등 성공
+- Response `204`
+
+---
+
+# 9. 착용/사용 기록 API
+
+> 사용자 화면 용어는 “착용/사용 기록”, 현재 DB 내부는 `wear_records`, `wear_record_items`를 유지한다.
+
+## 9.1 기록 생성
+
+```http
+POST /api/usage-records
+```
+
+Request:
+
+```json
+{
+  "myItemIds": ["501", "502"],
+  "wornAt": "2026-08-13T03:00:00Z",
+  "occasion": "DATE",
+  "placeName": "성수",
+  "weatherSummary": null,
+  "memo": "주말 데이트"
+}
+```
+
+정책:
+
+- `myItemIds`: 1~10개, 중복 금지
+- 모든 UserItem은 현재 사용자 소유
+- 삭제된 UserItem 연결 금지
+- `occasion`: 최종 OCCASION 7개 사용
+- `wornAt`: UTC ISO 8601
+- `placeName`, `weatherSummary`, `memo`: 선택
+
+Response:
+
+```http
+201 Created
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "usageRecordId": "1001",
+    "version": 0
+  }
+}
+```
+
+---
+
+## 9.2 기록 목록
+
+```http
+GET /api/usage-records?page=0&size=20&sort=wornAt,desc
+```
+
+아이템별:
+
+```http
+GET /api/my-items/{myItemId}/usage-records?page=0&size=20&sort=wornAt,desc
+```
+
+---
+
+## 9.3 기록 상세
+
+```http
+GET /api/usage-records/{usageRecordId}
+```
+
+Response 예시:
+
+```json
+{
+  "success": true,
+  "data": {
+    "usageRecordId": "1001",
+    "wornAt": "2026-08-13T03:00:00Z",
+    "occasion": "DATE",
+    "placeName": "성수",
+    "weatherSummary": null,
+    "memo": "주말 데이트",
+    "items": [
+      {
+        "myItemId": "501",
+        "name": "브라운 토트백",
+        "sortOrder": 0
+      }
+    ],
+    "version": 0,
+    "createdAt": "2026-08-13T03:05:00Z"
+  }
+}
+```
+
+---
+
+## 9.4 기록 수정
+
+```http
+PATCH /api/usage-records/{usageRecordId}
+```
+
+Request 예시:
+
+```json
+{
+  "memo": "저녁 약속",
+  "version": 0
+}
+```
+
+조합 아이템 자체까지 수정할 필요가 생기면 별도 계약으로 확장한다. v0.3 기본 PATCH는 기록 메타데이터 수정에 집중한다.
+
+---
+
+## 9.5 기록 삭제
+
+```http
+DELETE /api/usage-records/{usageRecordId}
+```
+
+Hard Delete.
+
+---
+
+# 10. 활용도·장기 미사용·다시 활용 추천
+
+## 10.1 AI 사용 여부
+
+다음은 AI가 계산하지 않는다.
+
+```text
+사용 횟수
+마지막 사용일
+사용 간격
+활용도 점수/레벨
+장기 미사용 판정
+```
+
+백엔드 Rule-Based로 계산한다.
+
+장기 미사용 아이템 재활용 **AI Job**은 MVP에서 제외한다.
+
+---
+
+## 10.2 아이템 활용도
+
+```http
+GET /api/my-items/{myItemId}/utilization
+```
+
+Response 구조:
+
+```json
+{
+  "success": true,
+  "data": {
+    "myItemId": "501",
+    "calculable": true,
+    "usageCount": 12,
+    "lastUsedAt": "2026-07-20T02:00:00Z",
+    "daysSinceLastUse": 24,
+    "utilizationScore": 72,
+    "utilizationLevel": "MEDIUM",
+    "policyVersion": "utilization-v1",
+    "missingData": []
+  }
+}
+```
+
+데이터 부족:
+
+```json
+{
+  "success": true,
+  "data": {
+    "myItemId": "501",
+    "calculable": false,
+    "usageCount": 0,
+    "lastUsedAt": null,
+    "daysSinceLastUse": null,
+    "utilizationScore": null,
+    "utilizationLevel": null,
+    "policyVersion": "utilization-v1",
+    "missingData": ["USAGE_HISTORY"]
+  }
+}
+```
+
+> 활용도 수치의 상세 산식과 `LOW/MEDIUM/HIGH` 경계값은 이번 회의에서 확정하지 않았다. 따라서 v0.3은 “Rule-Based이며 API 형태는 위와 같다”까지만 계약으로 고정하고, 정확한 내부 계산식은 별도 `utilization-v1` 정책 구현 시 테스트로 고정한다.
+
+---
+
+## 10.3 장기 미사용 안내
+
+```http
+GET /api/my-items?view=LOW_USAGE
+```
+
+정상적으로 대상이 없으면 빈 페이지를 반환한다.
+
+---
+
+## 10.4 다시 활용할 제품 추천
+
+```http
+GET /api/reuse-recommendations?limit=3
+```
+
+- AI 사용 안 함
+- 사용 기록/활용도/최근 사용일 기반 Rule-Based
+- 정확한 장기 미사용 일수와 세부 순위 Rule은 `utilization-v1`과 함께 관리
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "generationType": "RULE_BASED",
+    "items": [
+      {
+        "myItemId": "501",
+        "name": "브라운 토트백",
+        "lastUsedAt": "2026-06-10T02:00:00Z",
+        "usageCount": 2,
+        "reasonCode": "LONG_UNUSED"
+      }
+    ]
+  }
+}
+```
+
+프론트 표시문구는 `reasonCode`를 기준으로 작성할 수 있다.
+
+---
+
+# 11. 제품 패스포트 API
+
+제품 패스포트는 별도의 인증서가 아니라 **제품 정보 + 제품/구매 정보 + 사용 이력**을 한 화면에 모은 조회 View다.
+
+제품 상태는 제외한다.
+
+```http
+GET /api/my-items/{myItemId}/passport
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "myItemId": "501",
+    "productInfo": {
+      "linkedProductId": "101",
+      "brandName": "MCM",
+      "name": "Aren Shopper",
+      "category": "BAG",
+      "primaryColor": "BROWN",
+      "material": "LEATHER",
+      "images": []
+    },
+    "purchaseInfo": {
+      "purchaseDate": "2026-08-01",
+      "purchasePrice": 1200000
+    },
+    "usageSummary": {
+      "usageCount": 12,
+      "lastUsedAt": "2026-08-10T03:00:00Z"
+    },
+    "recentUsageRecords": []
+  }
+}
+```
+
+제외:
+
+```text
+status
+SOLD
+DISPOSED
+현재 상태 등급
+관리 기록
+```
+
+---
+
+# 12. 관리 가이드·관리 일정 API
+
+관리 기록 자체는 MVP에서 제외하지만 관리 안내는 유지한다.
+
+```http
+GET /api/my-items/{myItemId}/care-guide
+```
+
+Response 예시:
+
+```json
+{
+  "success": true,
+  "data": {
+    "myItemId": "501",
+    "available": true,
+    "material": "LEATHER",
+    "guide": [
+      {
+        "code": "STORAGE",
+        "title": "보관",
+        "description": "직사광선과 습기를 피해 보관해 주세요."
+      }
+    ],
+    "schedule": {
+      "recommendedIntervalDays": null,
+      "recommendedNextCareAt": null
+    }
+  }
+}
+```
+
+중요:
+
+- 관리 기록 CRUD는 만들지 않는다.
+- 현재 V6의 `care_records.next_care_at`이 관리 일정과 결합되어 있는지 V10 후 확인한다.
+- 가이드/일정을 `care_records`에 의존하지 않고 계산할 수 있으면 `care_records` 삭제가 가능하다.
+- 실제 DB 정리 전까지 API가 `care_records`를 Source of Truth라고 가정하지 않는다.
+
+---
+
+# 13. 이미지 업로드 API
+
+## 13.1 서명
+
+```http
+POST /api/image-uploads/signature
+```
+
+Request:
+
+```json
+{
+  "purpose": "ITEM",
+  "referenceId": "501"
+}
+```
+
+| purpose | referenceId |
+|---|---|
+| PROFILE | 없음 |
+| ITEM | myItemId 필수 |
+| AI_INPUT | 없음 |
+
+---
+
+## 13.2 완료
+
+```http
+POST /api/image-uploads/complete
+```
+
+ITEM:
+
+- `sortOrder`: 0~2 필수
+- 아이템당 최대 3장
+- 이미지 없는 아이템 자체는 허용
+- 같은 `myItemId`로 재시도 가능
+
+PROFILE:
+
+- 사용자당 최대 1장
+
+AI_INPUT:
+
+- `TEMPORARY`
+- AI Job 완료 후 삭제 흐름
+
+---
+
+## 13.3 삭제
+
+```http
+DELETE /api/images/{imageId}
+```
+
+- 소유권 확인
+- `DELETE_PENDING`
+- Cloudinary 비동기 삭제
+- 최종 `DELETED`
+- 재삭제 멱등 성공
+- `204`
+
+---
+
+# 14. AI Job API
+
+## 14.1 MVP AiJobType
+
+v0.3에서 실제 사용:
+
+```text
+PREFERENCE_ANALYSIS
+ITEM_ANALYSIS
+PURCHASE_UTILITY
+STYLE_PLAN
+```
+
+MVP에서 사용하지 않음:
+
+```text
+DORMANT_ITEM_REUSE
+PRODUCT_RECOMMENDATION
+PLACE_RECOMMENDATION
+```
+
+현재 DB `ai_jobs.type`은 문자열이므로 미사용 Type 제거 때문에 과거 Migration을 수정할 필요는 없다.
+
+---
+
+## 14.2 Job 생성
+
+```http
+POST /api/ai-jobs
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+```
+
+Response:
+
+```http
+202 Accepted
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "jobId": "9001",
+    "type": "ITEM_ANALYSIS",
+    "status": "PENDING",
+    "cached": false,
+    "createdAt": "2026-08-13T06:00:00Z"
+  }
+}
+```
+
+정책:
+
+- `(userId, Idempotency-Key)` Unique
+- 같은 Key + 같은 Body → 기존 Job
+- 같은 Key + 다른 Body → `409 IDEMPOTENCY_KEY_CONFLICT`
+- 사용자당 하루 최대 10회
+- 사용자당 동시 1개
+- OpenAI 호출 Timeout 20초
+- 자동 Retry 최대 1회
+- 동일 사용자 동일 입력 24시간 캐시
+
+---
+
+## 14.3 타입별 Request
+
+### PREFERENCE_ANALYSIS
+
+```json
+{
+  "type": "PREFERENCE_ANALYSIS",
+  "context": {
+    "selectedColors": ["BLACK", "BEIGE"],
+    "selectedCategories": ["BAG", "CLOTHING"],
+    "selectedStyleTags": ["CASUAL", "NEAT"],
+    "language": "ko"
+  }
+}
+```
+
+### ITEM_ANALYSIS
+
+```json
+{
+  "type": "ITEM_ANALYSIS",
+  "imageIds": ["701"],
+  "context": {
+    "language": "ko"
+  }
+}
+```
+
+### PURCHASE_UTILITY
+
+```json
+{
+  "type": "PURCHASE_UTILITY",
+  "context": {
+    "productId": "101",
+    "language": "ko"
+  }
+}
+```
+
+### STYLE_PLAN — 사용자 화면 “스마트 착용 추천”
+
+```json
+{
+  "type": "STYLE_PLAN",
+  "context": {
+    "occasion": "DATE",
+    "styleTags": ["NEAT", "GLAMOROUS"],
+    "weatherCondition": null,
+    "prioritizeOwnedItems": true,
+    "language": "ko"
+  }
+}
+```
+
+---
+
+## 14.4 Job 조회
+
+```http
+GET /api/ai-jobs/{jobId}
+```
+
+### 처리 중
+
+```json
+{
+  "success": true,
+  "data": {
+    "jobId": "9001",
+    "type": "ITEM_ANALYSIS",
+    "status": "PROCESSING",
+    "result": null,
+    "fallback": null,
+    "error": null,
+    "createdAt": "2026-08-13T06:00:00Z",
+    "completedAt": null
+  }
+}
+```
+
+### 성공
+
+```text
+HTTP 200
+status=SUCCEEDED
+result != null
+```
+
+### AI 처리 실패
+
+AI Provider 호출/결과 검증 등의 **Job 실행 실패가 정상적으로 기록된 경우**:
+
+```http
+HTTP 200
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "jobId": "9001",
+    "type": "PURCHASE_UTILITY",
+    "status": "FAILED",
+    "result": null,
+    "error": {
+      "code": "AI_PROVIDER_UNAVAILABLE",
+      "message": "AI 설명 생성에 실패했습니다.",
+      "retryable": true
+    },
+    "fallback": {
+      "type": "RULE_BASED",
+      "result": {
+        "utilityScore": 82,
+        "message": "규칙 기반 점수 결과를 표시합니다."
+      }
+    },
+    "createdAt": "2026-08-13T06:00:00Z",
+    "completedAt": "2026-08-13T06:00:08Z"
+  }
+}
+```
+
+구분:
+
+```text
+Job 결과 FAILED
+→ 200 + status=FAILED
+
+서버 자체 처리 불가/예외
+→ 5xx
+```
+
+---
+
+## 14.5 Fallback
+
+| Job Type | Fallback |
+|---|---|
+| PREFERENCE_ANALYSIS | 사용자가 선택한 설문 값을 그대로 취향 값으로 사용 |
+| ITEM_ANALYSIS | 사용자가 category/color/material 등을 직접 입력 |
+| PURCHASE_UTILITY | Rule-Based 점수와 조합 결과는 그대로 제공, AI 설명만 생략/정형 문구 |
+| STYLE_PLAN | 최근 사용이 적은 보유 아이템 중심의 Rule-Based 기본 조합 |
+
+`DORMANT_ITEM_REUSE` Fallback은 v0.3 MVP 계약에서 제거한다.
+
+---
+
+## 14.6 FE Polling
+
+확정:
+
+```text
+간격: 2초
+FE 최대 대기: 약 30초
+```
+
+예:
+
+```text
+POST /ai-jobs
+→ PENDING
+→ 2초
+→ GET
+→ PROCESSING
+→ ...
+→ SUCCEEDED / FAILED
+```
+
+30초는 FE 화면의 최대 대기 정책이다. 서버 Job 기록 자체를 30초에 강제 삭제한다는 의미는 아니다.
+
+---
+
+# 15. 구매 전 활용 가능성 분석
+
+## 15.1 역할 분리
+
+확정:
+
+```text
+점수
+→ Backend Rule-Based
+
+자연어 설명
+→ AI
+```
+
+AI가 점수를 결정하지 않는다.
+
+AI 장애:
+
+```text
+Rule-Based 점수 유지
++
+AI 설명 Fallback
+```
+
+---
+
+## 15.2 점수
+
+```text
+preferenceTagFitScore           최대 30
+styleCombinationScore           최대 25
+seasonUsabilityScore            최대 25
+ownedCategoryCombinationScore   최대 20
+utilityScore                    최대 100
+```
+
+DB의 `utility_score`에 최종 점수를 저장하고, 세부 항목은 `factor_json`에 저장할 수 있다.
+
+현재 V7에 존재하는 `duplicate_similarity_score`는 이번 회의의 최종 100점 공식에 포함되지 않는다.
+
+따라서 v0.3 공개 API 응답에서는 `duplicateSimilarityScore`를 제거한다. 해당 DB 컬럼을 물리적으로 제거할지는 후속 Schema 정리에서 별도로 판단하며, V7을 수정하지 않는다.
+
+---
+
+## 15.3 분석 시작
+
+```http
+POST /api/ai-jobs
+```
+
+`type=PURCHASE_UTILITY`.
+
+백엔드 처리 개념:
+
+```text
+현재 사용자 + 대상 MCM 제품
+→ Rule-Based 4개 Factor 계산
+→ utilityScore
+→ 충분한 데이터면 PurchaseUtilityAnalysis 저장
+→ AI에 점수/조합 맥락 전달
+→ AI는 summary/reason 설명만 생성
+```
+
+데이터 부족 시 Analysis Row를 억지로 만들지 않는 기존 정책 유지.
+
+---
+
+## 15.4 AI Job result
+
+충분한 데이터:
+
+```json
+{
+  "status": "READY",
+  "analysisId": "801"
+}
+```
+
+데이터 부족:
+
+```json
+{
+  "status": "INSUFFICIENT_DATA",
+  "analysisId": null,
+  "message": "보유 아이템을 더 등록하면 활용 가능성을 분석할 수 있어요."
+}
+```
+
+---
+
+## 15.5 분석 상세
+
+```http
+GET /api/purchase-utility-analyses/{analysisId}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "analysisId": "801",
+    "product": {
+      "productId": "101",
+      "name": "Aren Shopper",
+      "category": "BAG",
+      "price": 1450000,
+      "primaryImageUrl": "https://example.com/product.webp"
+    },
+    "utilityScore": 82.0,
+    "factors": {
+      "preferenceTagFitScore": 27.0,
+      "styleCombinationScore": 20.0,
+      "seasonUsabilityScore": 20.0,
+      "ownedCategoryCombinationScore": 15.0
+    },
+    "compatibleItemCount": 7,
+    "compatibleItems": [
+      {
+        "myItemId": "501",
+        "name": "베이지 재킷",
+        "imageUrl": "https://example.com/jacket.webp",
+        "reason": "구매 후보 제품과 함께 활용하기 좋은 아이템입니다."
+      }
+    ],
+    "summary": "보유 아이템과 조합하기 쉽고 취향 및 계절 활용성이 높은 편입니다.",
+    "explanationGenerationType": "AI",
+    "analyzedAt": "2026-08-13T06:00:00Z"
+  }
+}
+```
+
+AI 설명 실패 시:
+
+```text
+utilityScore/factors/compatibleItems 유지
+explanationGenerationType=RULE_BASED
+summary=정형 Fallback 문구
+```
+
+---
+
+## 15.6 세부 Factor 산식
+
+회의에서는 “4개 Factor의 최대 가중치”를 확정했다.
+
+각 Factor 내부에서 정확히 몇 점을 주는지에 대한 세부 Rule까지는 확정하지 않았다.
+
+따라서:
+
+- 각 Factor는 0~자기 최대점 범위
+- deterministic
+- 같은 입력이면 같은 결과
+- `purchase-utility-rule-v1`처럼 버전 관리
+- 단위 테스트로 고정
+- AI가 Factor 값을 수정하지 않음
+
+을 v0.3 계약으로 둔다.
+
+---
+
+# 16. 스마트 착용 추천 — 내부 StylePlan
+
+## 16.1 명칭
+
+사용자 화면:
+
+```text
+스마트 착용 추천
+```
+
+기술 리소스:
+
+```text
+AiJobType: STYLE_PLAN
+API: /style-plans
+DB: style_plans/*
+```
+
+---
+
+## 16.2 생성 흐름
+
+```text
+1. POST /api/ai-jobs type=STYLE_PLAN
+2. FE가 2초 Polling
+3. AI result 미리보기
+4. 사용자가 “이 스타일로 결정”
+5. POST /api/style-plans
+6. 저장 후 필요하면 장소 추천
+```
+
+AI Job 성공만으로 자동 저장하지 않는다.
+
+---
+
+## 16.3 AI 성공 미리보기
+
+```json
+{
+  "previewId": "job:9001",
+  "title": "데이트 룩",
+  "description": "깔끔한 보유 아이템을 중심으로 구성했어요.",
+  "ownedItems": [
+    {
+      "myItemId": "501",
+      "name": "브라운 데일리백",
+      "imageUrl": "https://example.com/item.webp",
+      "role": "BAG",
+      "sortOrder": 0
+    }
+  ],
+  "recommendedProducts": [
+    {
+      "productId": "101",
+      "name": "Aren Shopper",
+      "imageUrl": "https://example.com/product.webp",
+      "rank": 1,
+      "reason": "전체 색상 톤과 잘 어울려요."
+    }
+  ],
+  "generationType": "AI"
+}
+```
+
+---
+
+## 16.4 저장
+
+```http
+POST /api/style-plans
+```
+
+Request:
+
+```json
+{
+  "aiJobId": "9001",
+  "title": "데이트 룩",
+  "occasion": "DATE",
+  "plannedAt": "2026-08-15T10:00:00Z",
+  "weatherCondition": null,
+  "description": "깔끔한 보유 아이템을 중심으로 구성했어요.",
+  "status": "CONFIRMED",
+  "ownedItems": [
+    {
+      "myItemId": "501",
+      "role": "BAG",
+      "sortOrder": 0
+    }
+  ],
+  "recommendedProducts": [
+    {
+      "productId": "101",
+      "rank": 1,
+      "reason": "전체 색상 톤과 잘 어울려요."
+    }
+  ]
+}
+```
+
+제한:
+
+```text
+보유 아이템 최대 10
+MCM 추천 상품 최대 3
+추천 장소 최대 3
+```
+
+모든 UserItem 소유권과 Product 존재를 저장 시 다시 확인한다.
+
+---
+
+## 16.5 목록·상세·수정·삭제
+
+```http
+GET    /api/style-plans
+GET    /api/style-plans/{stylePlanId}
+PATCH  /api/style-plans/{stylePlanId}
+DELETE /api/style-plans/{stylePlanId}
+```
+
+PATCH 기본 수정 가능:
+
+```text
+title
+plannedAt
+status
+version
+```
+
+조합 자체 변경은 새 스마트 착용 추천 생성을 권장한다.
+
+---
+
+# 17. 장소 검색·추천·OpenFreeMap 연동
+
+## 17.1 역할
+
+```text
+Kakao Local
+→ 실제 장소 검색 데이터
+
+Backend
+→ 캐시 + Rule-Based 추천
+
+OpenFreeMap
+→ 프론트 지도 렌더링
+```
+
+프론트가 Kakao Map SDK를 사용할 필요는 없다.
+
+---
+
+## 17.2 v0.3 서비스 PlaceCategory
+
+```text
+CAFE
+RESTAURANT
+CULTURE
+ATTRACTION
+SHOPPING
+```
+
+`OTHER`는 Kakao 원본 카테고리 중 서비스 5개로 분류하지 못한 경우 내부 Fallback으로 사용할 수 있다.
+
+---
+
+## 17.3 장소 검색
+
+```http
+GET /api/places?query=성수&category=CAFE&latitude=37.5445&longitude=127.0560&radius=3000
+```
+
+| 필드 | 필수 | 규칙 |
+|---|---:|---|
+| `query` | X | 지역명·상호·키워드 |
+| `category` | X | 서비스 PlaceCategory |
+| `latitude` | X | longitude와 쌍 |
+| `longitude` | X | latitude와 쌍 |
+| `radius` | X | 1~20000m |
+
+검색 Endpoint는 범용 검색이므로 `query` 또는 좌표 기반 조건 중 유효한 검색 조건이 있어야 한다.
+
+처리:
+
+```text
+Kakao Local
+→ provider=KAKAO
+→ (provider, providerPlaceId) Upsert
+→ 내부 placeId
+→ FE
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "placeId": "1001",
+        "name": "성수 카페",
+        "category": "CAFE",
+        "categoryName": "음식점 > 카페",
+        "address": "서울 성동구 ...",
+        "roadAddress": "서울 성동구 ...",
+        "latitude": 37.5412,
+        "longitude": 127.0563,
+        "placeUrl": "https://place.map.kakao.com/...",
+        "saved": false
+      }
+    ]
+  }
+}
+```
+
+FE는 `latitude`, `longitude`를 OpenFreeMap에 사용한다.
+
+사용자 좌표 자체는 DB에 저장하지 않는다.
+
+---
+
+## 17.4 OCCASION → 장소 카테고리
+
+v0.3 추천 기준:
+
+| OCCASION | 우선 카테고리 |
+|---|---|
+| DAILY | CAFE, RESTAURANT |
+| DATE | CAFE, RESTAURANT, CULTURE |
+| TRAVEL | ATTRACTION, CULTURE, RESTAURANT |
+| GATHERING | RESTAURANT, CAFE |
+| CEREMONY | RESTAURANT |
+| OUTDOOR | ATTRACTION |
+| OTHER | 전체 후보 |
+
+Kakao의 원본 `categoryName`은 그대로 보존할 수 있고, 위 서비스 카테고리는 추천 Rule 계산용이다.
+
+---
+
+## 17.5 스마트 착용 추천 기반 장소 추천
+
+```http
+POST /api/style-plans/{stylePlanId}/place-recommendations
+```
+
+Request:
+
+```json
+{
+  "latitude": 37.5445,
+  "longitude": 127.0560,
+  "radius": 3000,
+  "category": null,
+  "query": null
+}
+```
+
+- latitude/longitude 필수
+- radius 기본 3000m, 최대 20000m
+- category는 사용자가 특정 장소 종류를 선택했을 때 선택
+- query는 지역/상호 키워드를 추가로 제한할 때 선택
+- OCCASION은 Request에서 중복 입력하지 않고 `StylePlan.occasion`을 사용
+
+처리:
+
+```text
+StylePlan 소유권 검증
+→ occasion 확인
+→ Kakao 후보 검색
+→ places Upsert
+→ category suitability 계산
+→ distance 계산
+→ 최대 3개
+→ style_plan_places 교체 저장
+→ 응답
+```
+
+---
+
+## 17.6 장소 추천 점수
+
+확정 최대 가중치:
+
+```text
+categorySuitabilityScore 최대 60
+distanceScore            최대 40
+totalScore               최대 100
+```
+
+v0.3 구현 정규화:
+
+### Category
+
+StylePlan Occasion의 우선 카테고리에 포함:
+
+```text
+60점
+```
+
+사용자가 `category`를 명시하면 해당 카테고리에 맞지 않는 후보는 기본적으로 제외한다.
+
+### Distance
+
+요청 `radius` 안의 후보:
+
+```text
+distanceScore = 40 × max(0, 1 - distanceMeters / radiusMeters)
+```
+
+즉 가까울수록 높은 점수.
+
+> “60 + 40” 가중치는 팀에서 확정했고, 위 선형 거리 정규화 식은 구현을 결정론적으로 만들기 위해 v0.3에서 정의한 기술 세부다. 이후 체감 품질 조정 시 `place-ranking-v2`처럼 정책 버전을 올려 변경한다.
+
+동점:
+
+```text
+1. totalScore DESC
+2. distance ASC
+3. Kakao 원본 결과 순서
+```
+
+---
+
+## 17.7 장소 추천 Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "stylePlanId": "601",
+    "rankingPolicyVersion": "place-ranking-v1",
+    "places": [
+      {
+        "rank": 1,
+        "score": 92.0,
+        "scoreBreakdown": {
+          "categorySuitability": 60.0,
+          "distance": 32.0
+        },
+        "reasonCode": "OCCASION_CATEGORY_AND_DISTANCE_MATCH",
+        "place": {
+          "placeId": "1001",
+          "name": "성수 카페",
+          "category": "CAFE",
+          "categoryName": "음식점 > 카페",
+          "roadAddress": "서울 성동구 ...",
+          "latitude": 37.5412,
+          "longitude": 127.0563,
+          "placeUrl": "https://place.map.kakao.com/...",
+          "saved": false
+        }
+      }
+    ]
+  }
+}
+```
+
+장소 추천에는 OpenAI를 호출하지 않는다.
+
+---
+
+# 18. 장소 저장 API
+
+```http
+GET    /api/places/saved?page=0&size=20&sort=createdAt,desc
+PUT    /api/places/{placeId}/saved
+DELETE /api/places/{placeId}/saved
+```
+
+PUT/DELETE는 멱등.
+
+---
+
+# 19. 홈 API
+
+```http
+GET /api/home
+```
+
+홈은 집계 조회 전용.
+
+홈 호출만으로 다음을 새로 실행하지 않는다.
+
+```text
+OpenAI
+AI Job
+Recommendation 생성
+Kakao Local
+장소 추천
+```
+
+기존에 저장된 데이터만 집계한다.
+
+---
+
+# 20. Enum 최종 정리
+
+## 20.1 ProductTagType
+
+```text
+STYLE
+SEASON
+OCCASION
+FEATURE
+```
+
+## 20.2 Occasion
+
+```text
+DAILY
+DATE
+TRAVEL
+GATHERING
+CEREMONY
+OUTDOOR
+OTHER
+```
+
+## 20.3 PlaceCategory
+
+```text
+CAFE
+RESTAURANT
+CULTURE
+ATTRACTION
+SHOPPING
+OTHER
+```
+
+## 20.4 ImageAssetPurpose
+
+```text
+PROFILE
+ITEM
+AI_INPUT
+```
+
+## 20.5 ImageAssetStatus
+
+```text
+TEMPORARY
+ACTIVE
+DELETE_PENDING
+DELETED
+```
+
+## 20.6 AiJobType — MVP 사용
+
+```text
+PREFERENCE_ANALYSIS
+ITEM_ANALYSIS
+PURCHASE_UTILITY
+STYLE_PLAN
+```
+
+MVP 비사용:
+
+```text
+DORMANT_ITEM_REUSE
+```
+
+새로 만들지 않음:
+
+```text
+PRODUCT_RECOMMENDATION
+PLACE_RECOMMENDATION
+```
+
+## 20.7 AiJobStatus
+
+```text
+PENDING
+PROCESSING
+SUCCEEDED
+FAILED
+```
+
+## 20.8 GenerationType
+
+```text
+AI
+RULE_BASED
+MANUAL
+```
+
+## 20.9 StylePlanStatus
+
+```text
+DRAFT
+CONFIRMED
+COMPLETED
+CANCELED
+```
+
+## 20.10 WeatherCondition
+
+```text
+SUNNY
+CLOUDY
+RAINY
+SNOWY
+HOT
+COLD
+WINDY
+INDOOR
+OTHER
+```
+
+## 20.11 StyleItemRole
+
+```text
+MAIN
+TOP
+BOTTOM
+SHOES
+BAG
+ACCESSORY
+```
+
+---
+
+# 21. 오류 코드 v0.3
+
+## 21.1 공통
+
+```text
+VALIDATION_ERROR
+REQUEST_BODY_INVALID
+RESOURCE_ACCESS_DENIED
+RESOURCE_VERSION_CONFLICT
+IDEMPOTENCY_KEY_CONFLICT
+INTERNAL_SERVER_ERROR
+```
+
+## 21.2 인증
+
+기존:
+
+```text
+EMAIL_ALREADY_EXISTS
+EMAIL_VERIFICATION_INVALID
+EMAIL_VERIFICATION_EXPIRED
+EMAIL_VERIFICATION_RATE_LIMITED
+SIGNUP_TOKEN_INVALID
+PASSWORD_CONFIRM_MISMATCH
+REQUIRED_TERMS_NOT_AGREED
+PROFILE_INCOMPLETE
+LOGIN_ID_ALREADY_EXISTS
+SOCIAL_EMAIL_CONFLICT
+INVALID_CREDENTIALS
+ACCESS_TOKEN_INVALID
+ACCESS_TOKEN_EXPIRED
+REFRESH_TOKEN_INVALID
+ACCOUNT_NOT_ACTIVE
+ORIGIN_NOT_ALLOWED
+OAUTH_STATE_INVALID
+OAUTH_PROVIDER_ERROR
+```
+
+재인증 신규:
+
+```text
+REAUTH_REQUIRED
+REAUTH_INVALID
+REAUTH_EXPIRED
+REAUTH_ALREADY_USED
+REAUTH_PURPOSE_INVALID
+OAUTH_ACCOUNT_MISMATCH
+```
+
+## 21.3 도메인
+
+```text
+MY_ITEM_NOT_FOUND
+USAGE_RECORD_NOT_FOUND
+PRODUCT_NOT_FOUND
+RECOMMENDATION_NOT_FOUND
+STYLE_PLAN_NOT_FOUND
+PLACE_NOT_FOUND
+PURCHASE_UTILITY_ANALYSIS_NOT_FOUND
+IMAGE_NOT_FOUND
+AI_JOB_NOT_FOUND
+```
+
+## 21.4 이미지·AI·외부 서비스
+
+```text
+IMAGE_ACCESS_DENIED
+IMAGE_FORMAT_NOT_ALLOWED
+IMAGE_TOO_LARGE
+IMAGE_DIMENSION_TOO_LARGE
+IMAGE_UPLOAD_SIGNATURE_INVALID
+IMAGE_LIMIT_EXCEEDED
+IMAGE_SORT_ORDER_CONFLICT
+
+AI_REQUEST_INVALID
+AI_JOB_ALREADY_RUNNING
+AI_DAILY_LIMIT_EXCEEDED
+AI_PROVIDER_UNAVAILABLE
+AI_REQUEST_TIMEOUT
+
+EXTERNAL_FREE_QUOTA_EXCEEDED
+IMAGE_STORAGE_UNAVAILABLE
+PLACE_PROVIDER_UNAVAILABLE
+```
+
+---
+
+# 22. Swagger/OpenAPI 구현 규칙
+
+Controller Tag:
+
+```text
+Auth
+Users
+Preferences
+Products
+Recommendations
+Favorites
+My Items
+Usage Records
+Utilization
+Reuse Recommendations
+Product Passport
+Care Guide
+Images
+AI Jobs
+Purchase Utility
+Smart Wear Recommendations
+Places
+Saved Places
+Home
+```
+
+규칙:
+
+- 보호 Endpoint: `@SecurityRequirement(name = "bearerAuth")`
+- DTO 직접 문서화
+- Entity 직접 반환 금지
+- ID Schema는 String
+- 페이지는 공통 `PageResponse<T>`
+- AI `result`, `fallback`은 Type별 `oneOf`
+- `FAILED` Job도 GET 응답 200임을 명시
+- OAuth는 Redirect/State/Cookie 흐름 명시
+- reauth는 5분·1회용·`ACCOUNT_DELETE` 목적 명시
+- 점수 Response에는 최대점수와 정책 버전을 설명
+- 장소 API 문서에는 “Kakao 장소 데이터 → OpenFreeMap 렌더링” 역할 분리를 명시
+- `display_name`을 ProductTag Schema에 다시 추가하지 않음
+
+---
+
+# 23. DB·Migration 정합성
+
+현재 `feat/database-schema`:
+
+```text
+V1  사용자·인증
+V2  AI Job
+V3  MCM 상품·ProductTag
+V4  취향·찜
+V5  마이 아이템·ImageAsset
+V6  착용·관리 기록
+V7  Recommendation·PurchaseUtilityAnalysis
+V8  Place·SavedPlace·StylePlan
+V9  product_tags.display_name 제거
+```
+
+## 23.1 V9
+
+현재 확정:
+
+```sql
+ALTER TABLE product_tags
+    DROP COLUMN display_name;
+```
+
+V9를 수정하지 않는다.
+
+---
+
+## 23.2 V10
+
+다음 작업:
+
+```text
+V10__insert_product_tag_reference_data.sql
+```
+
+19개:
+
+```text
+STYLE      4
+SEASON     5
+OCCASION   7
+FEATURE    3
+TOTAL     19
+```
+
+컬럼:
+
+```text
+type
+code
+```
+
+만 INSERT.
+
+---
+
+## 23.3 V10 이후 V5/V6 확인
+
+반드시 실제 SQL과 테스트를 확인한 뒤 결정한다.
+
+### V5
+
+현재 확인 대상:
+
+```text
+user_items.status
+idx_user_items_user_status
+status를 전제로 한 테스트/DTO/Enum
+```
+
+팀 제품 정책:
+
+```text
+UserItem 사용자 상태 기능 불필요
+```
+
+하지만 기존 V5를 수정하지 않는다.
+
+제거가 필요하면 V11+ Migration.
+
+### V6
+
+현재 확인 대상:
+
+```text
+care_records
+fk_care_records_user_item
+idx_care_records_user_item_cared_at
+next_care_at
+관련 테스트
+```
+
+팀 제품 정책:
+
+```text
+관리 기록 제거
+관리 가이드/관리 일정 유지
+```
+
+따라서 `care_records`가 관리 가이드/일정에 실제 필요한지 확인한 뒤 삭제 여부를 결정한다.
+
+기존 V6를 수정하지 않는다.
+
+---
+
+## 23.4 V7 메모
+
+현재 `purchase_utility_analyses`에는:
+
+```text
+duplicate_similarity_score
+factor_json
+```
+
+이 존재한다.
+
+최신 점수 공식에는 `duplicate_similarity_score`가 포함되지 않는다.
+
+v0.3 API에서는 이를 공개하지 않는다.
+
+물리 컬럼 제거 여부는 별도 DB 정리에서 결정한다.
+
+---
+
+## 23.5 V8 메모
+
+사용자 화면 명칭이 “스마트 착용 추천”으로 바뀌어도:
+
+```text
+style_plans
+style_plan_items
+style_plan_products
+style_plan_places
+```
+
+는 그대로 유지한다.
+
+명칭만으로 V8을 다시 쓰지 않는다.
+
+---
+
+# 24. v0.2 P0 해소 상태
+
+| v0.2 P0 | v0.3 |
+|---|---|
+| FEATURE 기준값 | `COMPACT/SPACIOUS/MULTIWAY` 확정 |
+| 회원 탈퇴 재인증 | LOCAL password / SOCIAL OAuth + 5분 1회용 reauth 확정 |
+| 추천 점수 | 30/25/25/20 확정 |
+| 구매 활용성 공식 | 30/25/25/20 확정 |
+| 장소 추천 | Kakao + Rule-Based 확정 |
+| Endpoint명 | v0.3에서 API_CONVENTIONS 형식으로 정규화 |
+
+새로운 후속 DB 검토:
+
+```text
+V10 이후
+→ V5 UserItem status
+→ V6 care_records
+→ 필요 시 새 Migration
+```
+
+---
+
+# 25. v0.3 구현 순서
+
+```text
+1. V10 ProductTag 19개 기준 데이터
+2. V10 전용 Testcontainers 통합 테스트
+3. Flyway 전체 clean check
+4. V10 commit/push
+5. V5/V6 실제 Schema/FK/Index/Test 검토
+6. UserItem status / CareRecord DB 정리 결정
+7. 필요하면 후속 Migration
+8. API v0.3 DTO/Enum 정의
+9. Auth reauth 구현
+10. Product/Recommendation Rule-Based 구현
+11. MyItem/Usage/Passport/Utilization 구현
+12. Image 흐름 구현
+13. AI Job 공통 + FAILED/Fallback 계약 구현
+14. PURCHASE_UTILITY Rule Score + AI 설명
+15. STYLE_PLAN(스마트 착용 추천) 구현
+16. Kakao Local + Rule-Based 장소 추천
+17. Swagger v0.3 동기화
+18. FE 연동
+19. 전체 테스트
+20. 배포 검증
+```
+
+---
+
+# 26. 구현 시 변경 금지 핵심
+
+```text
+- API 기본 경로는 /api
+- API ID는 String
+- Access Token은 Bearer + 프론트 메모리
+- Refresh Token은 HttpOnly Cookie
+- 사용자 소유권은 JWT sub 기준
+- ProductTag display_name을 DB에 다시 만들지 않음
+- ProductTag 최종값은 19개
+- 독립 MCM 추천은 RULE_BASED
+- 구매 활용 점수는 Rule-Based, AI는 설명
+- 장소 추천은 Kakao + Rule-Based, FE 지도는 OpenFreeMap
+- DORMANT_ITEM_REUSE AI는 MVP에서 제외
+- AI Polling은 2초, FE 최대 약 30초
+- AI Job FAILED는 GET 200 + status=FAILED + error/fallback
+- 관리 기록 API는 만들지 않음
+- UserItem 상태를 사용자 API에 새로 노출하지 않음
+- 과거 V1~V9 Migration을 정책 변경 때문에 수정하지 않음
+```
+
+---
+
+# 27. 아직 별도 세부 정책으로 남는 항목
+
+v0.3 작성 시점에 제품 방향은 확정됐지만 아래 수치/DB 제거 세부는 별도 구현 정책으로 남긴다.
+
+1. `utilization-v1`
+   - 활용도 정확한 계산식
+   - LOW/MEDIUM/HIGH 경계
+   - 장기 미사용 일수 임계값
+
+2. `purchase-utility-rule-v1`
+   - 30/25/25/20 각 Factor 내부의 세부 점수 산식
+   - 최대 가중치는 확정되어 변경하지 않음
+
+3. V10 이후 DB 정리
+   - `user_items.status` 실제 제거 여부
+   - `care_records` 실제 제거 여부
+   - V7 `duplicate_similarity_score` 정리 여부
+
+이 항목들은 API v0.3의 큰 기능 경로를 다시 바꾸는 P0가 아니라, 현재 DB와 구현 Rule을 정리하는 후속 작업이다.
+
+---
+
+# 28. 최종 서비스 흐름 요약
+
+```text
+회원가입/로그인
+→ 취향 분석 AI
+→ Preference 저장
+→ MCM 제품 탐색
+→ ProductTag Rule-Based MCM 추천
+→ 제품 상세/찜
+→ 구매 전 활용 가능성
+   ├─ Backend Rule Score
+   └─ AI 설명
+→ 마이 아이템 등록
+   ├─ ITEM_ANALYSIS AI
+   └─ 이미지 실패 시 아이템 유지
+→ 착용/사용 기록
+→ 활용도/장기 미사용/다시 활용 추천 Rule-Based
+→ 제품 패스포트
+→ 관리 가이드/일정
+→ 스마트 착용 추천(STYLE_PLAN AI)
+→ Kakao Local 장소 후보
+→ 서버 Rule-Based 장소 추천
+→ OpenFreeMap 3D 지도 표시
+```
+
+---
+
+# 29. 문서 상태 결론
+
+이 v0.3은 2026-08-13 회의에서 확정된 제품 정책을 API v0.2와 현재 Flyway V1~V9에 반영한 구현 기준 문서다.
+
+특히 다음은 v0.2의 P0가 아니라 v0.3 확정 기준으로 본다.
+
+```text
+ProductTag 19개
+MCM Rule-Based 추천
+추천 점수 30/25/25/20
+구매 활용도 30/25/25/20
+구매 활용 점수 Rule-Based + AI 설명
+Kakao Local + Rule-Based 장소 추천
+장소 점수 category 60 + distance 40
+회원 탈퇴 재인증 5분 1회용
+AI FAILED 200 + error/fallback
+FE Polling 2초 / 약 30초
+관리 기록 제외
+제품 패스포트 포함
+착용/사용 기록 포함
+활용도/장기 미사용/다시 활용 추천 포함
+장기 미사용 AI 제외
+사용자 화면 “스마트 착용 추천”
+```
+
+다만 V5/V6의 물리 DB 정리는 V10 완료 후 실제 FK·Index·Test를 확인한 뒤 새 Migration으로 진행한다.
