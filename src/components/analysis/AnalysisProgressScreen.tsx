@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   AnimatePresence,
   animate,
@@ -290,6 +291,24 @@ export function AnalysisProgressScreen() {
           ? "분석이 끝났어요. 추천 결과를 확인해 보세요."
           : "화면을 닫지 않고 잠시만 기다려 주세요."}
       </p>
+
+      <AnimatePresence>
+        {isComplete ? (
+          <motion.div
+            className="mt-6"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.16, duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <Link
+              href="/screen24"
+              className="flex h-[52px] w-full items-center justify-center rounded-[16px] bg-[#15151a] text-[15px] font-bold text-white shadow-[0_12px_28px_rgba(21,21,26,0.16)] transition-colors hover:bg-[#2a2a30] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15151a]"
+            >
+              제품 패스포트 보러가기
+            </Link>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </MobileScreenLayout>
   );
 }
