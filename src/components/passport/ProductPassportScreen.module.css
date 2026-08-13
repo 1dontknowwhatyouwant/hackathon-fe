@@ -115,15 +115,22 @@
 .watermark {
   position: absolute;
   top: 50%;
-  left: 50%;
-  color: rgb(255 255 255 / 7%);
-  font-size: clamp(64px, 24vw, 94px);
-  font-weight: 900;
-  letter-spacing: -0.09em;
-  filter: blur(1.2px);
-  transform: translate(-52%, -52%);
+  left: 61%;
+  width: 50%;
+  max-width: 170px;
+  aspect-ratio: 1;
+  opacity: 0.11;
+  filter: blur(0.8px) invert(1) drop-shadow(0 0 14px rgb(255 255 255 / 8%));
+  transform: translate(-50%, -50%);
   user-select: none;
-  white-space: nowrap;
+  pointer-events: none;
+}
+
+.watermarkImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .shineSweep {

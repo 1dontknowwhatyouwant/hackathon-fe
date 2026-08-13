@@ -4,6 +4,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
@@ -42,6 +43,21 @@ function VerifiedMark() {
           strokeWidth="2"
         />
       </svg>
+    </span>
+  );
+}
+
+function McmWatermark() {
+  return (
+    <span aria-hidden="true" className={styles.watermark}>
+      <Image
+        alt=""
+        className={styles.watermarkImage}
+        height={376}
+        loading="eager"
+        src="/mcm-logo.png"
+        width={376}
+      />
     </span>
   );
 }
@@ -95,9 +111,7 @@ function ProductPassportCard() {
         }
       >
         <span className={styles.cardFace}>
-          <span aria-hidden="true" className={styles.watermark}>
-            MCM
-          </span>
+          <McmWatermark />
 
           <span className="absolute inset-0 z-10 flex flex-col p-6 text-left">
             <span className="flex items-start justify-between">
@@ -132,9 +146,7 @@ function ProductPassportCard() {
         </span>
 
         <span className={`${styles.cardFace} ${styles.cardBack}`}>
-          <span aria-hidden="true" className={styles.watermark}>
-            MCM
-          </span>
+          <McmWatermark />
 
           <span className="absolute inset-0 z-10 flex flex-col p-6 text-left">
             <span className="flex items-center justify-between border-b border-white/12 pb-4">
