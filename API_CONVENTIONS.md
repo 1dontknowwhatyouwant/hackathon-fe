@@ -404,12 +404,9 @@ FEATURE
 - LIGHTWEIGHT
 - COMPACT
 - SPACIOUS
-- MULTIWAY
-- STATEMENT
-- LOGO
 ```
 
-`MULTIWAY`는 여러 방식으로 착용·변형할 수 있는 구체적인 제품 특성을 뜻하며 `VERSATILE`은 사용하지 않는다. `EXHIBITION`, `CAFE`는 Occasion이 아니라 장소 카테고리다.
+`EXHIBITION`, `CAFE`는 Occasion이 아니라 장소 카테고리다.
 
 ---
 
@@ -545,6 +542,10 @@ Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
 
 ### 14.1 아이템 이미지 등록 순서
 
+이미지는 UserItem 생성의 필수 조건이 아니다.
+
+이미지를 정상적으로 분석하고 등록하는 흐름:
+
 ```text
 원본 File을 브라우저 메모리에 보관
 → AI_INPUT 서명 발급과 업로드
@@ -555,20 +556,81 @@ Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
 → AI_INPUT 정리
 ```
 
+이미지를 선택하지 않았거나 업로드에 실패한 흐름:
+
+```text
+사용자가 아이템 정보를 직접 입력·확인
+→ POST /my-items
+→ 이미지 없이 생성 완료
+→ 다음 화면으로 이동
+→ 필요하면 아이템 상세에서 ITEM 이미지 추가
+```
+
 - `AI_INPUT` 이미지를 `ITEM` 이미지로 직접 승격하지 않는다.
 - ITEM 이미지는 최대 3장, PROFILE은 최대 1장이다.
 - 허용 형식은 JPG·PNG·WebP, 최대 크기는 10MB, 긴 변은 최대 1600px이다.
 - 이미지 삭제는 `DELETE_PENDING`으로 전환한 뒤 외부 저장소에서 처리하며 재요청은 멱등 성공이다.
+- 이미지 미선택, 서명 실패, 외부 업로드 실패, 완료 등록 실패는 UserItem 생성 차단 사유가 아니다.
+- 이미지 없이 생성된 아이템은 목록의 `primaryImageUrl`을 `null`, 상세의 `images`를 `[]`로 반환한다.
+- 이미지 실패 때문에 UserItem에 별도 상태값을 추가하지 않는다. 이미지 생명주기는 `ImageAssetStatus`로 관리한다.
+- 아이템이 먼저 생성된 뒤 ITEM 이미지 업로드가 실패하면 아이템을 롤백하거나 삭제하지 않는다.
+- 프런트는 입력 폼과 미리보기를 유지하고 `다시 시도`, `다른 사진 선택`, `이미지 없이 계속`을 제공한다.
+- `이미지 없이 계속`을 선택하면 업로드 요청을 취소하고 아이템 생성 성공 화면으로 이동한다.
+- 완료 등록 API만 실패했다면 같은 `publicId`와 업로드 결과로 완료 등록만 멱등 재시도하며 파일을 중복 업로드하지 않는다.
 
 ### 14.2 AI Job 정책
 
+- AI Job 유형은 `PREFERENCE_ANALYSIS`, `ITEM_ANALYSIS`, `STYLE_PLAN`만 사용한다.
+- `PURCHASE_UTILITY`는 AI Job 유형에서 제거한다.
+- 상태는 `PENDING → PROCESSING → SUCCEEDED` 또는 `PENDING → PROCESSING → FAILED`로만 전이한다.
+- `SUCCEEDED`, `FAILED`는 종료 상태다.
 - 사용자당 동시 실행은 1개다.
 - 사용자당 하루 최대 10회다.
 - 외부 처리 Timeout은 20초다.
 - 서버 자동 재시도는 최대 1회다.
 - 동일 사용자·동일 입력 결과는 24시간 캐시할 수 있다.
-- `PURCHASE_UTILITY`가 `INSUFFICIENT_DATA`이면 분석 Row를 억지로 생성하지 않는다.
-- 클라이언트 폴링은 화면 이탈 시 취소하고 완료·실패·제한시간 초과에서 종료한다.
+- 클라이언트 Polling은 2초 간격으로 최대 30초 동안 수행한다.
+- 최대 Polling 조회 횟수는 15회다.
+- `SUCCEEDED` 또는 `FAILED`를 받으면 즉시 Polling을 종료한다.
+- 화면 이탈 시 진행 중 요청을 취소하고 다음 Polling을 예약하지 않는다.
+- 30초 경과는 프런트 자동 조회 중단을 뜻하며 백엔드 Job을 취소하지 않는다.
+- 시간 초과 후 사용자가 `다시 확인`을 선택하면 새 Job을 만들지 않고 같은 `jobId`를 조회한다.
+- Polling은 고정 2초 간격이며 지수 백오프를 사용하지 않는다.
+
+AI Provider 처리 실패와 HTTP API 실패는 구분한다.
+
+- Job 생성·조회 요청 자체가 정상 처리됐다면 Job이 `FAILED`여도 `200 OK`와 성공 Envelope를 반환한다.
+- 프런트는 HTTP 상태가 아니라 `data.status`를 기준으로 Job 완료 여부를 판단한다.
+- `FAILED`에서는 `result`가 `null`, `fallback`과 `error`는 필수다.
+- `fallback`은 AI 유형별 대체 화면을 구성할 수 있는 정상 데이터 객체다.
+- 인증·인가 실패, 잘못된 요청, 존재하지 않는 Job은 기존 일반 오류 Envelope를 사용한다.
+
+`FAILED` Job 조회 예시:
+
+```json
+{
+  "success": true,
+  "data": {
+    "jobId": "9001",
+    "type": "PREFERENCE_ANALYSIS",
+    "status": "FAILED",
+    "cached": false,
+    "result": null,
+    "fallback": {
+      "preferredColors": [],
+      "preferredCategories": [],
+      "preferredStyleTags": [],
+      "summary": "기본 제품을 먼저 보여드릴게요."
+    },
+    "error": {
+      "code": "AI_PROVIDER_UNAVAILABLE",
+      "message": "AI 취향 분석을 완료하지 못했습니다."
+    },
+    "createdAt": "2026-08-13T01:30:00Z",
+    "completedAt": "2026-08-13T01:30:20Z"
+  }
+}
+```
 
 ---
 
@@ -577,12 +639,132 @@ Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
 다음 항목은 팀 합의 전 구현 계약으로 고정하지 않는다.
 
 - 회원 탈퇴 시 LOCAL 비밀번호 재확인과 소셜 재인증 범위
-- 상품 추천 점수 항목과 가중치
-- 구매 활용성 점수 항목과 가중치
-- 장소 추천을 서버 규칙 기반으로 확정할지 여부
+- 추천 항목 안에서 복수 태그 일치율을 계산하는 세부 공식
+- 구매 활용성 네 기준의 배점과 최종 점수 계산식
+- 장소 추천의 카테고리·거리·기타 조건별 가중치
 - `/favorites`, `/saved-places` Endpoint명 최종 승인
 
 홈 API는 기존 결과를 집계하는 조회 전용이며 새 추천, AI Job, OpenAI, Kakao Local 호출을 시작하지 않는다.
+
+### 15.1 AI 취향 분석과 홈 제품 리스트
+
+취향 분석은 사용자의 취향을 분석해 홈 화면의 제품 리스트를 구성하는 용도로 사용한다.
+
+```text
+사용자 취향 입력
+→ PREFERENCE_ANALYSIS AI Job 생성·완료
+→ preferredColors / preferredCategories / preferredStyleTags / summary 저장
+→ 저장된 취향 결과를 기준으로 홈 제품 목록 구성
+→ GET /home의 preferenceProducts로 반환
+```
+
+- 홈 API 호출 시 새 AI Job을 만들지 않는다.
+- 가장 최근에 저장된 취향 분석 결과만 조회한다.
+- 취향 분석 전이거나 매칭 상품이 없으면 `preferenceProducts: []`를 반환한다.
+- 홈의 `preferenceProducts`는 보유 제품 기반 추천 API의 `products`와 다른 결과다.
+- 홈 제품 Item은 `productId`, `name`, `preferenceMatchScore`, `primaryImageUrl`을 반환한다.
+
+### 15.2 추천 기능 분리
+
+#### 스마트 착용 추천
+
+```text
+사용자가 원하는 무드 선택
+→ 드래그바로 스타일 강도 선택
+→ 선택한 조건에 맞는 제품 추천
+```
+
+- 사용자가 이번 추천의 의도를 직접 입력하는 기능이다.
+- 추천 제품 리스트와 Request DTO, Zustand 상태, 캐시 Key를 공유하지 않는다.
+- 무드 Enum, 드래그바 축·범위·단계, Endpoint는 별도 합의 후 확정한다.
+
+#### 추천 제품 리스트
+
+추천 제품 리스트는 사용자가 보유한 제품의 분석 결과를 입력으로 사용하는 서버 `RULE_BASED` 기능이다.
+
+| 항목 | 최대 점수 | JSON 필드 |
+| --- | ---: | --- |
+| STYLE | 30 | `styleScore` |
+| OCCASION | 25 | `occasionScore` |
+| SEASON | 25 | `seasonScore` |
+| FEATURE | 20 | `featureScore` |
+| 합계 | 100 | `totalScore` |
+
+```text
+보유 제품 분석 결과
++ 후보 MCM 상품의 STYLE / OCCASION / SEASON / FEATURE 태그
+→ 항목별 점수와 총점 계산
+→ 총점 내림차순 순위와 추천 이유 반환
+```
+
+- AI가 후보 상품 중 추천 상품을 선택하지 않는다.
+- 추천 응답의 `generationType`은 `RULE_BASED`다.
+- 응답의 기존 `score`와 `scoreBreakdown.totalScore`는 같은 값이어야 한다.
+- 각 점수는 0 이상이며 항목별 최대 점수를 넘을 수 없다.
+- `totalScore = styleScore + occasionScore + seasonScore + featureScore`다.
+- 총점 동률 정렬 기준과 복수 태그 일치율의 세부 계산식은 별도로 확정한다.
+- 추천 결과가 없으면 `200`과 `products: []`를 반환한다.
+- MCM 상품에 연결되지 않은 보유 아이템은 현재 `ITEM_ANALYSIS`와 DB에 추천용 태그가 없어 분석·저장 계약을 추가로 합의해야 한다.
+
+### 15.3 구매 전 활용 가능성 분석
+
+구매 전 활용 가능성은 AI를 사용하지 않고 백엔드 `RULE_BASED` 방식으로 다음 네 가지 기준을 계산한다.
+
+| 기준 | JSON 필드 | 설명 |
+| --- | --- | --- |
+| 내 아이템과 스타일 조합 가능 | `itemStyleCompatibility` | 구매 후보와 현재 보유 아이템의 스타일 조합 가능성 |
+| 취향 태그 일치 | `preferenceTagMatch` | 구매 후보 태그와 사용자 취향 태그의 일치도 |
+| 현재 보유 카테고리와의 조합 | `ownedCategoryCompatibility` | 구매 후보 카테고리와 보유 카테고리 구성의 조합 가능성 |
+| 계절 활용성 | `seasonalUtility` | 상품의 SEASON 태그를 기준으로 한 계절 활용 범위 |
+
+- 기존 `categoryCompatibility`, `colorCompatibility`, `styleCompatibility`, `duplicationPenalty` 계약은 사용하지 않는다.
+- 중고·재판매 기능이 없으므로 재판매 가치와 관리 난이도는 구매 활용 가능성 평가 기준에서 제외한다.
+- 네 점수는 `factors` 객체에 구조화해 반환한다.
+- 항목별 최대 점수, 가중치와 최종 `utilityScore` 계산식은 별도로 확정한다.
+- `POST /api/purchase-utility-analyses`는 `{ "productId": "101" }`를 받아 동기식으로 분석한다.
+- 이 요청은 AI Job, `Idempotency-Key`, AI 폴링을 사용하지 않는다.
+- 분석이 완료되면 `status: READY`와 `analysis`를 반환한다.
+- 분석 근거가 부족하면 분석 Row를 만들지 않고 `status: INSUFFICIENT_DATA`, `analysis: null`, 안내 메시지를 반환한다.
+
+### 15.4 장소 추천 방식
+
+장소 추천은 Kakao Local의 실제 장소 데이터와 백엔드 `RULE_BASED` 점수 계산을 사용한다.
+
+```text
+Backend → Kakao Local API로 장소 후보 검색
+→ (provider, providerPlaceId) 기준 places Upsert
+→ category / distance / 요청 조건 등으로 점수 계산
+→ score 내림차순으로 rank와 reason 생성
+→ Frontend에 장소 좌표와 추천 결과 반환
+→ MapLibre GL JS가 OpenFreeMap 지도에 마커 표시
+```
+
+역할을 다음과 같이 분리한다.
+
+| 구성 요소 | 역할 |
+| --- | --- |
+| Kakao Local API | 실제 장소명, 카테고리, 주소, 좌표, 장소 URL 제공 |
+| Backend | 장소 캐시, 카테고리·거리·조건 점수 계산, 정렬, 추천 이유 생성 |
+| MapLibre GL JS + OpenFreeMap | 백엔드가 반환한 좌표와 순위를 지도와 마커로 표시 |
+
+- Kakao REST API Key는 백엔드 비밀 환경변수에서만 관리한다.
+- 프런트는 Kakao JavaScript SDK Key를 사용하지 않고 Kakao Local API를 직접 호출하지 않는다.
+- 추천 결과는 `rank`, `score`, `reason`, `place`를 반환한다.
+- `score`는 서버가 계산하며 프런트는 다시 계산하거나 순서를 변경하지 않는다.
+- 추천 결과는 필요하면 `style_plan_places`에 저장한다.
+- 별도 OpenAI 호출과 `PLACE_RECOMMENDATION` AI Job은 사용하지 않는다.
+- 카테고리·거리·기타 조건별 가중치와 동률 정렬 기준은 별도로 확정한다.
+- Kakao 장애·Timeout은 각각 `PLACE_PROVIDER_UNAVAILABLE`과 외부 서비스 상태 코드로 처리한다.
+
+### 15.5 마이 아이템 구매 후 MVP 범위
+
+세척·수선·보관 등의 관리 기록은 MVP에서 제외한다.
+
+- 중고 거래, 판매 글, 소유권 이전, 재판매 가치 분석 기능을 만들지 않는다.
+- 관리 기록 화면을 만들지 않는다.
+- 관리 기록 Controller와 Endpoint를 정의하지 않는다.
+- 기존 DB에 `CareRecord` 구조가 있더라도 이번 API 연동 범위에는 포함하지 않는다.
+- 착용·사용 기록, 활용도 분석, 미사용 아이템 재활용 추천, 제품 패스포트·디지털 ID, 관리 가이드·일정은 별도 합의 전까지 포함 여부를 확정하지 않는다.
 
 ---
 

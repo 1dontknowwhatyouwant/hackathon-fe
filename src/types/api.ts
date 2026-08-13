@@ -130,9 +130,6 @@ export const featureTags = [
   "LIGHTWEIGHT",
   "COMPACT",
   "SPACIOUS",
-  "MULTIWAY",
-  "STATEMENT",
-  "LOGO",
 ] as const;
 export type FeatureTag = (typeof featureTags)[number];
 
@@ -179,13 +176,29 @@ export type ProductDetail = ProductSummary & {
   };
 };
 
+export const productRecommendationScoreWeights = {
+  style: 30,
+  occasion: 25,
+  season: 25,
+  feature: 20,
+} as const;
+
+export type ProductRecommendationScore = {
+  styleScore: number;
+  occasionScore: number;
+  seasonScore: number;
+  featureScore: number;
+  totalScore: number;
+};
+
 export type Recommendation = {
   recommendationId: string;
-  generationType: "AI" | "RULE_BASED" | "MANUAL";
+  generationType: "RULE_BASED";
   summary: string;
   products: Array<{
     rank: number;
     score: number;
+    scoreBreakdown: ProductRecommendationScore;
     reason: string;
     product: Pick<
       ProductSummary,
@@ -228,24 +241,44 @@ export type ImagePurpose = "PROFILE" | "ITEM" | "AI_INPUT";
 export type AiJobType =
   | "PREFERENCE_ANALYSIS"
   | "ITEM_ANALYSIS"
-  | "PURCHASE_UTILITY"
   | "STYLE_PLAN";
 export type AiJobStatus = "PENDING" | "PROCESSING" | "SUCCEEDED" | "FAILED";
 
-export type AiJobAccepted = {
+type AiJobBase = {
   jobId: string;
   type: AiJobType;
-  status: AiJobStatus;
   cached: boolean;
   createdAt: string;
 };
 
-export type AiJob = AiJobAccepted & {
-  result: unknown | null;
-  fallback: unknown | null;
-  error: ApiErrorDetail | null;
-  completedAt: string | null;
+export type AiJobAccepted = AiJobBase & {
+  status: "PENDING";
 };
+
+export type AiJobFallback = Record<string, unknown>;
+
+export type AiJob =
+  | (AiJobBase & {
+      status: "PENDING" | "PROCESSING";
+      result: null;
+      fallback: null;
+      error: null;
+      completedAt: null;
+    })
+  | (AiJobBase & {
+      status: "SUCCEEDED";
+      result: unknown;
+      fallback: null;
+      error: null;
+      completedAt: string;
+    })
+  | (AiJobBase & {
+      status: "FAILED";
+      result: null;
+      fallback: AiJobFallback;
+      error: ApiErrorDetail;
+      completedAt: string;
+    });
 
 export type PurchaseUtilityAnalysis = {
   analysisId: string;
@@ -255,12 +288,11 @@ export type PurchaseUtilityAnalysis = {
   >;
   utilityScore: number;
   compatibleItemCount: number;
-  duplicateSimilarityScore: number;
   factors: {
-    categoryCompatibility: number;
-    colorCompatibility: number;
-    styleCompatibility: number;
-    duplicationPenalty: number;
+    itemStyleCompatibility: number;
+    preferenceTagMatch: number;
+    ownedCategoryCompatibility: number;
+    seasonalUtility: number;
   };
   compatibleItems: Array<{
     myItemId: string;
@@ -271,6 +303,18 @@ export type PurchaseUtilityAnalysis = {
   summary: string;
   analyzedAt: string;
 };
+
+export type PurchaseUtilityResult =
+  | {
+      status: "READY";
+      analysis: PurchaseUtilityAnalysis;
+      message: null;
+    }
+  | {
+      status: "INSUFFICIENT_DATA";
+      analysis: null;
+      message: string;
+    };
 
 export type PlaceCategory =
   | "EXHIBITION"
@@ -291,6 +335,13 @@ export type ApiPlace = {
   longitude: number;
   placeUrl: string;
   saved: boolean;
+};
+
+export type ApiPlaceRecommendation = {
+  rank: number;
+  score: number;
+  reason: string;
+  place: ApiPlace;
 };
 
 export type StylePlanSummary = {
@@ -315,10 +366,10 @@ export type HomeData = {
     StylePlanSummary,
     "stylePlanId" | "title" | "thumbnailImageUrl"
   > | null;
-  recommendedProducts: Array<{
+  preferenceProducts: Array<{
     productId: string;
     name: string;
-    matchScore: number;
+    preferenceMatchScore: number;
     primaryImageUrl: string | null;
   }>;
 };

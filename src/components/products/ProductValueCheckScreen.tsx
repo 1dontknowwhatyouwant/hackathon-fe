@@ -50,24 +50,30 @@ export function ProductValueCheckScreen({
       <div className="mt-9 space-y-5">
         <LuxuryReveal delay={140}>
           <DetailActionCard
-            title={`보유 제품과 ${product.outfitCombinationCount}개 조합`}
+            title={`내 아이템과 스타일 조합 ${product.itemStyleCompatibilityScore}점`}
           />
         </LuxuryReveal>
 
         <LuxuryReveal delay={200}>
           <DetailActionCard
-            title={`예상 재판매 가치 ${product.resaleValueLabel}`}
+            title={`취향 태그 일치 ${product.preferenceTagMatchScore}점`}
           />
         </LuxuryReveal>
 
         <LuxuryReveal delay={260}>
           <DetailActionCard
-            title={`관리 난이도 ${product.careDifficultyLabel}`}
+            title={`보유 카테고리 조합 ${product.ownedCategoryCompatibilityScore}점`}
+          />
+        </LuxuryReveal>
+
+        <LuxuryReveal delay={320}>
+          <DetailActionCard
+            title={`계절 활용성 ${product.seasonalUtilityScore}점`}
           />
         </LuxuryReveal>
       </div>
 
-      <LuxuryReveal className="mt-11" delay={320}>
+      <LuxuryReveal className="mt-11" delay={390}>
         <button
           type="button"
           className="flex h-[52px] w-full items-center justify-center rounded-[16px] bg-[#15151a] text-[15px] font-bold text-white transition-colors hover:bg-[#2a2a30] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15151a]"

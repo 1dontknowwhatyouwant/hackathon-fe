@@ -14,9 +14,10 @@ export type RecommendedProduct = {
   closetMatchScore: number;
   expectedUseCount: number;
   valueScore: number;
-  outfitCombinationCount: number;
-  resaleValueLabel: string;
-  careDifficultyLabel: string;
+  itemStyleCompatibilityScore: number;
+  preferenceTagMatchScore: number;
+  ownedCategoryCompatibilityScore: number;
+  seasonalUtilityScore: number;
   price: number;
   imageUrl?: string;
 };

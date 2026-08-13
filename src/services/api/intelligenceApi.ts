@@ -4,12 +4,14 @@ import type {
   AiJobAccepted,
   ApiPage,
   ApiPlace,
+  ApiPlaceRecommendation,
   ApiSuccessResponse,
   ItemCategory,
   OccasionTag,
   PageQuery,
   PlaceCategory,
   PurchaseUtilityAnalysis,
+  PurchaseUtilityResult,
   StylePlanSummary,
   StyleTag,
 } from "@/types/api";
@@ -28,10 +30,6 @@ type AiJobRequest =
       type: "ITEM_ANALYSIS";
       imageIds: string[];
       context: { language: "ko" };
-    }
-  | {
-      type: "PURCHASE_UTILITY";
-      context: { productId: string; language: "ko" };
     }
   | {
       type: "STYLE_PLAN";
@@ -98,6 +96,12 @@ type PlaceSearchQuery = {
   radius?: number;
 };
 
+export const aiJobPollingPolicy = {
+  intervalMs: 2_000,
+  timeoutMs: 30_000,
+  maxAttempts: 15,
+} as const;
+
 export const intelligenceApi = {
   createAiJob: (body: AiJobRequest, idempotencyKey: string) =>
     api.post<ApiSuccessResponse<AiJobAccepted>>("/ai-jobs", body, {
@@ -107,6 +111,13 @@ export const intelligenceApi = {
 
   getAiJob: (jobId: string, signal?: AbortSignal) =>
     api.get<ApiSuccessResponse<AiJob>>(`/ai-jobs/${jobId}`, { signal }),
+
+  analyzePurchaseUtility: (productId: string, signal?: AbortSignal) =>
+    api.post<ApiSuccessResponse<PurchaseUtilityResult>>(
+      "/purchase-utility-analyses",
+      { productId },
+      { signal },
+    ),
 
   getPurchaseUtilityAnalysis: (analysisId: string) =>
     api.get<ApiSuccessResponse<PurchaseUtilityAnalysis>>(
@@ -159,7 +170,7 @@ export const intelligenceApi = {
     api.post<
       ApiSuccessResponse<{
         stylePlanId: string;
-        places: Array<{ rank: number; reason: string; place: ApiPlace }>;
+        places: ApiPlaceRecommendation[];
       }>
     >(`/style-plans/${stylePlanId}/place-recommendations`, body),
 
