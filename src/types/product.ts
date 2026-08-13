@@ -14,10 +14,10 @@ export type RecommendedProduct = {
   closetMatchScore: number;
   expectedUseCount: number;
   valueScore: number;
-  itemStyleCompatibilityScore: number;
-  preferenceTagMatchScore: number;
-  ownedCategoryCompatibilityScore: number;
-  seasonalUtilityScore: number;
+  preferenceTagFitScore: number;
+  styleCombinationScore: number;
+  seasonUsabilityScore: number;
+  ownedCategoryCombinationScore: number;
   price: number;
   imageUrl?: string;
 };

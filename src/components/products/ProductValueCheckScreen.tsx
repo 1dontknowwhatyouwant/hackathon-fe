@@ -52,25 +52,25 @@ export function ProductValueCheckScreen({
       <div className="mt-9 space-y-5">
         <LuxuryReveal delay={140}>
           <DetailActionCard
-            title={`내 아이템과 스타일 조합 ${product.itemStyleCompatibilityScore}점`}
+            title={`취향 태그 일치 ${product.preferenceTagFitScore} / 30점`}
           />
         </LuxuryReveal>
 
         <LuxuryReveal delay={200}>
           <DetailActionCard
-            title={`취향 태그 일치 ${product.preferenceTagMatchScore}점`}
+            title={`내 아이템과 스타일 조합 ${product.styleCombinationScore} / 25점`}
           />
         </LuxuryReveal>
 
         <LuxuryReveal delay={260}>
           <DetailActionCard
-            title={`보유 카테고리 조합 ${product.ownedCategoryCompatibilityScore}점`}
+            title={`계절 활용성 ${product.seasonUsabilityScore} / 25점`}
           />
         </LuxuryReveal>
 
         <LuxuryReveal delay={320}>
           <DetailActionCard
-            title={`계절 활용성 ${product.seasonalUtilityScore}점`}
+            title={`보유 카테고리 조합 ${product.ownedCategoryCombinationScore} / 20점`}
           />
         </LuxuryReveal>
       </div>
