@@ -1,0 +1,125 @@
+/* Flip interaction adapted from Uiverse.io by Praashoo7 for a tap-first mobile UI. */
+.card {
+  --shine-x: 32%;
+  --shine-y: 18%;
+
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.56 / 1;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  perspective: 1200px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.shineLayer {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 24px;
+  pointer-events: none;
+}
+
+.cardInner {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.cardFace {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 78% 12%, rgb(255 255 255 / 10%), transparent 28%),
+    linear-gradient(145deg, #242426 0%, #111113 48%, #1b1b1d 100%);
+  box-shadow:
+    0 22px 44px rgb(13 13 15 / 24%),
+    0 2px 2px rgb(0 0 0 / 40%),
+    inset 0 1px 0 rgb(255 255 255 / 8%),
+    inset 0 -1px 0 rgb(0 0 0 / 50%);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.cardFace::before {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--shine-x) var(--shine-y),
+    rgb(255 255 255 / 22%) 0%,
+    rgb(255 255 255 / 8%) 15%,
+    transparent 38%
+  );
+  content: "";
+  mix-blend-mode: screen;
+  pointer-events: none;
+  transition: background-position 160ms ease-out;
+}
+
+.cardFace::after {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    115deg,
+    transparent 0,
+    transparent 14px,
+    rgb(255 255 255 / 1.8%) 15px,
+    transparent 16px
+  );
+  content: "";
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.cardBack {
+  transform: rotateY(180deg);
+}
+
+.watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: rgb(255 255 255 / 8%);
+  font-size: clamp(64px, 24vw, 94px);
+  font-weight: 900;
+  letter-spacing: -0.09em;
+  filter: blur(0.7px);
+  transform: translate(-52%, -52%);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.shineSweep {
+  position: absolute;
+  top: -36%;
+  bottom: -36%;
+  left: 0;
+  width: 42%;
+  background: linear-gradient(
+    102deg,
+    transparent 2%,
+    rgb(255 255 255 / 4%) 32%,
+    rgb(255 255 255 / 42%) 51%,
+    rgb(255 255 255 / 7%) 68%,
+    transparent 98%
+  );
+  filter: blur(3px);
+  pointer-events: none;
+  transform: skewX(-12deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardFace::before {
+    transition: none;
+  }
+}
