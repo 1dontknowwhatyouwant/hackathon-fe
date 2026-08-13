@@ -1,6 +1,7 @@
 import { api } from "@/lib/axios";
 import { useAuthStore } from "@/store/useAuthStore";
 import type {
+  AccountDeletionReauthentication,
   ApiSuccessResponse,
   AuthTokenData,
   EmailVerificationPurpose,
@@ -54,6 +55,12 @@ export const authApi = {
 
   login: (body: LoginRequest) =>
     api.post<ApiSuccessResponse<AuthTokenData>>("/auth/login", body),
+
+  reauthenticateForAccountDeletion: (password: string) =>
+    api.post<ApiSuccessResponse<AccountDeletionReauthentication>>(
+      "/auth/reauth/password",
+      { password },
+    ),
 
   logout: async () => {
     try {

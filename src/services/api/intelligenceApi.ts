@@ -11,7 +11,6 @@ import type {
   PageQuery,
   PlaceCategory,
   PurchaseUtilityAnalysis,
-  PurchaseUtilityResult,
   StylePlanSummary,
   StyleTag,
 } from "@/types/api";
@@ -30,6 +29,13 @@ type AiJobRequest =
       type: "ITEM_ANALYSIS";
       imageIds: string[];
       context: { language: "ko" };
+    }
+  | {
+      type: "PURCHASE_UTILITY";
+      context: {
+        productId: string;
+        language: "ko";
+      };
     }
   | {
       type: "STYLE_PLAN";
@@ -89,7 +95,7 @@ type StylePlanDetail = Pick<
 };
 
 type PlaceSearchQuery = {
-  query: string;
+  query?: string;
   category?: PlaceCategory;
   latitude?: number;
   longitude?: number;
@@ -111,13 +117,6 @@ export const intelligenceApi = {
 
   getAiJob: (jobId: string, signal?: AbortSignal) =>
     api.get<ApiSuccessResponse<AiJob>>(`/ai-jobs/${jobId}`, { signal }),
-
-  analyzePurchaseUtility: (productId: string, signal?: AbortSignal) =>
-    api.post<ApiSuccessResponse<PurchaseUtilityResult>>(
-      "/purchase-utility-analyses",
-      { productId },
-      { signal },
-    ),
 
   getPurchaseUtilityAnalysis: (analysisId: string) =>
     api.get<ApiSuccessResponse<PurchaseUtilityAnalysis>>(
@@ -155,36 +154,37 @@ export const intelligenceApi = {
     api.delete<void>(`/style-plans/${stylePlanId}`),
 
   searchPlaces: (params: PlaceSearchQuery) =>
-    api.get<ApiSuccessResponse<ApiPlace[]>>("/places", { params }),
+    api.get<ApiSuccessResponse<{ items: ApiPlace[] }>>("/places", { params }),
 
   recommendPlaces: (
     stylePlanId: string,
     body: {
-      query: string;
-      category: PlaceCategory;
-      latitude: number | null;
-      longitude: number | null;
-      radius: number | null;
+      query: string | null;
+      category: PlaceCategory | null;
+      latitude: number;
+      longitude: number;
+      radius?: number;
     },
   ) =>
     api.post<
       ApiSuccessResponse<{
         stylePlanId: string;
+        rankingPolicyVersion: string;
         places: ApiPlaceRecommendation[];
       }>
     >(`/style-plans/${stylePlanId}/place-recommendations`, body),
 
   getSavedPlaces: (params: PageQuery = {}) =>
     api.get<ApiSuccessResponse<ApiPage<ApiPlace & { savedAt: string }>>>(
-      "/saved-places",
+      "/places/saved",
       { params },
     ),
 
   savePlace: (placeId: string) =>
     api.put<ApiSuccessResponse<{ placeId: string; saved: true }>>(
-      `/saved-places/${placeId}`,
+      `/places/${placeId}/saved`,
     ),
 
   removeSavedPlace: (placeId: string) =>
-    api.delete<void>(`/saved-places/${placeId}`),
+    api.delete<void>(`/places/${placeId}/saved`),
 };

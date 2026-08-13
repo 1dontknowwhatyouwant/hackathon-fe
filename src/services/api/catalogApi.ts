@@ -2,7 +2,10 @@ import { api } from "@/lib/axios";
 import type {
   ApiPage,
   ApiSuccessResponse,
+  CurrentSeasonTag,
+  FeatureTag,
   ItemCategory,
+  OccasionTag,
   PageQuery,
   ProductDetail,
   ProductSummary,
@@ -22,6 +25,17 @@ type FavoriteProduct = ProductSummary & {
   favoritedAt: string;
 };
 
+type CreateRecommendationRequest = {
+  occasion: OccasionTag;
+  season: CurrentSeasonTag;
+  preferredFeatures:
+    | [FeatureTag]
+    | [FeatureTag, FeatureTag]
+    | [FeatureTag, FeatureTag, FeatureTag];
+  category?: ItemCategory;
+  limit?: 1 | 2 | 3;
+};
+
 export const catalogApi = {
   getProducts: (params: ProductListQuery, signal?: AbortSignal) =>
     api.get<ApiSuccessResponse<ApiPage<ProductSummary>>>("/products", {
@@ -34,10 +48,10 @@ export const catalogApi = {
       signal,
     }),
 
-  createRecommendation: (body: {
-    category: ItemCategory | null;
-    limit: number;
-  }, signal?: AbortSignal) =>
+  createRecommendation: (
+    body: CreateRecommendationRequest,
+    signal?: AbortSignal,
+  ) =>
     api.post<ApiSuccessResponse<Recommendation>>("/recommendations", body, {
       signal,
     }),
@@ -48,15 +62,16 @@ export const catalogApi = {
     ),
 
   getFavorites: (params: PageQuery = {}) =>
-    api.get<ApiSuccessResponse<ApiPage<FavoriteProduct>>>("/favorites", {
-      params,
-    }),
+    api.get<ApiSuccessResponse<ApiPage<FavoriteProduct>>>(
+      "/products/favorites",
+      { params },
+    ),
 
   addFavorite: (productId: string) =>
     api.put<
       ApiSuccessResponse<{ productId: string; favorited: true }>
-    >(`/favorites/${productId}`),
+    >(`/products/${productId}/favorite`),
 
   removeFavorite: (productId: string) =>
-    api.delete<void>(`/favorites/${productId}`),
+    api.delete<void>(`/products/${productId}/favorite`),
 };

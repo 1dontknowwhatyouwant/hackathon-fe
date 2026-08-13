@@ -1,5 +1,6 @@
 import { api } from "@/lib/axios";
 import type {
+  AccountDeletionAccepted,
   ApiSuccessResponse,
   Gender,
   HomeData,
@@ -28,6 +29,9 @@ export const profileApi = {
 
   updateMe: (body: UpdateMyProfileRequest) =>
     api.patch<ApiSuccessResponse<UserProfile>>("/users/me", body),
+
+  deleteMe: () =>
+    api.delete<ApiSuccessResponse<AccountDeletionAccepted>>("/users/me"),
 
   getPreferences: () =>
     api.get<ApiSuccessResponse<PreferenceProfile>>("/preferences/me"),

@@ -53,7 +53,13 @@ export const useProductRecommendationStore =
         try {
           // 백엔드 연결 시 아래 호출로 더미 데이터 조회를 교체합니다.
           // const response = await backendApi.catalog.createRecommendation(
-          //   { category: category === "ALL" ? null : category, limit: 20 },
+          //   {
+          //     occasion: "DAILY",
+          //     season: "AUTUMN",
+          //     preferredFeatures: ["COMPACT"],
+          //     category: category === "ALL" ? undefined : category,
+          //     limit: 3,
+          //   },
           //   request.controller.signal,
           // );
           // const nextProducts = response.data.data.products.map(

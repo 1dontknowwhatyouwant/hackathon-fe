@@ -7,6 +7,7 @@ export type ApiErrorDetail = {
   code: string;
   message: string;
   fields?: ApiFieldError[];
+  retryable?: boolean;
 };
 
 export type ApiSuccessResponse<T> = {
@@ -41,6 +42,15 @@ export type TermsType =
   | "PRIVACY_POLICY"
   | "EMAIL_MARKETING";
 export type OAuthProvider = "kakao" | "naver";
+
+export type AccountDeletionReauthentication = {
+  reauthenticated: true;
+  expiresInSeconds: number;
+};
+
+export type AccountDeletionAccepted = {
+  status: "DELETION_PENDING";
+};
 
 export type SessionUser = {
   userId: string;
@@ -127,11 +137,48 @@ export const occasionTags = [
 export type OccasionTag = (typeof occasionTags)[number];
 
 export const featureTags = [
-  "LIGHTWEIGHT",
   "COMPACT",
   "SPACIOUS",
+  "MULTIWAY",
 ] as const;
 export type FeatureTag = (typeof featureTags)[number];
+
+export type CurrentSeasonTag = Exclude<SeasonTag, "ALL_SEASON">;
+
+export const productTagLabels = {
+  style: {
+    CASUAL: "캐주얼",
+    FORMAL: "포멀",
+    NEAT: "깔끔한",
+    GLAMOROUS: "화려한",
+  },
+  season: {
+    SPRING: "봄",
+    SUMMER: "여름",
+    AUTUMN: "가을",
+    WINTER: "겨울",
+    ALL_SEASON: "사계절",
+  },
+  occasion: {
+    DAILY: "데일리",
+    DATE: "데이트",
+    TRAVEL: "여행",
+    GATHERING: "모임",
+    CEREMONY: "격식 있는 자리",
+    OUTDOOR: "야외 활동",
+    OTHER: "기타",
+  },
+  feature: {
+    COMPACT: "컴팩트",
+    SPACIOUS: "넉넉한 수납",
+    MULTIWAY: "멀티웨이",
+  },
+} as const satisfies {
+  style: Record<StyleTag, string>;
+  season: Record<SeasonTag, string>;
+  occasion: Record<OccasionTag, string>;
+  feature: Record<FeatureTag, string>;
+};
 
 export type PreferenceProfile = {
   completed: boolean;
@@ -184,17 +231,16 @@ export const productRecommendationScoreWeights = {
 } as const;
 
 export type ProductRecommendationScore = {
-  styleScore: number;
-  occasionScore: number;
-  seasonScore: number;
-  featureScore: number;
-  totalScore: number;
+  style: number;
+  occasion: number;
+  season: number;
+  feature: number;
 };
 
 export type Recommendation = {
   recommendationId: string;
   generationType: "RULE_BASED";
-  summary: string;
+  scorePolicyVersion: string;
   products: Array<{
     rank: number;
     score: number;
@@ -227,7 +273,6 @@ export type MyItemSummary = {
 export type MyItemDetail = Omit<MyItemSummary, "primaryImageUrl"> & {
   linkedProductId: string | null;
   materialSource: "PRODUCT_DATA" | "USER_CONFIRMED" | "AI_ESTIMATED";
-  status: "OWNED" | "REPAIRING" | "SOLD" | "DISPOSED";
   purchaseDate: string | null;
   purchasePrice: number | null;
   memo: string | null;
@@ -237,45 +282,54 @@ export type MyItemDetail = Omit<MyItemSummary, "primaryImageUrl"> & {
 };
 
 export type ImagePurpose = "PROFILE" | "ITEM" | "AI_INPUT";
+export type ImageAssetStatus =
+  | "TEMPORARY"
+  | "ACTIVE"
+  | "DELETE_PENDING"
+  | "DELETED";
 
 export type AiJobType =
   | "PREFERENCE_ANALYSIS"
   | "ITEM_ANALYSIS"
+  | "PURCHASE_UTILITY"
   | "STYLE_PLAN";
 export type AiJobStatus = "PENDING" | "PROCESSING" | "SUCCEEDED" | "FAILED";
 
-type AiJobBase = {
+type AiJobIdentity = {
   jobId: string;
   type: AiJobType;
-  cached: boolean;
   createdAt: string;
 };
 
-export type AiJobAccepted = AiJobBase & {
+export type AiJobAccepted = AiJobIdentity & {
   status: "PENDING";
+  cached: boolean;
 };
 
-export type AiJobFallback = Record<string, unknown>;
+export type AiJobFallback = {
+  type: "RULE_BASED" | "MANUAL";
+  result: unknown;
+};
 
 export type AiJob =
-  | (AiJobBase & {
+  | (AiJobIdentity & {
       status: "PENDING" | "PROCESSING";
       result: null;
       fallback: null;
       error: null;
       completedAt: null;
     })
-  | (AiJobBase & {
+  | (AiJobIdentity & {
       status: "SUCCEEDED";
       result: unknown;
       fallback: null;
       error: null;
       completedAt: string;
     })
-  | (AiJobBase & {
+  | (AiJobIdentity & {
       status: "FAILED";
       result: null;
-      fallback: AiJobFallback;
+      fallback: AiJobFallback | null;
       error: ApiErrorDetail;
       completedAt: string;
     });
@@ -289,10 +343,10 @@ export type PurchaseUtilityAnalysis = {
   utilityScore: number;
   compatibleItemCount: number;
   factors: {
-    itemStyleCompatibility: number;
-    preferenceTagMatch: number;
-    ownedCategoryCompatibility: number;
-    seasonalUtility: number;
+    preferenceTagFitScore: number;
+    styleCombinationScore: number;
+    seasonUsabilityScore: number;
+    ownedCategoryCombinationScore: number;
   };
   compatibleItems: Array<{
     myItemId: string;
@@ -301,26 +355,27 @@ export type PurchaseUtilityAnalysis = {
     reason: string;
   }>;
   summary: string;
+  explanationGenerationType: "AI" | "RULE_BASED";
   analyzedAt: string;
 };
 
-export type PurchaseUtilityResult =
+export type PurchaseUtilityJobResult =
   | {
       status: "READY";
-      analysis: PurchaseUtilityAnalysis;
-      message: null;
+      analysisId: string;
     }
   | {
       status: "INSUFFICIENT_DATA";
-      analysis: null;
+      analysisId: null;
       message: string;
     };
 
 export type PlaceCategory =
-  | "EXHIBITION"
   | "CAFE"
-  | "SHOPPING"
   | "RESTAURANT"
+  | "CULTURE"
+  | "ATTRACTION"
+  | "SHOPPING"
   | "OTHER";
 
 export type ApiPlace = {
@@ -328,8 +383,9 @@ export type ApiPlace = {
   provider?: "KAKAO";
   providerPlaceId?: string;
   name: string;
+  category: PlaceCategory;
   categoryName: string;
-  address?: string;
+  address: string | null;
   roadAddress: string | null;
   latitude: number;
   longitude: number;
@@ -340,8 +396,102 @@ export type ApiPlace = {
 export type ApiPlaceRecommendation = {
   rank: number;
   score: number;
-  reason: string;
+  scoreBreakdown: {
+    categorySuitability: number;
+    distance: number;
+  };
+  reasonCode: string;
   place: ApiPlace;
+};
+
+export type UsageRecordItem = {
+  myItemId: string;
+  name: string;
+  sortOrder: number;
+};
+
+export type UsageRecord = {
+  usageRecordId: string;
+  wornAt: string;
+  occasion: OccasionTag;
+  placeName: string | null;
+  weatherSummary: string | null;
+  memo: string | null;
+  items: UsageRecordItem[];
+  version: number;
+  createdAt: string;
+};
+
+export type ItemUtilization =
+  | {
+      myItemId: string;
+      calculable: true;
+      usageCount: number;
+      lastUsedAt: string | null;
+      daysSinceLastUse: number | null;
+      utilizationScore: number;
+      utilizationLevel: "LOW" | "MEDIUM" | "HIGH";
+      policyVersion: string;
+      missingData: [];
+    }
+  | {
+      myItemId: string;
+      calculable: false;
+      usageCount: number;
+      lastUsedAt: string | null;
+      daysSinceLastUse: null;
+      utilizationScore: null;
+      utilizationLevel: null;
+      policyVersion: string;
+      missingData: string[];
+    };
+
+export type ReuseRecommendations = {
+  generationType: "RULE_BASED";
+  items: Array<{
+    myItemId: string;
+    name: string;
+    lastUsedAt: string | null;
+    usageCount: number;
+    reasonCode: "LONG_UNUSED";
+  }>;
+};
+
+export type ProductPassport = {
+  myItemId: string;
+  productInfo: {
+    linkedProductId: string | null;
+    brandName: string | null;
+    name: string;
+    category: ItemCategory;
+    primaryColor: string;
+    material: string;
+    images: Array<{ imageId: string; url: string; sortOrder: number }>;
+  };
+  purchaseInfo: {
+    purchaseDate: string | null;
+    purchasePrice: number | null;
+  };
+  usageSummary: {
+    usageCount: number;
+    lastUsedAt: string | null;
+  };
+  recentUsageRecords: UsageRecord[];
+};
+
+export type CareGuide = {
+  myItemId: string;
+  available: boolean;
+  material: string;
+  guide: Array<{
+    code: string;
+    title: string;
+    description: string;
+  }>;
+  schedule: {
+    recommendedIntervalDays: number | null;
+    recommendedNextCareAt: string | null;
+  };
 };
 
 export type StylePlanSummary = {
