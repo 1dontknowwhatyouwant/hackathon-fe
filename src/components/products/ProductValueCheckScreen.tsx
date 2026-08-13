@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { DetailActionCard } from "@/components/common/card/DetailActionCard";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { AnimatedCounter } from "@/components/common/motion/AnimatedCounter";
@@ -74,12 +76,12 @@ export function ProductValueCheckScreen({
       </div>
 
       <LuxuryReveal className="mt-11" delay={390}>
-        <button
-          type="button"
+        <Link
+          href="/screen22"
           className="flex h-[52px] w-full items-center justify-center rounded-[16px] bg-[#15151a] text-[15px] font-bold text-white transition-colors hover:bg-[#2a2a30] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15151a]"
         >
           상세 리포트 보기
-        </button>
+        </Link>
       </LuxuryReveal>
     </MobileScreenLayout>
   );
