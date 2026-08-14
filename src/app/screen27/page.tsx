@@ -1,5 +1,5 @@
-import { CareGuideScreen } from "@/components/care/CareGuideScreen";
+import { CareScheduleScreen } from "@/components/care/CareScheduleScreen";
 
 export default function Screen27Page() {
-  return <CareGuideScreen />;
+  return <CareScheduleScreen />;
 }

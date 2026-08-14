@@ -11,7 +11,7 @@ export function CareOverviewScreen() {
   return (
     <MobileScreenLayout
       figmaNodeId="96:506"
-      contentClassName="bg-white px-6 pt-[47px] pb-[102px]"
+      contentClassName="bg-white px-6 pt-[47px] pb-[102px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       <LuxuryReveal>
         <ScreenHeader

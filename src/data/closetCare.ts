@@ -78,6 +78,24 @@ export const dummyCareGuide: CareGuide = {
   ],
   schedule: {
     recommendedIntervalDays: 28,
-    recommendedNextCareAt: null,
+    recommendedNextCareAt: "2026-08-31T09:00:00+09:00",
   },
 };
+
+export const dummyCareCalendar = {
+  referenceDate: "2026-08-19T09:00:00+09:00",
+  monthLabel: "AUGUST 2026",
+  highlightedDay: 19,
+  reminders: [
+    {
+      id: "conditioning-2026-08-19",
+      dateLabel: "8/19",
+      title: "가죽 컨디셔닝",
+    },
+    {
+      id: "cleaning-2026-08-31",
+      dateLabel: "8/31",
+      title: "클리닝 예정",
+    },
+  ],
+} as const;
