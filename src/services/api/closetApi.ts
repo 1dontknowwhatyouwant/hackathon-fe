@@ -22,7 +22,7 @@ type MyItemListQuery = PageQuery & {
   view?: "ALL" | "LOW_USAGE";
 };
 
-type CreateMyItemRequest = {
+export type CreateMyItemRequest = {
   productId: string | null;
   name: string;
   brandName: string | null;
