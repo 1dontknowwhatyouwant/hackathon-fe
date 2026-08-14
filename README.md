@@ -67,8 +67,8 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
 | `/recommendations/[productId]` | 추천 상품 상세 | 더미 상품별 정적 경로 생성 |
 | `/recommendations/[productId]/value-check` | 구매 전 활용 가능성 결과 | 더미 점수와 분석 결과 사용 |
 | `/items` | 보유 아이템 목록(screen20) | 더미 데이터 사용 |
-| `/items/new` | 아이템 등록(screen21) | 더미 등록 동작 사용 |
-| `/screen22` | 분석 진행 화면 | 더미 진행 단계와 애니메이션 사용 |
+| `/items/new` | 아이템 등록(screen21) | AI 자동 채움·직접 입력·이미지 후속 업로드 |
+| `/screen22` | 제품 이미지 분석 진행 화면 | ITEM_ANALYSIS 폴링과 수동 입력 fallback |
 | `/screen24` | 제품 패스포트 | 더미 제품·인증 정보 사용 |
 | `/screen26` | 맞춤 관리 가이드 | API v0.3 형식의 더미 데이터 사용 |
 | `/screen27` | 관리 캘린더 | API v0.3 형식의 더미 데이터 사용 |
