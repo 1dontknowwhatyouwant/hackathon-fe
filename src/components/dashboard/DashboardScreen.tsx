@@ -17,8 +17,8 @@ const actionCards = [
   },
   {
     title: "내 제품 관리 알림",
-    description: "세부 정보를 확인하세요",
-    href: "/items",
+    description: "활용도와 소재별 관리 안내를 확인하세요",
+    href: "/screen26",
   },
   {
     title: "구매 전 활용 체크",
