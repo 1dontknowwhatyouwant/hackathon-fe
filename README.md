@@ -67,8 +67,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
 | `/recommendations/[productId]` | 추천 상품 상세 | 더미 상품별 정적 경로 생성 |
 | `/recommendations/[productId]/value-check` | 구매 전 활용 가능성 결과 | 더미 점수와 분석 결과 사용 |
 | `/items` | 보유 아이템 목록(screen20) | 더미 데이터 사용 |
-| `/items/[itemId]` | 보유 아이템 상세(screen21) | 더미 아이템별 정적 경로 생성 |
-| `/items/new` | 아이템 등록 | 더미 등록 동작 사용 |
+| `/items/new` | 아이템 등록(screen21) | 더미 등록 동작 사용 |
 | `/my` | 사용자 정보 | localStorage 사용자 정보 또는 더미 데이터 사용 |
 | `/posts` | 협업 확인용 페이지네이션 화면 | 더미 데이터 사용 |
 
@@ -331,7 +330,6 @@ src/
 │  ├─ dashboard/page.tsx
 │  ├─ design-system/page.tsx
 │  ├─ items/
-│  │  ├─ [itemId]/page.tsx
 │  │  ├─ page.tsx
 │  │  └─ new/page.tsx
 │  ├─ login/page.tsx

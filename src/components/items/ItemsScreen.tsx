@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import {
   ImageGridCard,
@@ -18,7 +17,6 @@ const categoryFilters = ["전체", "상의", "하의", "아우터", "신발", "�
 type CategoryFilter = (typeof categoryFilters)[number];
 
 export function ItemsScreen() {
-  const router = useRouter();
   const [selectedCategory, setSelectedCategory] =
     useState<CategoryFilter>("전체");
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -112,7 +110,6 @@ export function ItemsScreen() {
                     imageUrl={item.imageUrl}
                     fallbackColor={item.colorHex}
                     fallbackLabel="MY ITEM"
-                    onClick={() => router.push(`/items/${item.id}`)}
                   />
                 </LuxuryReveal>
               </li>

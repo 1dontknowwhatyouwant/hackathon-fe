@@ -14,13 +14,18 @@ export type ClosetItem = {
   material: string;
   purchaseDate: string | null;
   purchasePrice: number | null;
-  usageCount: number;
-  lastUsedAt: string | null;
-  utilizationScore: number | null;
   memo: string | null;
-  passportAvailable: boolean;
 };
 
-export type ItemCreateInput = Pick<ClosetItem, "name" | "category" | "color"> & {
+export type ItemCreateInput = Pick<
+  ClosetItem,
+  "name" | "category" | "color"
+> & {
   colorHex?: string;
+  imageUrl?: string;
+  brandName?: string | null;
+  material?: string;
+  purchaseDate?: string | null;
+  purchasePrice?: number | null;
+  memo?: string | null;
 };
