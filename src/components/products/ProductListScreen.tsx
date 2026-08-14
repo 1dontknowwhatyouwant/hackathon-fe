@@ -50,8 +50,17 @@ export function ProductListScreen() {
         <ScreenHeader
           eyebrow="DISCOVER MORE"
           title="추천 제품"
-          description="내 아이템과 조합하기 좋은 제품"
+          description="내 취향과 상황에 잘 맞는 MCM 제품"
         />
+      </LuxuryReveal>
+
+      <LuxuryReveal delay={40}>
+        <div className="mt-5 rounded-[16px] border border-[#e1ddd7] bg-[#f8f6f3] px-4 py-3">
+          <p className="text-[11px] font-bold text-[#55555d]">추천 점수 기준</p>
+          <p className="mt-1 text-[11px] leading-4 text-[#777780]">
+            STYLE 30 · OCCASION 25 · SEASON 25 · FEATURE 20
+          </p>
+        </div>
       </LuxuryReveal>
 
       <LuxuryReveal delay={60}>

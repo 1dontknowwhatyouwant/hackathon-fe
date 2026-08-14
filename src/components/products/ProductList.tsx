@@ -24,7 +24,7 @@ function ProductCard({ product, onSelect }: ProductCardProps) {
   return (
     <ImageGridCard
       title={product.name}
-      subtitle={`활용도 ${product.utilityScore}%`}
+      subtitle={`추천 점수 ${product.recommendationScore}점`}
       imageAlt={`${product.name} 제품 이미지`}
       imageUrl={product.imageUrl}
       fallbackLabel="PRODUCT"
@@ -36,7 +36,7 @@ function ProductCard({ product, onSelect }: ProductCardProps) {
 export function ProductList({
   products,
   isLoading = false,
-  emptyMessage = "조건에 맞는 추천 제품이 없습니다.",
+  emptyMessage = "취향과 상황에 맞는 추천 제품이 없습니다.",
   onProductSelect,
   revealStartDelay = 0,
   revealRowInterval = 60,

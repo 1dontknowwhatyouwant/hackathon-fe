@@ -10,6 +10,14 @@ export type RecommendedProduct = {
   modelName: string;
   displayName: string;
   category: ProductCategory;
+  recommendationScore: number;
+  recommendationScoreBreakdown: {
+    style: number;
+    occasion: number;
+    season: number;
+    feature: number;
+  };
+  recommendationReason: string;
   utilityScore: number;
   closetMatchScore: number;
   expectedUseCount: number;
