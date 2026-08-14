@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
@@ -9,20 +9,97 @@ import { ScreenHeader } from "@/components/common/section/ScreenHeader";
 import { PlaceKeywords } from "@/components/place/PlaceKeywords";
 import { PlaceList } from "@/components/place/PlaceList";
 import { PlaceMap } from "@/components/place/PlaceMap";
+import { backendApi } from "@/services/api";
+import type { ApiPlaceRecommendation } from "@/types/api";
 import type { PlaceRecommendation } from "@/types/place";
 
 type PlaceResultScreenProps = {
   keywords: string[];
   places: PlaceRecommendation[];
+  stylePlanId?: string;
+  latitude?: number;
+  longitude?: number;
 };
+
+function mapBackendPlace(
+  recommendation: ApiPlaceRecommendation,
+  fallbackArea: string,
+): PlaceRecommendation {
+  return {
+    id: recommendation.place.placeId,
+    name: recommendation.place.name,
+    description: recommendation.reasonCode,
+    category: recommendation.place.categoryName,
+    area:
+      recommendation.place.roadAddress ??
+      recommendation.place.address ??
+      fallbackArea,
+    coordinates: {
+      latitude: recommendation.place.latitude,
+      longitude: recommendation.place.longitude,
+    },
+  };
+}
 
 export function PlaceResultScreen({
   keywords,
   places,
+  stylePlanId,
+  latitude,
+  longitude,
 }: PlaceResultScreenProps) {
+  const hasBackendRequest =
+    Boolean(stylePlanId) && latitude !== undefined && longitude !== undefined;
+  const [displayPlaces, setDisplayPlaces] = useState(places);
   const [selectedPlaceId, setSelectedPlaceId] = useState(
     () => places[0]?.id,
   );
+  const [isLoading, setIsLoading] = useState(hasBackendRequest);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (
+      !stylePlanId ||
+      latitude === undefined ||
+      longitude === undefined
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    void backendApi.intelligence
+      .recommendPlaces(
+        stylePlanId,
+        {
+          query: null,
+          category: null,
+          latitude,
+          longitude,
+        },
+        controller.signal,
+      )
+      .then(({ data }) => {
+        const nextPlaces = data.data.places.map((recommendation) =>
+          mapBackendPlace(recommendation, keywords[0] ?? "추천 지역"),
+        );
+
+        setDisplayPlaces(nextPlaces);
+        setSelectedPlaceId(nextPlaces[0]?.id);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setError("장소 좌표를 불러오지 못해 미리보기 위치를 표시합니다.");
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [keywords, latitude, longitude, stylePlanId]);
 
   const handlePlaceSelect = (place: PlaceRecommendation) => {
     setSelectedPlaceId(place.id);
@@ -43,8 +120,14 @@ export function PlaceResultScreen({
       </LuxuryReveal>
 
       <LuxuryReveal className="mt-10" delay={70}>
+        {isLoading ? (
+          <p className="mb-3 text-[11px] text-[#777780]">백엔드에서 추천 장소 좌표를 불러오고 있습니다.</p>
+        ) : null}
+        {error ? (
+          <p role="status" className="mb-3 text-[11px] text-[#9a6d45]">{error}</p>
+        ) : null}
         <PlaceList
-          places={places}
+          places={displayPlaces}
           selectedPlaceId={selectedPlaceId}
           onPlaceSelect={handlePlaceSelect}
         />
@@ -52,8 +135,8 @@ export function PlaceResultScreen({
 
       <LuxuryReveal className="mt-[52px]" delay={140}>
         <PlaceMap
-          places={places}
-          areaLabel={places[0]?.area ?? keywords[0]}
+          places={displayPlaces}
+          areaLabel={displayPlaces[0]?.area ?? keywords[0]}
           selectedPlaceId={selectedPlaceId}
           onMarkerSelect={handlePlaceSelect}
         />

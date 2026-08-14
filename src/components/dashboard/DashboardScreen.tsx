@@ -6,14 +6,16 @@ import Link from "next/link";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BottomNavigation } from "@/components/common/navigation/BottomNavigation";
+import { HomePreferenceProducts } from "@/components/dashboard/HomePreferenceProducts";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useHomeStore } from "@/store/useHomeStore";
 import { useMenuDataStore } from "@/store/useMenuDataStore";
 
 const actionCards = [
   {
     title: "스마트 착용 추천",
-    description: "세부 정보를 확인하세요",
-    href: "/recommendations",
+    description: "무드와 스타일 강도로 오늘의 제품을 찾아보세요",
+    href: "/smart-recommendations",
   },
   {
     title: "내 제품 관리 알림",
@@ -61,12 +63,19 @@ export function DashboardScreen() {
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const profile = useMenuDataStore((state) => state.profile);
   const loadProfile = useMenuDataStore((state) => state.loadProfile);
+  const homeData = useHomeStore((state) => state.data);
+  const isHomeLoading = useHomeStore((state) => state.isLoading);
+  const homeError = useHomeStore((state) => state.error);
+  const loadHome = useHomeStore((state) => state.loadHome);
 
   useEffect(() => {
     if (hasHydrated && !profile) {
       void loadProfile();
     }
-  }, [hasHydrated, loadProfile, profile]);
+    if (hasHydrated && !homeData) {
+      void loadHome();
+    }
+  }, [hasHydrated, homeData, loadHome, loadProfile, profile]);
 
   const nickname = profile?.nickname?.trim() || "사용자";
 
@@ -109,6 +118,23 @@ export function DashboardScreen() {
             </LuxuryReveal>
           ))}
         </div>
+
+        <LuxuryReveal className="mt-10" delay={390}>
+          <div className="mb-4 flex items-end justify-between">
+            <div>
+              <p className="text-[10px] font-bold tracking-[0.04em] text-[#8b7355]">FOR YOUR TASTE</p>
+              <h2 className="mt-1 text-[20px] font-bold tracking-[-0.035em]">취향에 맞는 제품</h2>
+            </div>
+            <Link href="/preferences" className="text-[11px] font-bold text-[#777780]">취향 수정</Link>
+          </div>
+          {homeError ? (
+            <p className="mb-3 text-[10px] leading-4 text-[#9a6d45]">{homeError}</p>
+          ) : null}
+          <HomePreferenceProducts
+            products={homeData?.preferenceProducts ?? []}
+            isLoading={isHomeLoading}
+          />
+        </LuxuryReveal>
       </section>
     </MobileScreenLayout>
   );

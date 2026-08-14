@@ -1,16 +1,5 @@
 import type { UserInfo } from "@/store/useAuthStore";
-import type {
-  ClosetItem,
-  PostSummary,
-} from "@/types/menu";
-
-export const dummyPosts: PostSummary[] = Array.from(
-  { length: 24 },
-  (_, index) => ({
-    id: index + 1,
-    title: `협업 확인용 게시글 ${String(index + 1).padStart(2, "0")}`,
-  }),
-);
+import type { ClosetItem } from "@/types/menu";
 
 export const dummyClosetItems: ClosetItem[] = [
   {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 
 import { MenuPageLayout } from "@/components/common/layout/MenuPageLayout";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -57,6 +58,23 @@ export function MyScreen() {
               <dd className="mt-1 text-lg font-bold text-[#15151a]">8</dd>
             </div>
           </dl>
+
+          <div className="mt-6 border-t border-[#e2ded8] pt-5">
+            <Link
+              href="/preferences"
+              className="flex h-[48px] items-center justify-between rounded-[15px] bg-white px-4 text-[13px] font-bold text-[#35353b]"
+            >
+              취향 설정
+              <span aria-hidden="true" className="text-[20px] text-[#8d8d95]">›</span>
+            </Link>
+            <Link
+              href="/my/account-deletion"
+              className="mt-3 flex h-[48px] items-center justify-between rounded-[15px] bg-white px-4 text-[12px] font-medium text-[#9a4545]"
+            >
+              회원 탈퇴
+              <span aria-hidden="true" className="text-[20px] text-[#b87373]">›</span>
+            </Link>
+          </div>
         </section>
       ) : null}
     </MenuPageLayout>

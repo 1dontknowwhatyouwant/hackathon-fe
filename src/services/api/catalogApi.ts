@@ -28,10 +28,7 @@ type FavoriteProduct = ProductSummary & {
 type CreateRecommendationRequest = {
   occasion: OccasionTag;
   season: CurrentSeasonTag;
-  preferredFeatures:
-    | [FeatureTag]
-    | [FeatureTag, FeatureTag]
-    | [FeatureTag, FeatureTag, FeatureTag];
+  preferredFeatures: [FeatureTag, ...FeatureTag[]];
   category?: ItemCategory;
   limit?: 1 | 2 | 3;
 };

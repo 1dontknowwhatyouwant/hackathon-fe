@@ -10,7 +10,6 @@ import type {
   OccasionTag,
   PageQuery,
   PlaceCategory,
-  PurchaseUtilityAnalysis,
   StylePlanSummary,
   StyleTag,
 } from "@/types/api";
@@ -31,17 +30,11 @@ type AiJobRequest =
       context: { language: "ko" };
     }
   | {
-      type: "PURCHASE_UTILITY";
-      context: {
-        productId: string;
-        language: "ko";
-      };
-    }
-  | {
       type: "STYLE_PLAN";
       context: {
         occasion: OccasionTag;
         styleTags: StyleTag[];
+        styleIntensity: number;
         weatherCondition: string | null;
         prioritizeOwnedItems: boolean;
         language: "ko";
@@ -118,11 +111,6 @@ export const intelligenceApi = {
   getAiJob: (jobId: string, signal?: AbortSignal) =>
     api.get<ApiSuccessResponse<AiJob>>(`/ai-jobs/${jobId}`, { signal }),
 
-  getPurchaseUtilityAnalysis: (analysisId: string) =>
-    api.get<ApiSuccessResponse<PurchaseUtilityAnalysis>>(
-      `/purchase-utility-analyses/${analysisId}`,
-    ),
-
   createStylePlan: (body: CreateStylePlanRequest) =>
     api.post<ApiSuccessResponse<{ stylePlanId: string }>>("/style-plans", body),
 
@@ -165,6 +153,7 @@ export const intelligenceApi = {
       longitude: number;
       radius?: number;
     },
+    signal?: AbortSignal,
   ) =>
     api.post<
       ApiSuccessResponse<{
@@ -172,7 +161,7 @@ export const intelligenceApi = {
         rankingPolicyVersion: string;
         places: ApiPlaceRecommendation[];
       }>
-    >(`/style-plans/${stylePlanId}/place-recommendations`, body),
+    >(`/style-plans/${stylePlanId}/place-recommendations`, body, { signal }),
 
   getSavedPlaces: (params: PageQuery = {}) =>
     api.get<ApiSuccessResponse<ApiPage<ApiPlace & { savedAt: string }>>>(

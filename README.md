@@ -46,12 +46,14 @@ npm run dev
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
+NEXT_PUBLIC_USE_API_MOCKS=true
 ```
 
 - API 공통 경로 `/api`까지 환경변수에 포함합니다.
 - 개별 API 요청에는 `/products`, `/my-items`처럼 리소스 경로만 작성합니다.
 - `NEXT_PUBLIC_` 변수는 브라우저에 노출될 수 있으므로 API 키, 토큰, 비밀번호를 저장하지 않습니다.
 - 환경변수를 변경한 뒤에는 개발 서버를 다시 실행합니다.
+- `NEXT_PUBLIC_USE_API_MOCKS=false`로 바꾸면 추천·홈·구매 활용성 화면이 실제 API를 호출합니다.
 
 ## 주요 화면과 경로
 
@@ -60,12 +62,14 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
 | `/` | 커버 화면 | 구현 |
 | `/login` | 일반·소셜 로그인 | API v0.3 인증 모듈 연결 |
 | `/signup` | 이메일 인증 기반 회원가입 | API v0.3 인증 모듈 연결 |
-| `/dashboard` | 로그인 후 홈 대시보드 | 더미 집계 데이터 사용 |
+| `/dashboard` | 로그인 후 홈 대시보드 | `GET /home`의 취향 제품 목록 표시 |
 | `/design-system` | 디자인 시스템 확인 화면 | 구현 |
-| `/place` | 룩 기반 장소 추천과 3D 지도 | 더미 장소 데이터 사용 |
-| `/recommendations` | 추천 상품 목록과 카테고리 필터 | 더미 상품 데이터 사용 |
+| `/place` | 룩 기반 장소 추천과 3D 지도 | 백엔드 위도·경도를 OpenFreeMap에 표시 |
+| `/preferences` | 영구 저장 취향 분석 | 색상·제품 카테고리·STYLE 선택과 저장 |
+| `/smart-recommendations` | 스마트 착용 추천 | 무드 선택·스타일 강도 슬라이더·STYLE_PLAN |
+| `/recommendations` | MCM 추천 조건과 결과 | OCCASION·SEASON·FEATURE 선택 후 추천 요청 |
 | `/recommendations/[productId]` | 추천 상품 상세 | 더미 상품별 정적 경로 생성 |
-| `/recommendations/[productId]/value-check` | 구매 전 활용 가능성 결과 | 더미 점수와 분석 결과 사용 |
+| `/recommendations/[productId]/value-check` | 구매 전 활용 가능성 결과 | 서버 Rule-Based 분석 API 사용 |
 | `/items` | 보유 아이템 목록(screen20) | 더미 데이터 사용 |
 | `/items/new` | 아이템 등록(screen21) | AI 자동 채움·직접 입력·이미지 후속 업로드 |
 | `/items/image-retry` | 등록 완료 아이템 사진 재업로드 | UserItem 재생성 없이 ITEM 이미지만 재시도 |
@@ -74,7 +78,8 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
 | `/screen26` | 맞춤 관리 가이드 | API v0.3 형식의 더미 데이터 사용 |
 | `/screen27` | 관리 캘린더 | API v0.3 형식의 더미 데이터 사용 |
 | `/my` | 사용자 정보 | localStorage 사용자 정보 또는 더미 데이터 사용 |
-| `/posts` | 협업 확인용 페이지네이션 화면 | 더미 데이터 사용 |
+| `/my/account-deletion` | 회원 탈퇴 | LOCAL 비밀번호·SOCIAL OAuth 재인증 분기 |
+| `/auth/reauth/account-deletion/callback` | 소셜 탈퇴 재인증 콜백 | 재인증 결과만 전달하고 토큰은 URL에 넣지 않음 |
 
 하단 메뉴의 현재 연결은 다음과 같습니다.
 
@@ -108,6 +113,14 @@ Access Token, Refresh Token, 화면 표시용 사용자 정보의 역할과 저�
 - 서로 다른 Origin에서 쿠키 인증을 사용하려면 백엔드가 명시적 허용 Origin과 credential 허용 설정을 제공해야 합니다.
 - 인증 관련 POST는 백엔드의 신뢰 Origin 검증을 전제로 합니다.
 
+### 회원 탈퇴 재인증
+
+- 일반 사용자는 현재 비밀번호로 재인증한 뒤 `DELETE /users/me`를 호출합니다.
+- 카카오·네이버 사용자는 Bearer 인증으로 OAuth 재인증 시작 API를 호출한 뒤 백엔드가 반환한 Provider URL로 이동합니다.
+- OAuth 콜백이 성공하면 백엔드는 5분·1회용 `reauth_token`을 HttpOnly Cookie로 발급하고 프런트 콜백 화면으로 돌려보냅니다.
+- 프런트는 재인증 Token을 URL, localStorage, Zustand에 저장하지 않습니다.
+- LOCAL과 SOCIAL 모두 최종적으로 같은 회원 탈퇴 API를 호출하고 `DELETION_PENDING` 응답을 처리합니다.
+
 ## API와 비동기 상태 정책
 
 ### 공통 요청 설정
@@ -134,7 +147,8 @@ API 호출은 다음 도메인 모듈로 분리합니다.
 | `profileApi` | 내 정보, 회원 탈퇴, 취향, 홈 집계 |
 | `catalogApi` | 상품, 추천, 찜 |
 | `closetApi` | 내 아이템, 사용 기록, 활용도, 재활용 추천, 제품 패스포트, 관리 가이드, 이미지 업로드 |
-| `intelligenceApi` | AI 취향·이미지·구매 효용·스타일 분석, 장소 검색·추천 |
+| `intelligenceApi` | AI 취향·이미지·스타일 분석, 장소 검색·추천 |
+| `utilityApi` | AI를 사용하지 않는 구매 전 활용 가능성 Rule-Based 분석 |
 
 ### 추천 상품 요청 경합
 
@@ -174,7 +188,7 @@ FEATURE: COMPACT, SPACIOUS, MULTIWAY
 | 기능 | 사용자 입력·분석 기준 | 결과 |
 | --- | --- | --- |
 | 홈 취향 제품 리스트 | AI가 분석한 사용자의 취향 정보 | 취향 일치도가 높은 제품을 홈에 표시 |
-| 스마트 착용 추천 | 상황, 스타일 태그, 날씨, 보유 아이템 우선 여부 | 내부 StylePlan과 제품 조합을 생성 |
+| 스마트 착용 추천 | 사용자가 선택한 무드와 스타일 강도 | STYLE_PLAN과 어울리는 제품 조합을 생성 |
 | MCM 제품 추천 | 취향 STYLE과 요청 OCCASION·SEASON·FEATURE | 서버 점수가 높은 MCM 제품을 최대 3개 추천 |
 
 세 기능은 목적과 입력값이 다르므로 같은 요청 DTO와 상태로 처리하지 않습니다. 독립 MCM 추천은 `POST /recommendations`, 스마트 착용 추천은 `STYLE_PLAN` AI Job으로 구분합니다.
@@ -192,7 +206,7 @@ FEATURE: COMPACT, SPACIOUS, MULTIWAY
 - 취향 분석은 사용자의 취향을 해석해 홈에 표시할 제품 리스트의 기준을 만드는 데 사용합니다.
 - 홈 요청 자체는 AI를 새로 호출하지 않고 가장 최근에 저장된 취향 분석 결과를 조회합니다.
 - 취향 분석이 완료되지 않았거나 표시할 상품이 없으면 `preferenceProducts: []`를 반환합니다.
-- 홈 취향 제품 리스트는 보유 제품 기반 `/recommendations` 결과와 별도입니다.
+- 홈 취향 제품 리스트는 저장된 취향을 집계한 결과이며, 매번 OCCASION·SEASON·FEATURE를 선택하는 `/recommendations` 화면 결과와 별도입니다.
 
 ### 추천 제품 리스트 점수
 
@@ -210,7 +224,7 @@ FEATURE: COMPACT, SPACIOUS, MULTIWAY
 
 ### 구매 전 활용 가능성 분석 기준
 
-구매 전 활용 가능성은 백엔드 `RULE_BASED` 방식으로 점수를 계산하고, AI는 자연어 설명만 생성합니다.
+구매 전 활용 가능성은 AI를 호출하지 않고 백엔드 `RULE_BASED` 방식으로만 계산합니다.
 
 | 분석 기준 | API 필드 | 최대 점수 |
 | --- | --- | ---: |
@@ -219,24 +233,22 @@ FEATURE: COMPACT, SPACIOUS, MULTIWAY
 | 계절 활용성 | `seasonUsabilityScore` | 25점 |
 | 현재 보유 카테고리와의 조합 | `ownedCategoryCombinationScore` | 20점 |
 
-`PURCHASE_UTILITY` AI Job이 규칙 기반 점수와 조합 결과를 만든 뒤 설명을 생성합니다. AI 설명 생성에 실패해도 점수와 조합 결과는 유지하고 `explanationGenerationType: "RULE_BASED"`와 정형 문구를 반환합니다.
+프런트는 `POST /purchase-utility-analyses`로 분석을 요청하고 점수·조합 결과·서버 정형 설명을 한 번에 받습니다. `PURCHASE_UTILITY`는 AI Job Type으로 사용하지 않습니다.
 
 ### 장소 추천 방식
 
-장소 추천은 Kakao 장소 데이터와 백엔드 `RULE_BASED` 점수 계산을 결합합니다.
+장소 후보 확보와 점수 계산은 모두 백엔드 책임입니다. 프런트는 백엔드가 응답한 위도·경도만 지도 좌표로 사용합니다.
 
 ```text
-백엔드가 Kakao Local API로 실제 장소 후보 확보
-→ Kakao 식별자를 기준으로 장소 캐시 Upsert
+백엔드가 실제 장소 후보를 확보
 → 백엔드가 카테고리·거리·요청 조건 등으로 점수 계산
 → 점수 내림차순으로 rank와 reason 생성
-→ 프런트가 좌표와 순위를 받아 OpenFreeMap 지도에 마커 표시
+→ 프런트가 백엔드 위도·경도를 받아 OpenFreeMap 지도에 마커 표시
 ```
 
-- Kakao는 장소명·카테고리·주소·좌표 등의 실제 장소 데이터를 제공합니다.
 - 장소 점수와 정렬은 백엔드가 담당하며 프런트에서 다시 계산하지 않습니다.
-- 프런트는 MapLibre GL JS로 OpenFreeMap 벡터 지도를 렌더링하고 Kakao에서 확보한 좌표를 마커로 표시합니다.
-- Kakao REST API 키는 백엔드 환경변수에서만 관리하며 프런트 저장소와 `NEXT_PUBLIC_` 환경변수에 넣지 않습니다.
+- 프런트는 MapLibre GL JS로 OpenFreeMap 벡터 지도를 렌더링하고 백엔드 응답 좌표를 마커로 표시합니다.
+- 프런트는 Kakao SDK, Kakao REST API, Kakao API Key를 사용하지 않습니다.
 - 장소 추천은 별도 OpenAI 호출을 사용하지 않습니다.
 - 장소 추천 점수는 카테고리 적합도 최대 60점과 거리 최대 40점으로 계산하며 `place-ranking-v1` 정책 버전을 함께 반환합니다.
 
@@ -277,8 +289,8 @@ AI Job Polling은 다음 값으로 고정합니다.
 
 - `SUCCEEDED` 또는 `FAILED`를 받으면 즉시 Polling을 종료합니다.
 - 사용자가 화면을 벗어나면 `AbortController`로 진행 중인 조회를 취소하고 다음 Polling을 예약하지 않습니다.
-- 30초가 지나면 프런트의 자동 조회만 중단하며 백엔드 Job을 취소하지 않습니다.
-- 시간 초과 화면에서는 같은 `jobId`를 조회하는 `다시 확인` 기능을 제공합니다.
+- 네트워크 응답 시간을 포함한 실제 경과 시간이 30초에 도달하면 진행 중인 조회를 취소하고 자동 Polling을 종료합니다.
+- 30초 종료는 프런트 조회만 중단하며 백엔드 Job 상태를 변경하지 않습니다.
 - 고정 2초 간격이므로 지수 백오프는 사용하지 않습니다.
 
 ## 예외 처리 현황
@@ -335,12 +347,15 @@ src/
 │  ├─ dashboard/page.tsx
 │  ├─ design-system/page.tsx
 │  ├─ items/
-│  │  ├─ page.tsx
-│  │  └─ new/page.tsx
+│  │  ├─ image-retry/page.tsx
+│  │  ├─ new/page.tsx
+│  │  └─ page.tsx
 │  ├─ login/page.tsx
-│  ├─ my/page.tsx
+│  ├─ my/
+│  │  ├─ page.tsx
+│  │  └─ account-deletion/page.tsx
 │  ├─ place/page.tsx
-│  ├─ posts/page.tsx
+│  ├─ preferences/page.tsx
 │  ├─ recommendations/
 │  │  ├─ page.tsx
 │  │  └─ [productId]/
@@ -350,6 +365,7 @@ src/
 │  ├─ screen24/page.tsx
 │  ├─ screen26/page.tsx
 │  ├─ screen27/page.tsx
+│  ├─ smart-recommendations/page.tsx
 │  ├─ signup/page.tsx
 │  ├─ globals.css
 │  ├─ layout.tsx
@@ -363,7 +379,7 @@ src/
 │  │  ├─ layout/
 │  │  ├─ motion/
 │  │  ├─ navigation/
-│  │  ├─ pagination/
+│  │  ├─ selection/
 │  │  └─ section/
 │  ├─ cover/                             # 커버 화면
 │  ├─ care/                              # 활용도·재활용 알림·관리 가이드 화면
@@ -372,7 +388,8 @@ src/
 │  ├─ items/                             # 아이템 목록·등록 화면
 │  ├─ my/                                # 사용자 화면
 │  ├─ place/                             # 장소 추천·지도
-│  ├─ posts/                             # 페이지네이션 협업 화면
+│  ├─ preferences/                       # 영구 저장 취향 선택 화면
+│  ├─ recommendations/                   # 스마트 착용 추천 화면
 │  ├─ products/                          # 추천 상품 목록·상세·활용 가능성
 │  └─ providers/                         # 전역 클라이언트 초기화
 ├─ data/                                 # 백엔드 연결 전 더미 데이터
@@ -384,8 +401,9 @@ src/
 │     ├─ authApi.ts                      # 인증
 │     ├─ catalogApi.ts                   # 상품·추천·찜
 │     ├─ closetApi.ts                    # 아이템·사용 기록·활용도·패스포트·관리 가이드·이미지
-│     ├─ intelligenceApi.ts              # AI·구매 효용·스타일·장소
+│     ├─ intelligenceApi.ts              # AI 취향·이미지·스타일·장소
 │     ├─ profileApi.ts                   # 사용자·취향·홈
+│     ├─ utilityApi.ts                   # 구매 활용성 Rule-Based 분석
 │     └─ index.ts                        # 통합 진입점
 ├─ store/                                # Zustand 전역 상태
 └─ types/
@@ -439,22 +457,20 @@ npm run type-check # TypeScript 검사
 - [x] MCM 상품 추천을 서버 `RULE_BASED` 방식으로 확정
 - [x] 추천 제품 점수를 STYLE 30·OCCASION 25·SEASON 25·FEATURE 20으로 확정
 - [x] 찜을 `/products/{productId}/favorite`, 저장 장소를 `/places/{placeId}/saved`로 정규화
-- [x] 구매 전 활용 가능성의 네 가지 배점과 `PURCHASE_UTILITY` AI Job 흐름 확정
-- [x] 구매 효용 점수는 Rule-Based, 자연어 설명만 AI로 생성하도록 분리
+- [x] 구매 전 활용 가능성을 AI Job에서 분리하고 Rule-Based API로 연결
 - [x] AI 취향 분석 결과를 홈 제품 리스트에 사용
 - [x] 장소 추천을 카테고리 60점·거리 40점의 서버 `RULE_BASED` 방식으로 확정
 - [x] 착용·사용 기록, 활용도, 재활용 추천 API 계약 반영
 - [x] 제품 패스포트와 관리 가이드·일정 조회 API 계약 반영
-- [x] LOCAL 탈퇴 재인증과 비동기 회원 탈퇴 API 계약 반영
+- [x] LOCAL 비밀번호·SOCIAL OAuth 탈퇴 재인증과 비동기 회원 탈퇴 화면 연결
+- [x] AI Job을 2초 간격, 네트워크 시간을 포함해 최대 30초로 Polling
 - [x] 이미지 미등록·업로드 실패 시에도 아이템 등록 진행
 
 실제 화면 연결 또는 후속 정책 구현이 필요한 항목:
 
-- [ ] SOCIAL OAuth 탈퇴 재인증 시작·콜백 화면 흐름 연결
 - [ ] 구매 효용 Factor 내부 세부 산식을 `purchase-utility-rule-v1` 테스트로 고정
 - [ ] 활용도 세부 산식과 LOW·MEDIUM·HIGH 경계를 `utilization-v1` 테스트로 고정
 - [ ] 실제 응답을 화면 ViewModel로 변환하는 Mapper 구현
-- [ ] AI Job을 2초 간격·최대 30초로 조회하고 같은 Job을 다시 확인하는 로직 구현
 - [ ] 사용 기록·활용도·패스포트·관리 가이드 화면을 실제 API에 연결
 - [ ] 환경변수 누락 시 fail-fast 처리 결정
 - [ ] 공통 Error Boundary와 오류 코드별 사용자 메시지 추가

@@ -1,8 +1,3 @@
-export type PostSummary = {
-  id: number;
-  title: string;
-};
-
 export type ClosetItem = {
   id: string;
   name: string;

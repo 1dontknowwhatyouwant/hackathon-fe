@@ -92,7 +92,7 @@ FEATURE 점수
 = 20 × (일치 FEATURE 개수 / 사용자가 선택한 FEATURE 개수)
 ```
 
-구매 전 활용 가능성은 **Rule-Based 점수 + AI 자연어 설명**으로 역할을 분리한다.
+구매 전 활용 가능성은 **AI를 사용하지 않고 Backend Rule-Based로만 계산**한다.
 
 ```text
 취향 태그 일치                 최대 30
@@ -139,7 +139,7 @@ Kakao는 지도 렌더링이 아니라 장소 데이터 공급자로 사용한�
 - AI 처리 실패 Job 조회는 `HTTP 200 + status=FAILED`
 - `error`와 선택적 `fallback` 제공
 - 실제 서버 장애는 별도의 5xx
-- FE Polling: 2초 간격, 최대 약 30초
+- FE Polling: 2초 간격, 네트워크 응답 시간을 포함해 최대 30초
 - `DORMANT_ITEM_REUSE`는 MVP AI Job Type에서 사용하지 않는다.
 
 ### 명칭
@@ -401,7 +401,7 @@ Response:
 | 토큰 갱신 | POST | `/api/auth/refresh` | Refresh Cookie | 유지 |
 | 로그아웃 | POST | `/api/auth/logout` | Access + Refresh | 유지 |
 | 탈퇴 재인증 LOCAL | POST | `/api/auth/reauth/password` | Access | 신규 |
-| 탈퇴 재인증 SOCIAL | GET | `/api/auth/reauth/oauth/{provider}` | Access | 신규 |
+| 탈퇴 재인증 SOCIAL 시작 | POST | `/api/auth/reauth/oauth/{provider}/start` | Access | Authorization URL 반환 |
 | 탈퇴 재인증 SOCIAL | GET | `/api/auth/reauth/oauth/{provider}/callback` | OAuth state | 신규 |
 | 사용자 | GET | `/api/users/me` | Access | 유지 |
 | 사용자 | PATCH | `/api/users/me` | Access | 유지 |
@@ -435,7 +435,8 @@ Response:
 | 이미지 | DELETE | `/api/images/{imageId}` | Access | 유지 |
 | AI Job | POST | `/api/ai-jobs` | Access | 유지 |
 | AI Job | GET | `/api/ai-jobs/{jobId}` | Access | FAILED 계약 변경 |
-| 구매 활용성 | GET | `/api/purchase-utility-analyses/{analysisId}` | Access | 공식 변경 |
+| 구매 활용성 | POST | `/api/purchase-utility-analyses` | Access | Rule-Based 직접 분석 |
+| 구매 활용성 | GET | `/api/purchase-utility-analyses/{analysisId}` | Access | 결과 재조회 |
 | 스마트 착용 추천 저장 | POST | `/api/style-plans` | Access | 기술 경로 유지 |
 | 스마트 착용 추천 목록 | GET | `/api/style-plans` | Access | 기술 경로 유지 |
 | 스마트 착용 추천 상세 | GET | `/api/style-plans/{stylePlanId}` | Access | 기술 경로 유지 |
@@ -534,9 +535,19 @@ KAKAO
 시작:
 
 ```http
-GET /api/auth/reauth/oauth/{provider}
+POST /api/auth/reauth/oauth/{provider}/start
 Authorization: Bearer {accessToken}
 ```
+
+Request:
+
+```json
+{
+  "returnTo": "https://frontend.example.com/auth/reauth/account-deletion/callback"
+}
+```
+
+Response는 Provider의 `authorizationUrl`을 반환한다. 프런트는 Bearer 인증이 필요한 시작 요청을 Axios로 먼저 호출한 뒤 반환된 URL로 이동한다.
 
 처리:
 
@@ -1665,7 +1676,6 @@ v0.3에서 실제 사용:
 ```text
 PREFERENCE_ANALYSIS
 ITEM_ANALYSIS
-PURCHASE_UTILITY
 STYLE_PLAN
 ```
 
@@ -1748,18 +1758,6 @@ Response:
 }
 ```
 
-### PURCHASE_UTILITY
-
-```json
-{
-  "type": "PURCHASE_UTILITY",
-  "context": {
-    "productId": "101",
-    "language": "ko"
-  }
-}
-```
-
 ### STYLE_PLAN — 사용자 화면 “스마트 착용 추천”
 
 ```json
@@ -1768,6 +1766,7 @@ Response:
   "context": {
     "occasion": "DATE",
     "styleTags": ["NEAT", "GLAMOROUS"],
+    "styleIntensity": 72,
     "weatherCondition": null,
     "prioritizeOwnedItems": true,
     "language": "ko"
@@ -1822,19 +1821,18 @@ HTTP 200
   "success": true,
   "data": {
     "jobId": "9001",
-    "type": "PURCHASE_UTILITY",
+    "type": "STYLE_PLAN",
     "status": "FAILED",
     "result": null,
     "error": {
       "code": "AI_PROVIDER_UNAVAILABLE",
-      "message": "AI 설명 생성에 실패했습니다.",
+      "message": "스마트 착용 추천 생성에 실패했습니다.",
       "retryable": true
     },
     "fallback": {
       "type": "RULE_BASED",
       "result": {
-        "utilityScore": 82,
-        "message": "규칙 기반 점수 결과를 표시합니다."
+        "message": "최근 활용이 적은 보유 아이템을 중심으로 기본 조합을 표시합니다."
       }
     },
     "createdAt": "2026-08-13T06:00:00Z",
@@ -1861,7 +1859,6 @@ Job 결과 FAILED
 |---|---|
 | PREFERENCE_ANALYSIS | 사용자가 선택한 설문 값을 그대로 취향 값으로 사용 |
 | ITEM_ANALYSIS | 사용자가 category/color/material 등을 직접 입력 |
-| PURCHASE_UTILITY | Rule-Based 점수와 조합 결과는 그대로 제공, AI 설명만 생략/정형 문구 |
 | STYLE_PLAN | 최근 사용이 적은 보유 아이템 중심의 Rule-Based 기본 조합 |
 
 `DORMANT_ITEM_REUSE` Fallback은 v0.3 MVP 계약에서 제거한다.
@@ -1874,7 +1871,7 @@ Job 결과 FAILED
 
 ```text
 간격: 2초
-FE 최대 대기: 약 30초
+FE 최대 대기: 30초
 ```
 
 예:
@@ -1889,33 +1886,22 @@ POST /ai-jobs
 → SUCCEEDED / FAILED
 ```
 
-30초는 FE 화면의 최대 대기 정책이다. 서버 Job 기록 자체를 30초에 강제 삭제한다는 의미는 아니다.
+30초는 네트워크 응답 시간을 포함한 FE 화면의 최대 대기 정책이다. 30초에 도달하면 진행 중인 조회를 취소하지만 서버 Job 기록이나 처리를 강제 취소하지 않는다.
 
 ---
 
 # 15. 구매 전 활용 가능성 분석
 
-## 15.1 역할 분리
+## 15.1 처리 원칙
 
 확정:
 
 ```text
-점수
+점수·호환 아이템·요약 문구
 → Backend Rule-Based
-
-자연어 설명
-→ AI
 ```
 
-AI가 점수를 결정하지 않는다.
-
-AI 장애:
-
-```text
-Rule-Based 점수 유지
-+
-AI 설명 Fallback
-```
+OpenAI와 AI Job을 호출하지 않는다. 같은 입력과 정책 버전에는 같은 결과가 나와야 한다.
 
 ---
 
@@ -1940,10 +1926,16 @@ DB의 `utility_score`에 최종 점수를 저장하고, 세부 항목은 `factor
 ## 15.3 분석 시작
 
 ```http
-POST /api/ai-jobs
+POST /api/purchase-utility-analyses
 ```
 
-`type=PURCHASE_UTILITY`.
+Request:
+
+```json
+{
+  "productId": "101"
+}
+```
 
 백엔드 처리 개념:
 
@@ -1952,34 +1944,17 @@ POST /api/ai-jobs
 → Rule-Based 4개 Factor 계산
 → utilityScore
 → 충분한 데이터면 PurchaseUtilityAnalysis 저장
-→ AI에 점수/조합 맥락 전달
-→ AI는 summary/reason 설명만 생성
+→ 정책 버전에 맞는 정형 summary/reason 생성
+→ 분석 결과 응답
 ```
 
 데이터 부족 시 Analysis Row를 억지로 만들지 않는 기존 정책 유지.
 
 ---
 
-## 15.4 AI Job result
+## 15.4 분석 생성 Response
 
-충분한 데이터:
-
-```json
-{
-  "status": "READY",
-  "analysisId": "801"
-}
-```
-
-데이터 부족:
-
-```json
-{
-  "status": "INSUFFICIENT_DATA",
-  "analysisId": null,
-  "message": "보유 아이템을 더 등록하면 활용 가능성을 분석할 수 있어요."
-}
-```
+충분한 데이터면 `201 Created`와 15.5의 전체 분석 객체를 반환한다. 데이터가 부족하면 `422 PURCHASE_UTILITY_INSUFFICIENT_DATA`를 반환하며 AI Fallback은 사용하지 않는다.
 
 ---
 
@@ -2020,19 +1995,12 @@ Response:
       }
     ],
     "summary": "보유 아이템과 조합하기 쉽고 취향 및 계절 활용성이 높은 편입니다.",
-    "explanationGenerationType": "AI",
     "analyzedAt": "2026-08-13T06:00:00Z"
   }
 }
 ```
 
-AI 설명 실패 시:
-
-```text
-utilityScore/factors/compatibleItems 유지
-explanationGenerationType=RULE_BASED
-summary=정형 Fallback 문구
-```
+`summary`와 호환 이유는 점수 정책 버전에 맞는 정형 Rule-Based 문구다.
 
 ---
 
@@ -2049,7 +2017,7 @@ summary=정형 Fallback 문구
 - 같은 입력이면 같은 결과
 - `purchase-utility-rule-v1`처럼 버전 관리
 - 단위 테스트로 고정
-- AI가 Factor 값을 수정하지 않음
+- AI를 호출하지 않음
 
 을 v0.3 계약으로 둔다.
 
@@ -2264,7 +2232,6 @@ Response:
         "roadAddress": "서울 성동구 ...",
         "latitude": 37.5412,
         "longitude": 127.0563,
-        "placeUrl": "https://place.map.kakao.com/...",
         "saved": false
       }
     ]
@@ -2405,7 +2372,6 @@ distanceScore = 40 × max(0, 1 - distanceMeters / radiusMeters)
           "roadAddress": "서울 성동구 ...",
           "latitude": 37.5412,
           "longitude": 127.0563,
-          "placeUrl": "https://place.map.kakao.com/...",
           "saved": false
         }
       }
@@ -2508,7 +2474,6 @@ DELETED
 ```text
 PREFERENCE_ANALYSIS
 ITEM_ANALYSIS
-PURCHASE_UTILITY
 STYLE_PLAN
 ```
 
@@ -2889,7 +2854,7 @@ V10 이후
 11. MyItem/Usage/Passport/Utilization 구현
 12. Image 흐름 구현
 13. AI Job 공통 + FAILED/Fallback 계약 구현
-14. PURCHASE_UTILITY Rule Score + AI 설명
+14. PURCHASE_UTILITY Rule-Based 직접 분석
 15. STYLE_PLAN(스마트 착용 추천) 구현
 16. Kakao Local + Rule-Based 장소 추천
 17. Swagger v0.3 동기화
@@ -2911,10 +2876,10 @@ V10 이후
 - ProductTag display_name을 DB에 다시 만들지 않음
 - ProductTag 최종값은 19개
 - 독립 MCM 추천은 RULE_BASED
-- 구매 활용 점수는 Rule-Based, AI는 설명
+- 구매 활용 점수와 정형 설명은 모두 Rule-Based이며 AI를 사용하지 않음
 - 장소 추천은 Kakao + Rule-Based, FE 지도는 OpenFreeMap
 - DORMANT_ITEM_REUSE AI는 MVP에서 제외
-- AI Polling은 2초, FE 최대 약 30초
+- AI Polling은 2초, 네트워크 시간을 포함한 FE 최대 30초
 - AI Job FAILED는 GET 200 + status=FAILED + error/fallback
 - 관리 기록 API는 만들지 않음
 - UserItem 상태를 사용자 API에 새로 노출하지 않음
@@ -2955,8 +2920,7 @@ v0.3 작성 시점에 제품 방향은 확정됐지만 아래 수치/DB 제거 �
 → ProductTag Rule-Based MCM 추천
 → 제품 상세/찜
 → 구매 전 활용 가능성
-   ├─ Backend Rule Score
-   └─ AI 설명
+   └─ Backend Rule Score + 정형 설명
 → 마이 아이템 등록
    ├─ ITEM_ANALYSIS AI
    └─ 이미지 실패 시 아이템 유지
@@ -2983,12 +2947,12 @@ ProductTag 19개
 MCM Rule-Based 추천
 추천 점수 30/25/25/20
 구매 활용도 30/25/25/20
-구매 활용 점수 Rule-Based + AI 설명
+구매 활용 점수와 설명 Rule-Based, AI 미사용
 Kakao Local + Rule-Based 장소 추천
 장소 점수 category 60 + distance 40
 회원 탈퇴 재인증 5분 1회용
 AI FAILED 200 + error/fallback
-FE Polling 2초 / 약 30초
+FE Polling 2초 / 최대 30초
 관리 기록 제외
 제품 패스포트 포함
 착용/사용 기록 포함

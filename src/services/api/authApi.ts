@@ -79,4 +79,13 @@ export const authApi = {
 
     return `${apiBaseUrl}/auth/oauth/${provider}`;
   },
+
+  startAccountDeletionOAuthReauth: (
+    provider: OAuthProvider,
+    returnTo: string,
+  ) =>
+    api.post<ApiSuccessResponse<{ authorizationUrl: string }>>(
+      `/auth/reauth/oauth/${provider}/start`,
+      { returnTo },
+    ),
 };

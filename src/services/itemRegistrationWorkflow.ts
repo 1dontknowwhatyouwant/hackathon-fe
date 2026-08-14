@@ -1,6 +1,6 @@
 import { backendApi } from "@/services/api";
-import { aiJobPollingPolicy } from "@/services/api/intelligenceApi";
-import { itemCategories, type AiJob, type ImagePurpose } from "@/types/api";
+import { pollAiJob } from "@/services/aiJobPolling";
+import { itemCategories, type ImagePurpose } from "@/types/api";
 import type { ItemAnalysisValues } from "@/store/useItemRegistrationStore";
 
 type CloudinaryUploadResult = {
@@ -75,41 +75,6 @@ function parseItemAnalysisResult(value: unknown): ItemAnalysisValues | null {
     primaryColor: candidate.primaryColor.trim(),
     material: candidate.material.trim(),
   };
-}
-
-function waitForNextPoll(signal?: AbortSignal) {
-  return new Promise<void>((resolve, reject) => {
-    const handleAbort = () => {
-      window.clearTimeout(timeoutId);
-      reject(new DOMException("AI 분석 요청이 취소되었습니다.", "AbortError"));
-    };
-    const timeoutId = window.setTimeout(() => {
-      signal?.removeEventListener("abort", handleAbort);
-      resolve();
-    }, aiJobPollingPolicy.intervalMs);
-
-    signal?.addEventListener(
-      "abort",
-      handleAbort,
-      { once: true },
-    );
-  });
-}
-
-async function pollAiJob(jobId: string, signal?: AbortSignal): Promise<AiJob> {
-  for (let attempt = 0; attempt < aiJobPollingPolicy.maxAttempts; attempt += 1) {
-    signal?.throwIfAborted();
-    const response = await backendApi.intelligence.getAiJob(jobId, signal);
-    const job = response.data.data;
-
-    if (job.status === "SUCCEEDED" || job.status === "FAILED") {
-      return job;
-    }
-
-    await waitForNextPoll(signal);
-  }
-
-  throw new Error("AI 분석 시간이 초과되었습니다. 직접 입력해 주세요.");
 }
 
 export async function uploadRegistrationImage(
