@@ -68,6 +68,10 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
 | `/recommendations/[productId]/value-check` | 구매 전 활용 가능성 결과 | 더미 점수와 분석 결과 사용 |
 | `/items` | 보유 아이템 목록(screen20) | 더미 데이터 사용 |
 | `/items/new` | 아이템 등록(screen21) | 더미 등록 동작 사용 |
+| `/screen22` | 분석 진행 화면 | 더미 진행 단계와 애니메이션 사용 |
+| `/screen24` | 제품 패스포트 | 더미 제품·인증 정보 사용 |
+| `/screen26` | 활용도·재활용 기반 아이템 관리 알림 | API v0.3 형식의 더미 데이터 사용 |
+| `/screen27` | 소재별 관리 가이드·관리 일정 | API v0.3 형식의 더미 데이터 사용 |
 | `/my` | 사용자 정보 | localStorage 사용자 정보 또는 더미 데이터 사용 |
 | `/posts` | 협업 확인용 페이지네이션 화면 | 더미 데이터 사용 |
 
@@ -75,7 +79,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
 
 | 메뉴 | 경로 |
 | --- | --- |
-| 홈 | `/place` |
+| 홈 | `/dashboard` |
 | 추천 | `/recommendations` |
 | 등록 | `/items/new` |
 | 아이템 | `/items` |
@@ -341,6 +345,10 @@ src/
 │  │  └─ [productId]/
 │  │     ├─ page.tsx
 │  │     └─ value-check/page.tsx
+│  ├─ screen22/page.tsx
+│  ├─ screen24/page.tsx
+│  ├─ screen26/page.tsx
+│  ├─ screen27/page.tsx
 │  ├─ signup/page.tsx
 │  ├─ globals.css
 │  ├─ layout.tsx
@@ -357,6 +365,7 @@ src/
 │  │  ├─ pagination/
 │  │  └─ section/
 │  ├─ cover/                             # 커버 화면
+│  ├─ care/                              # 활용도·재활용 알림·관리 가이드 화면
 │  ├─ dashboard/                         # 로그인 후 홈 화면
 │  ├─ design-system/                     # 디자인 시스템 확인 화면
 │  ├─ items/                             # 아이템 목록·등록 화면
