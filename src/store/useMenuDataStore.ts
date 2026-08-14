@@ -38,7 +38,13 @@ export const useMenuDataStore = create<MenuDataState>((set) => ({
       // const response = await backendApi.closet.getItems();
       // const items = response.data.data.items.map(mapApiItemToClosetItem);
       // set({ items });
-      set({ items: dummyClosetItems });
+      set((state) => {
+        const previewItems = state.items.filter((item) =>
+          item.id.startsWith("preview-"),
+        );
+
+        return { items: [...previewItems, ...dummyClosetItems] };
+      });
     } catch {
       set({ error: "아이템을 불러오지 못했습니다." });
     } finally {
@@ -74,6 +80,11 @@ export const useMenuDataStore = create<MenuDataState>((set) => ({
         ...input,
         id: `preview-${Date.now()}`,
         colorHex: input.colorHex ?? "#d7cec2",
+        brandName: input.brandName ?? null,
+        material: input.material ?? "미입력",
+        purchaseDate: input.purchaseDate ?? null,
+        purchasePrice: input.purchasePrice ?? null,
+        memo: input.memo ?? null,
       };
 
       set((state) => ({ items: [createdItem, ...state.items] }));
