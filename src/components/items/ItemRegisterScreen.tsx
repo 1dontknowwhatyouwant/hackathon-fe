@@ -142,6 +142,16 @@ export function ItemRegisterScreen() {
     );
   };
 
+  const deferImageUpload = () => {
+    const registeredItemId = createdItemId;
+    resetDraft();
+    router.push(
+      registeredItemId
+        ? `/items?registered=${encodeURIComponent(registeredItemId)}`
+        : "/items",
+    );
+  };
+
   const handleRetryImage = async () => {
     if (!createdItemId || !photoFile) {
       return;
@@ -283,9 +293,9 @@ export function ItemRegisterScreen() {
           <button
             type="button"
             className="flex h-[52px] w-full items-center justify-center rounded-[16px] border border-[#d8d8dc] bg-white text-[14px] font-bold text-[#55555d]"
-            onClick={finishRegistration}
+            onClick={deferImageUpload}
           >
-            이미지 없이 유지하기
+            나중에 사진만 업로드하기
           </button>
         </LuxuryReveal>
       </MobileScreenLayout>

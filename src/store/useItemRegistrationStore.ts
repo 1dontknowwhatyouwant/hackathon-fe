@@ -52,6 +52,7 @@ type ItemRegistrationState = {
   markItemCreated: (myItemId: string) => void;
   markImageUploadPending: (myItemId: string) => void;
   setPendingImageFile: (file: File, previewUrl: string) => void;
+  loadPendingImageUpload: () => void;
   clearPendingImageUpload: () => void;
   resetDraft: () => void;
 };
@@ -66,6 +67,24 @@ const emptyDraft: ItemRegistrationDraft = {
   purchasePrice: "",
   memo: "",
 };
+
+const pendingImageStorageKey = "pending-item-image-upload";
+
+function savePendingImageUpload(pending: PendingItemImageUpload | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (!pending) {
+    window.sessionStorage.removeItem(pendingImageStorageKey);
+    return;
+  }
+
+  window.sessionStorage.setItem(
+    pendingImageStorageKey,
+    JSON.stringify({ myItemId: pending.myItemId, itemName: pending.itemName }),
+  );
+}
 
 export const useItemRegistrationStore = create<ItemRegistrationState>((set) => ({
   draft: { ...emptyDraft },
@@ -92,14 +111,24 @@ export const useItemRegistrationStore = create<ItemRegistrationState>((set) => (
     })),
 
   setPhoto: (file, previewUrl) =>
-    set({
+    set((state) => ({
+      draft:
+        state.analysisStatus === "SUCCEEDED"
+          ? {
+              ...state.draft,
+              category: "",
+              primaryColor: "",
+              material: "",
+            }
+          : state.draft,
       photoFile: file,
       photoPreviewUrl: previewUrl,
       photoName: file.name,
       analysisStatus: "IDLE",
       analysisMessage: null,
       aiJobId: null,
-    }),
+      materialSource: "USER_CONFIRMED",
+    })),
 
   clearPhoto: () =>
     set({
@@ -109,6 +138,7 @@ export const useItemRegistrationStore = create<ItemRegistrationState>((set) => (
       analysisStatus: "IDLE",
       analysisMessage: null,
       aiJobId: null,
+      materialSource: "USER_CONFIRMED",
     }),
 
   startAnalysis: () =>
@@ -135,15 +165,18 @@ export const useItemRegistrationStore = create<ItemRegistrationState>((set) => (
   markItemCreated: (myItemId) => set({ createdItemId: myItemId }),
 
   markImageUploadPending: (myItemId) =>
-    set((state) => ({
-      pendingImageUpload: {
+    set((state) => {
+      const pendingImageUpload = {
         myItemId,
         itemName: state.draft.name,
         file: state.photoFile,
         previewUrl: state.photoPreviewUrl,
         fileName: state.photoName,
-      },
-    })),
+      };
+
+      savePendingImageUpload(pendingImageUpload);
+      return { pendingImageUpload };
+    }),
 
   setPendingImageFile: (file, previewUrl) =>
     set((state) =>
@@ -159,7 +192,44 @@ export const useItemRegistrationStore = create<ItemRegistrationState>((set) => (
         : {},
     ),
 
-  clearPendingImageUpload: () => set({ pendingImageUpload: null }),
+  loadPendingImageUpload: () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const storedPending = window.sessionStorage.getItem(pendingImageStorageKey);
+    if (!storedPending) {
+      return;
+    }
+
+    try {
+      const parsed: unknown = JSON.parse(storedPending);
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        typeof (parsed as { myItemId?: unknown }).myItemId === "string" &&
+        typeof (parsed as { itemName?: unknown }).itemName === "string"
+      ) {
+        set((state) => ({
+          pendingImageUpload:
+            state.pendingImageUpload ?? {
+              myItemId: (parsed as { myItemId: string }).myItemId,
+              itemName: (parsed as { itemName: string }).itemName,
+              file: null,
+              previewUrl: null,
+              fileName: null,
+            },
+        }));
+      }
+    } catch {
+      window.sessionStorage.removeItem(pendingImageStorageKey);
+    }
+  },
+
+  clearPendingImageUpload: () => {
+    savePendingImageUpload(null);
+    set({ pendingImageUpload: null });
+  },
 
   resetDraft: () =>
     set({

@@ -1086,6 +1086,31 @@ AI_INPUT 업로드
 
 `AI_INPUT`을 `ITEM`으로 승격하지 않는다.
 
+프런트엔드 등록 분기:
+
+```text
+AI 성공
+→ category / primaryColor / material 자동 채움
+→ 사용자가 자동 입력값을 포함한 모든 값을 수정 가능
+→ 나머지 정보 입력
+→ UserItem 생성
+
+AI 실패
+→ 같은 등록 폼에서 category / primaryColor / material 직접 입력
+→ aiJobId 없이 UserItem 생성
+
+사진 없음
+→ 처음부터 같은 등록 폼에서 모든 필수 정보 직접 입력
+→ UserItem 생성
+
+UserItem 생성 후 ITEM 이미지 업로드 실패
+→ UserItem 생성 성공을 유지
+→ 입력 폼을 다시 작성하지 않음
+→ 같은 myItemId로 ITEM 이미지만 재업로드
+```
+
+UserItem 생성과 ITEM 이미지 업로드는 하나의 프런트엔드 성공 상태로 묶지 않는다. 이미지 업로드 실패를 이유로 이미 생성된 UserItem을 다시 생성하지 않는다.
+
 ---
 
 ## 8.2 아이템 생성

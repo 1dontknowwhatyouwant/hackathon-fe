@@ -79,14 +79,18 @@ function parseItemAnalysisResult(value: unknown): ItemAnalysisValues | null {
 
 function waitForNextPoll(signal?: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
-    const timeoutId = window.setTimeout(resolve, aiJobPollingPolicy.intervalMs);
+    const handleAbort = () => {
+      window.clearTimeout(timeoutId);
+      reject(new DOMException("AI 분석 요청이 취소되었습니다.", "AbortError"));
+    };
+    const timeoutId = window.setTimeout(() => {
+      signal?.removeEventListener("abort", handleAbort);
+      resolve();
+    }, aiJobPollingPolicy.intervalMs);
 
     signal?.addEventListener(
       "abort",
-      () => {
-        window.clearTimeout(timeoutId);
-        reject(new DOMException("AI 분석 요청이 취소되었습니다.", "AbortError"));
-      },
+      handleAbort,
       { once: true },
     );
   });
