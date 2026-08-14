@@ -1137,6 +1137,21 @@ Request 예시:
 }
 ```
 
+마이 아이템 등록 화면의 입력 책임:
+
+| 필드 | 화면 입력 정책 |
+|---|---|
+| `brandName` | 사용자 직접 입력 |
+| `name` | 사용자 직접 입력 |
+| `category` | 사용자 직접 입력, AI 성공 시 자동 제안 가능 |
+| `primaryColor` | 사용자 직접 입력, AI 성공 시 자동 제안 가능 |
+| `material` | 사용자 직접 입력, AI 성공 시 자동 제안 가능 |
+| `purchaseDate` | 사용자 직접 입력, 선택 |
+| `purchasePrice` | 사용자 직접 입력, 선택 |
+| `memo` | 사용자 직접 입력, 선택 |
+
+AI가 제안한 `category`, `primaryColor`, `material`도 등록 전 사용자가 수정할 수 있다. `brandName`, `name`, 구매 정보, 메모는 ITEM_ANALYSIS 결과로 자동 입력하지 않는다.
+
 Response:
 
 ```http

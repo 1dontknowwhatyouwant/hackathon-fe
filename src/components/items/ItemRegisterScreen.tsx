@@ -394,16 +394,33 @@ export function ItemRegisterScreen() {
         ) : null}
 
         <LuxuryReveal className="mt-8" delay={120}>
-          <section aria-labelledby="required-information-title">
+          <section aria-labelledby="item-information-title">
             <div className="flex items-center gap-2">
-              <h2 id="required-information-title" className="text-[15px] font-bold text-[#25252a]">
-                필수 정보
+              <h2 id="item-information-title" className="text-[15px] font-bold text-[#25252a]">
+                아이템 정보
               </h2>
-              <span className="text-[10px] font-bold text-[#9a8060]">REQUIRED</span>
+              <span className="text-[10px] font-bold text-[#9a8060]">ITEM DETAILS</span>
             </div>
 
             <label className="mt-5 block">
-              <span className="text-[11px] font-bold text-[#55555d]">아이템 이름</span>
+              <span className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-[#55555d]">브랜드명</span>
+                <span className="text-[9px] text-[#9999a1]">직접 입력 · 선택</span>
+              </span>
+              <input
+                value={draft.brandName}
+                maxLength={50}
+                placeholder="예: MCM"
+                className={fieldClassName}
+                onChange={(event) => updateDraft({ brandName: event.target.value })}
+              />
+            </label>
+
+            <label className="mt-5 block">
+              <span className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-[#55555d]">아이템 이름</span>
+                <span className="text-[9px] font-bold text-[#9a8060]">직접 입력 · 필수</span>
+              </span>
               <input
                 value={draft.name}
                 maxLength={50}
@@ -414,7 +431,12 @@ export function ItemRegisterScreen() {
             </label>
 
             <fieldset className="mt-5">
-              <legend className="text-[11px] font-bold text-[#55555d]">카테고리</legend>
+              <legend className="w-full">
+                <span className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#55555d]">카테고리</span>
+                  <span className="text-[9px] font-bold text-[#8b7355]">직접 입력 / AI 제안 가능</span>
+                </span>
+              </legend>
               <div className="mt-2 flex flex-wrap gap-2">
                 {categories.map((option) => {
                   const isSelected = option.value === draft.category;
@@ -438,7 +460,10 @@ export function ItemRegisterScreen() {
             </fieldset>
 
             <label className="mt-5 block">
-              <span className="text-[11px] font-bold text-[#55555d]">대표 색상</span>
+              <span className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-[#55555d]">대표 색상</span>
+                <span className="text-[9px] font-bold text-[#8b7355]">직접 입력 / AI 제안 가능</span>
+              </span>
               <input
                 value={draft.primaryColor}
                 placeholder="예: BROWN"
@@ -472,7 +497,10 @@ export function ItemRegisterScreen() {
             </div>
 
             <label className="mt-5 block">
-              <span className="text-[11px] font-bold text-[#55555d]">소재</span>
+              <span className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-[#55555d]">소재</span>
+                <span className="text-[9px] font-bold text-[#8b7355]">직접 입력 / AI 제안 가능</span>
+              </span>
               <input
                 value={draft.material}
                 placeholder="예: LEATHER"
@@ -486,19 +514,9 @@ export function ItemRegisterScreen() {
         <LuxuryReveal className="mt-9" delay={180}>
           <section aria-labelledby="optional-information-title">
             <div className="flex items-end justify-between">
-              <h2 id="optional-information-title" className="text-[15px] font-bold text-[#25252a]">추가 정보</h2>
+              <h2 id="optional-information-title" className="text-[15px] font-bold text-[#25252a]">구매 및 메모</h2>
               <span className="text-[10px] text-[#929299]">선택 사항</span>
             </div>
-
-            <label className="mt-5 block">
-              <span className="text-[11px] font-bold text-[#55555d]">브랜드</span>
-              <input
-                value={draft.brandName}
-                placeholder="예: MCM"
-                className={fieldClassName}
-                onChange={(event) => updateDraft({ brandName: event.target.value })}
-              />
-            </label>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
               <label className="block">
