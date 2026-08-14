@@ -1,5 +1,9 @@
 import type { RecommendedProduct } from "@/types/product";
 
+import {
+  ImageGridCard,
+  ImageGridSkeleton,
+} from "@/components/common/card/ImageGridCard";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 
 type ProductListProps = {
@@ -17,62 +21,15 @@ type ProductCardProps = {
 };
 
 function ProductCard({ product, onSelect }: ProductCardProps) {
-  const content = (
-    <>
-      <div
-        aria-label={`${product.name} 제품 이미지`}
-        role="img"
-        className="h-[126px] w-full rounded-[14px] bg-[#e9e5df] bg-cover bg-center"
-        style={
-          product.imageUrl
-            ? { backgroundImage: `url("${product.imageUrl}")` }
-            : undefined
-        }
-      />
-      <h2 className="mt-3 truncate text-[13px] leading-4 font-bold text-[#15151a]">
-        {product.name}
-      </h2>
-      <p className="mt-1 text-[11px] leading-[13px] text-[#777780]">
-        활용도 {product.utilityScore}%
-      </p>
-    </>
-  );
-
-  const className =
-    "h-[206px] w-full rounded-[18px] border border-[#dedee2] bg-[#f8f8f9] p-[11px] text-left";
-
-  if (onSelect) {
-    return (
-      <button
-        type="button"
-        className={`${className} transition-colors hover:border-[#c8c2b9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15151a]`}
-        onClick={() => onSelect(product)}
-      >
-        {content}
-      </button>
-    );
-  }
-
-  return <article className={className}>{content}</article>;
-}
-
-function ProductListSkeleton() {
   return (
-    <div
-      aria-label="추천 제품을 불러오는 중"
-      className="grid grid-cols-2 gap-x-[10px] gap-y-6"
-    >
-      {Array.from({ length: 4 }, (_, index) => (
-        <div
-          key={index}
-          className="h-[206px] animate-pulse rounded-[18px] border border-[#dedee2] bg-[#f8f8f9] p-[11px]"
-        >
-          <div className="h-[126px] rounded-[14px] bg-[#e9e5df]" />
-          <div className="mt-3 h-4 w-20 rounded bg-[#e3e0dc]" />
-          <div className="mt-2 h-3 w-14 rounded bg-[#e9e6e2]" />
-        </div>
-      ))}
-    </div>
+    <ImageGridCard
+      title={product.name}
+      subtitle={`활용도 ${product.utilityScore}%`}
+      imageAlt={`${product.name} 제품 이미지`}
+      imageUrl={product.imageUrl}
+      fallbackLabel="PRODUCT"
+      onClick={onSelect ? () => onSelect(product) : undefined}
+    />
   );
 }
 
@@ -85,7 +42,7 @@ export function ProductList({
   revealRowInterval = 60,
 }: ProductListProps) {
   if (isLoading && products.length === 0) {
-    return <ProductListSkeleton />;
+    return <ImageGridSkeleton label="추천 제품을 불러오는 중" />;
   }
 
   if (products.length === 0) {
