@@ -77,7 +77,7 @@ export const dummyCareGuide: CareGuide = {
     },
   ],
   schedule: {
-    recommendedIntervalDays: null,
+    recommendedIntervalDays: 28,
     recommendedNextCareAt: null,
   },
 };
