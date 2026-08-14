@@ -74,6 +74,15 @@ export const useMenuDataStore = create<MenuDataState>((set) => ({
         ...input,
         id: `preview-${Date.now()}`,
         colorHex: input.colorHex ?? "#d7cec2",
+        brandName: null,
+        material: "미입력",
+        purchaseDate: null,
+        purchasePrice: null,
+        usageCount: 0,
+        lastUsedAt: null,
+        utilizationScore: null,
+        memo: null,
+        passportAvailable: false,
       };
 
       set((state) => ({ items: [createdItem, ...state.items] }));

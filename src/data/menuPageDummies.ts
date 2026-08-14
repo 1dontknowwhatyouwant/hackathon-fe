@@ -19,6 +19,15 @@ export const dummyClosetItems: ClosetItem[] = [
     category: "상의",
     color: "오프화이트",
     colorHex: "#e9e4da",
+    brandName: "COS",
+    material: "코튼 100%",
+    purchaseDate: "2026-04-18",
+    purchasePrice: 129_000,
+    usageCount: 8,
+    lastUsedAt: "2026-08-09T03:00:00Z",
+    utilizationScore: 78,
+    memo: "출근 룩과 데일리 코디에 자주 입는 셔츠",
+    passportAvailable: false,
   },
   {
     id: "item-02",
@@ -26,6 +35,15 @@ export const dummyClosetItems: ClosetItem[] = [
     category: "하의",
     color: "인디고",
     colorHex: "#52647a",
+    brandName: "LEVI'S",
+    material: "데님 코튼",
+    purchaseDate: "2026-02-03",
+    purchasePrice: 159_000,
+    usageCount: 11,
+    lastUsedAt: "2026-08-11T09:00:00Z",
+    utilizationScore: 86,
+    memo: "오프화이트 셔츠와 가장 자주 조합하는 데님",
+    passportAvailable: false,
   },
   {
     id: "item-03",
@@ -33,15 +51,39 @@ export const dummyClosetItems: ClosetItem[] = [
     category: "신발",
     color: "화이트",
     colorHex: "#f5f5f2",
+    brandName: "MCM",
+    material: "카프 레더",
+    purchaseDate: "2026-05-27",
+    purchasePrice: 690_000,
+    usageCount: 6,
+    lastUsedAt: "2026-08-04T02:00:00Z",
+    utilizationScore: 64,
+    memo: "밝은 색상의 가방과 함께 착용",
+    passportAvailable: false,
   },
   {
     id: "item-04",
-    name: "미니 크로스백",
+    name: "Aren Shopper in Visetos",
     category: "가방",
     color: "브라운",
     colorHex: "#806a51",
+    brandName: "MCM",
+    material: "비세토스 · 나파 레더",
+    purchaseDate: "2026-08-01",
+    purchasePrice: 1_450_000,
+    usageCount: 3,
+    lastUsedAt: "2026-08-10T03:00:00Z",
+    utilizationScore: 72,
+    memo: "제품 패스포트가 연결된 MCM 쇼퍼백",
+    passportAvailable: true,
   },
 ];
+
+export function getDummyClosetItemById(
+  itemId: string,
+): ClosetItem | undefined {
+  return dummyClosetItems.find((item) => item.id === itemId);
+}
 
 export const dummyUser: UserInfo = {
   userId: "preview-user",

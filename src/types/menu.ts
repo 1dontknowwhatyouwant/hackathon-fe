@@ -9,8 +9,18 @@ export type ClosetItem = {
   category: string;
   color: string;
   colorHex: string;
+  imageUrl?: string;
+  brandName: string | null;
+  material: string;
+  purchaseDate: string | null;
+  purchasePrice: number | null;
+  usageCount: number;
+  lastUsedAt: string | null;
+  utilizationScore: number | null;
+  memo: string | null;
+  passportAvailable: boolean;
 };
 
-export type ItemCreateInput = Omit<ClosetItem, "id" | "colorHex"> & {
+export type ItemCreateInput = Pick<ClosetItem, "name" | "category" | "color"> & {
   colorHex?: string;
 };
