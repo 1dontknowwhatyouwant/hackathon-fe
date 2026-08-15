@@ -40,7 +40,7 @@ export default function AiRecommendPage() {
 
       <LuxuryReveal className="absolute bottom-[28px] left-6 right-6" delay={210}>
         <section>
-          <Button variant="cta" href="/recommendations" className="w-full">
+          <Button variant="cta" href="/place" className="w-full">
             이 스타일로 결정
           </Button>
         </section>

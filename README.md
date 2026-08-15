@@ -66,7 +66,6 @@ NEXT_PUBLIC_USE_API_MOCKS=true
 | `/design-system` | 디자인 시스템 확인 화면 | 구현 |
 | `/place` | 룩 기반 장소 추천과 3D 지도 | 백엔드 위도·경도를 OpenFreeMap에 표시 |
 | `/preferences` | 영구 저장 취향 분석 | 색상·제품 카테고리·STYLE 선택과 저장 |
-| `/smart-recommendations` | 스마트 착용 추천 | 무드 선택·스타일 강도 슬라이더·STYLE_PLAN |
 | `/recommendations` | MCM 추천 조건과 결과 | OCCASION·SEASON·FEATURE 선택 후 추천 요청 |
 | `/recommendations/[productId]` | 추천 상품 상세 | 더미 상품별 정적 경로 생성 |
 | `/recommendations/[productId]/value-check` | 구매 전 활용 가능성 결과 | 서버 Rule-Based 분석 API 사용 |
@@ -365,7 +364,6 @@ src/
 │  ├─ screen24/page.tsx
 │  ├─ screen26/page.tsx
 │  ├─ screen27/page.tsx
-│  ├─ smart-recommendations/page.tsx
 │  ├─ signup/page.tsx
 │  ├─ globals.css
 │  ├─ layout.tsx

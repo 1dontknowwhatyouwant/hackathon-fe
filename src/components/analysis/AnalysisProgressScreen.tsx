@@ -239,7 +239,7 @@ export function AnalysisProgressScreen() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ type: "spring", stiffness: 320, damping: 22 }}
               >
-                <CheckIcon className="size-[54px]" />
+                <CheckIcon className="size-[80px]" />
                 <span className="mt-1 text-[11px] font-bold tracking-[0.08em]">COMPLETE</span>
               </motion.div>
             ) : hasFailed ? (
