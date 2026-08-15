@@ -14,8 +14,8 @@ import { useMenuDataStore } from "@/store/useMenuDataStore";
 const actionCards = [
   {
     title: "스마트 착용 추천",
-    description: "무드와 스타일 강도로 오늘의 제품을 찾아보세요",
-    href: "/smart-recommendations",
+    description: "세부 정보를 확인하세요",
+    href: "/personalize",
   },
   {
     title: "내 제품 관리 알림",
@@ -25,7 +25,7 @@ const actionCards = [
   {
     title: "구매 전 활용 체크",
     description: "세부 정보를 확인하세요",
-    href: "/recommendations",
+    href: "/personalize",
   },
 ];
 
