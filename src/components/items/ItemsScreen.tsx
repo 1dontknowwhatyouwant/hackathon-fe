@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 import {
   ImageGridCard,
@@ -10,6 +11,7 @@ import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayou
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BottomNavigation } from "@/components/common/navigation/BottomNavigation";
 import { ScreenHeader } from "@/components/common/section/ScreenHeader";
+import { useItemRegistrationStore } from "@/store/useItemRegistrationStore";
 import { useMenuDataStore } from "@/store/useMenuDataStore";
 
 const categoryFilters = ["전체", "상의", "하의", "아우터", "신발", "가방"] as const;
@@ -24,10 +26,17 @@ export function ItemsScreen() {
   const isLoading = useMenuDataStore((state) => state.isLoading);
   const error = useMenuDataStore((state) => state.error);
   const loadItems = useMenuDataStore((state) => state.loadItems);
+  const pendingImageUpload = useItemRegistrationStore(
+    (state) => state.pendingImageUpload,
+  );
+  const loadPendingImageUpload = useItemRegistrationStore(
+    (state) => state.loadPendingImageUpload,
+  );
 
   useEffect(() => {
+    loadPendingImageUpload();
     void loadItems().finally(() => setHasLoaded(true));
-  }, [loadItems]);
+  }, [loadItems, loadPendingImageUpload]);
 
   const filteredItems = useMemo(
     () =>
@@ -80,6 +89,30 @@ export function ItemsScreen() {
       </LuxuryReveal>
 
       <section className="mt-6" aria-live="polite">
+        {pendingImageUpload ? (
+          <LuxuryReveal delay={90}>
+            <Link
+              href="/items/image-retry"
+              className="mb-5 flex items-center rounded-[18px] border border-[#ddcfbc] bg-[#fbf7f1] px-4 py-4"
+            >
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-[#ece3d7] text-[18px] text-[#8b7355]">
+                +
+              </span>
+              <span className="ml-4 min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-bold text-[#3b332a]">
+                  {pendingImageUpload.itemName} 사진 업로드 보류
+                </span>
+                <span className="mt-1 block text-[10px] text-[#887865]">
+                  제품 정보는 저장됐어요 · 사진만 다시 업로드
+                </span>
+              </span>
+              <span aria-hidden="true" className="ml-2 text-[22px] text-[#8b7355]">
+                ›
+              </span>
+            </Link>
+          </LuxuryReveal>
+        ) : null}
+
         {error ? (
           <div
             role="alert"

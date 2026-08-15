@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { DetailActionCard } from "@/components/common/card/DetailActionCard";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BackButton } from "@/components/common/navigation/BackButton";
@@ -12,6 +11,13 @@ type ProductDetailScreenProps = {
 };
 
 const priceFormatter = new Intl.NumberFormat("ko-KR");
+
+const scoreLabels = {
+  style: { label: "STYLE", maxScore: 30 },
+  occasion: { label: "OCCASION", maxScore: 25 },
+  season: { label: "SEASON", maxScore: 25 },
+  feature: { label: "FEATURE", maxScore: 20 },
+} as const;
 
 export function ProductDetailScreen({ product }: ProductDetailScreenProps) {
   return (
@@ -28,7 +34,7 @@ export function ProductDetailScreen({ product }: ProductDetailScreenProps) {
           <ScreenHeader
             eyebrow={product.brand}
             title={product.modelName}
-            description={`활용 예상 ${product.expectedUseCount}회 · 매치도 ${product.closetMatchScore}%`}
+            description={`추천 점수 ${product.recommendationScore}점 · 취향과 상황에 잘 맞아요`}
           />
         </LuxuryReveal>
       </div>
@@ -62,26 +68,39 @@ export function ProductDetailScreen({ product }: ProductDetailScreenProps) {
           </p>
         </LuxuryReveal>
 
-        <div className="mt-[30px] space-y-5">
-          <LuxuryReveal delay={190}>
-            <DetailActionCard
-              title={`내 옷장 매치도 ${product.closetMatchScore}%`}
-            />
-          </LuxuryReveal>
+        <LuxuryReveal className="mt-[30px]" delay={190}>
+          <div className="rounded-[18px] border border-[#dedee2] bg-[#f8f8f9] px-4 py-4">
+            <p className="text-[13px] leading-5 font-bold text-[#15151a]">
+              {product.recommendationReason}
+            </p>
+            <dl className="mt-4 grid grid-cols-2 gap-x-5 gap-y-4">
+              {Object.entries(product.recommendationScoreBreakdown).map(
+                ([key, score]) => {
+                  const scoreKey = key as keyof typeof scoreLabels;
+                  const { label, maxScore } = scoreLabels[scoreKey];
 
-          <LuxuryReveal delay={250}>
-            <DetailActionCard
-              title={`예상 활용 횟수 ${product.expectedUseCount}회`}
-            />
-          </LuxuryReveal>
-        </div>
+                  return (
+                    <div key={key}>
+                      <dt className="text-[10px] font-bold tracking-[0.04em] text-[#8b7355]">
+                        {label}
+                      </dt>
+                      <dd className="mt-1 text-[14px] font-bold text-[#35353b]">
+                        {score} / {maxScore}
+                      </dd>
+                    </div>
+                  );
+                },
+              )}
+            </dl>
+          </div>
+        </LuxuryReveal>
 
-        <LuxuryReveal className="mt-5" delay={310}>
+        <LuxuryReveal className="mt-5" delay={250}>
           <Link
             href={`/recommendations/${product.id}/value-check`}
             className="flex h-[52px] w-full items-center justify-center rounded-[16px] bg-[#15151a] text-[15px] font-bold text-white transition-colors hover:bg-[#2a2a30] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15151a]"
           >
-            활용 가능성 확인
+            내 아이템과 활용 가능성 확인
           </Link>
         </LuxuryReveal>
       </div>

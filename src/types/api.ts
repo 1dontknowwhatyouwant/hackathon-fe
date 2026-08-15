@@ -291,7 +291,6 @@ export type ImageAssetStatus =
 export type AiJobType =
   | "PREFERENCE_ANALYSIS"
   | "ITEM_ANALYSIS"
-  | "PURCHASE_UTILITY"
   | "STYLE_PLAN";
 export type AiJobStatus = "PENDING" | "PROCESSING" | "SUCCEEDED" | "FAILED";
 
@@ -355,20 +354,8 @@ export type PurchaseUtilityAnalysis = {
     reason: string;
   }>;
   summary: string;
-  explanationGenerationType: "AI" | "RULE_BASED";
   analyzedAt: string;
 };
-
-export type PurchaseUtilityJobResult =
-  | {
-      status: "READY";
-      analysisId: string;
-    }
-  | {
-      status: "INSUFFICIENT_DATA";
-      analysisId: null;
-      message: string;
-    };
 
 export type PlaceCategory =
   | "CAFE"
@@ -380,8 +367,6 @@ export type PlaceCategory =
 
 export type ApiPlace = {
   placeId: string;
-  provider?: "KAKAO";
-  providerPlaceId?: string;
   name: string;
   category: PlaceCategory;
   categoryName: string;
@@ -389,7 +374,6 @@ export type ApiPlace = {
   roadAddress: string | null;
   latitude: number;
   longitude: number;
-  placeUrl: string;
   saved: boolean;
 };
 

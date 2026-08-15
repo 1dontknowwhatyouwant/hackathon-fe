@@ -22,6 +22,8 @@ type MenuDataState = {
   loadItems: () => Promise<void>;
   loadProfile: () => Promise<void>;
   createItem: (input: ItemCreateInput) => Promise<ClosetItem>;
+  addCreatedItem: (item: ClosetItem) => void;
+  updateItemImage: (itemId: string, imageUrl: string) => void;
 };
 
 export const useMenuDataStore = create<MenuDataState>((set) => ({
@@ -96,4 +98,16 @@ export const useMenuDataStore = create<MenuDataState>((set) => ({
       set({ isLoading: false });
     }
   },
+
+  addCreatedItem: (item) =>
+    set((state) => ({
+      items: [item, ...state.items.filter((existing) => existing.id !== item.id)],
+    })),
+
+  updateItemImage: (itemId, imageUrl) =>
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === itemId ? { ...item, imageUrl } : item,
+      ),
+    })),
 }));

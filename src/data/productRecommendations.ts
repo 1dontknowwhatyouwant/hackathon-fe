@@ -11,6 +11,15 @@ export const dummyRecommendedProducts: readonly RecommendedProduct[] = [
     modelName: "Aren Shopper",
     displayName: "Aren Shopper in Visetos",
     category: "BAG",
+    recommendationScore: 90,
+    recommendationScoreBreakdown: {
+      style: 30,
+      occasion: 25,
+      season: 25,
+      feature: 10,
+    },
+    recommendationReason:
+      "선호 스타일과 현재 상황, 가을 시즌에 잘 맞는 제품입니다.",
     utilityScore: 82,
     closetMatchScore: 92,
     expectedUseCount: 12,
@@ -28,6 +37,15 @@ export const dummyRecommendedProducts: readonly RecommendedProduct[] = [
     modelName: "Lauretos Bomber",
     displayName: "Lauretos Bomber Jacket",
     category: "CLOTHING",
+    recommendationScore: 85,
+    recommendationScoreBreakdown: {
+      style: 27,
+      occasion: 23,
+      season: 21,
+      feature: 14,
+    },
+    recommendationReason:
+      "선호하는 분위기와 데일리 활용에 어울리는 제품입니다.",
     utilityScore: 75,
     closetMatchScore: 86,
     expectedUseCount: 9,
@@ -45,6 +63,15 @@ export const dummyRecommendedProducts: readonly RecommendedProduct[] = [
     modelName: "Stark Backpack",
     displayName: "Stark Backpack in Visetos",
     category: "BAG",
+    recommendationScore: 80,
+    recommendationScoreBreakdown: {
+      style: 24,
+      occasion: 22,
+      season: 19,
+      feature: 15,
+    },
+    recommendationReason:
+      "현재 상황과 선호 기능을 고르게 충족하는 제품입니다.",
     utilityScore: 68,
     closetMatchScore: 84,
     expectedUseCount: 10,
@@ -62,6 +89,15 @@ export const dummyRecommendedProducts: readonly RecommendedProduct[] = [
     modelName: "Logo Patch Denim",
     displayName: "Logo Patch Denim Jacket",
     category: "CLOTHING",
+    recommendationScore: 74,
+    recommendationScoreBreakdown: {
+      style: 22,
+      occasion: 19,
+      season: 18,
+      feature: 15,
+    },
+    recommendationReason:
+      "선호 스타일과 계절 분위기를 자연스럽게 반영한 제품입니다.",
     utilityScore: 61,
     closetMatchScore: 78,
     expectedUseCount: 7,
