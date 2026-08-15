@@ -84,7 +84,7 @@ export default function ConditionPage() {
   );
 
   return (
-    <MobileScreenLayout contentClassName="flex min-h-full flex-col bg-white px-6 pb-[150px] pt-[48px] text-[#17181d]">
+    <MobileScreenLayout contentClassName="relative min-h-full bg-white px-6 pb-[104px] pt-[48px] text-[#17181d]">
       <LuxuryReveal>
         <p className="text-[11px] font-bold leading-none tracking-[0.04em] text-[#8b7355]">
           CONDITION
@@ -130,7 +130,7 @@ export default function ConditionPage() {
         </section>
       </LuxuryReveal>
 
-      <LuxuryReveal className="mt-auto" delay={210}>
+      <LuxuryReveal className="absolute bottom-[28px] left-6 right-6" delay={210}>
         <section>
           <Button
             variant="cta"
