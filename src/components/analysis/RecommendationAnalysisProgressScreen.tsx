@@ -40,7 +40,13 @@ function CheckIcon() {
   );
 }
 
-export function RecommendationAnalysisProgressScreen() {
+type RecommendationAnalysisProgressScreenProps = {
+  productId: string;
+};
+
+export function RecommendationAnalysisProgressScreen({
+  productId,
+}: RecommendationAnalysisProgressScreenProps) {
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
   const [progress, setProgress] = useState(0);
@@ -56,7 +62,7 @@ export function RecommendationAnalysisProgressScreen() {
       onComplete: () => {
         setIsComplete(true);
         redirectTimer = setTimeout(
-          () => router.replace("/screen24"),
+          () => router.replace(`/recommendations/${productId}/passport`),
           prefersReducedMotion ? 0 : 650,
         );
       },
@@ -68,7 +74,7 @@ export function RecommendationAnalysisProgressScreen() {
         clearTimeout(redirectTimer);
       }
     };
-  }, [prefersReducedMotion, router]);
+  }, [prefersReducedMotion, productId, router]);
 
   return (
     <MobileScreenLayout contentClassName="px-6 pt-[47px] pb-8">

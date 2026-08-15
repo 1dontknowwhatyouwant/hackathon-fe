@@ -69,13 +69,14 @@ NEXT_PUBLIC_USE_API_MOCKS=true
 | `/recommendations` | MCM 추천 조건과 결과 | OCCASION·SEASON·FEATURE 선택 후 추천 요청 |
 | `/recommendations/[productId]` | 추천 상품 상세 | 더미 상품별 정적 경로 생성 |
 | `/recommendations/[productId]/value-check` | 구매 전 활용 가능성 결과 | 서버 Rule-Based 분석 API 사용 |
+| `/recommendations/[productId]/analysis` | 추천 제품 상세 분석 진행 | 선택한 제품 ID를 유지하며 분석 진행 |
+| `/recommendations/[productId]/passport` | 제품 패스포트 | 선택한 제품 정보·ID를 반영 |
 | `/items` | 보유 아이템 목록(screen20) | 더미 데이터 사용 |
 | `/items/new` | 아이템 등록(screen21) | AI 자동 채움·직접 입력·이미지 후속 업로드 |
+| `/items/analysis` | 제품 이미지 분석 진행 | ITEM_ANALYSIS 폴링과 수동 입력 fallback |
 | `/items/image-retry` | 등록 완료 아이템 사진 재업로드 | UserItem 재생성 없이 ITEM 이미지만 재시도 |
-| `/screen22` | 제품 이미지 분석 진행 화면 | ITEM_ANALYSIS 폴링과 수동 입력 fallback |
-| `/screen24` | 제품 패스포트 | 더미 제품·인증 정보 사용 |
-| `/screen26` | 맞춤 관리 가이드 | API v0.3 형식의 더미 데이터 사용 |
-| `/screen27` | 관리 캘린더 | API v0.3 형식의 더미 데이터 사용 |
+| `/care/guide` | 맞춤 관리 가이드 | API v0.3 형식의 더미 데이터 사용 |
+| `/care/calendar` | 관리 캘린더 | API v0.3 형식의 더미 데이터 사용 |
 | `/my` | 사용자 정보 | localStorage 사용자 정보 또는 더미 데이터 사용 |
 | `/my/account-deletion` | 회원 탈퇴 | LOCAL 비밀번호·SOCIAL OAuth 재인증 분기 |
 | `/auth/reauth/account-deletion/callback` | 소셜 탈퇴 재인증 콜백 | 재인증 결과만 전달하고 토큰은 URL에 넣지 않음 |
@@ -345,7 +346,11 @@ src/
 ├─ app/                                  # App Router 페이지와 전역 설정
 │  ├─ dashboard/page.tsx
 │  ├─ design-system/page.tsx
+│  ├─ care/
+│  │  ├─ calendar/page.tsx
+│  │  └─ guide/page.tsx
 │  ├─ items/
+│  │  ├─ analysis/page.tsx
 │  │  ├─ image-retry/page.tsx
 │  │  ├─ new/page.tsx
 │  │  └─ page.tsx
@@ -358,12 +363,10 @@ src/
 │  ├─ recommendations/
 │  │  ├─ page.tsx
 │  │  └─ [productId]/
-│  │     ├─ page.tsx
-│  │     └─ value-check/page.tsx
-│  ├─ screen22/page.tsx
-│  ├─ screen24/page.tsx
-│  ├─ screen26/page.tsx
-│  ├─ screen27/page.tsx
+│  │     ├─ analysis/page.tsx
+│  │     ├─ passport/page.tsx
+│  │     ├─ value-check/page.tsx
+│  │     └─ page.tsx
 │  ├─ signup/page.tsx
 │  ├─ globals.css
 │  ├─ layout.tsx

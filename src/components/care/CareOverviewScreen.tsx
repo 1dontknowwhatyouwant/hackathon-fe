@@ -40,7 +40,7 @@ export function CareOverviewScreen() {
       <LuxuryReveal className="mt-[30px]" delay={120}>
         <section aria-label="관리 세부 안내" className="space-y-5">
           <DetailActionCard
-            href="/screen27"
+            href="/care/calendar"
             title={`권장 관리 주기 · ${intervalWeeks ? `${intervalWeeks}주` : "확인 중"}`}
           />
           <DetailActionCard title="피해야 할 환경 · 습기" />

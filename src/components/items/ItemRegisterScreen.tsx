@@ -129,7 +129,7 @@ export function ItemRegisterScreen() {
     }
 
     startAnalysis();
-    router.push("/screen22");
+    router.push("/items/analysis");
   };
 
   const finishRegistration = () => {

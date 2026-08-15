@@ -11,25 +11,40 @@ import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayou
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BackButton } from "@/components/common/navigation/BackButton";
 import { ScreenHeader } from "@/components/common/section/ScreenHeader";
+import type { RecommendedProduct } from "@/types/product";
 
 import styles from "./ProductPassportScreen.module.css";
 
-const passport = {
-  brand: "MCM",
-  modelName: "Aren Shopper in Visetos",
-  passportId: "MCM-AR-0826-024",
-  registeredAt: "2026. 08. 13",
-  owner: "MY COLLECTION",
-  material: "Visetos · Nappa leather",
-  origin: "Made in Korea",
-} as const;
+type PassportViewModel = {
+  brand: string;
+  modelName: string;
+  passportId: string;
+  registeredAt: string;
+  owner: string;
+  material: string;
+  origin: string;
+};
 
-const passportDetails = [
-  { label: "제품명", value: passport.modelName },
-  { label: "패스포트 ID", value: passport.passportId },
-  { label: "소재", value: passport.material },
-  { label: "등록일", value: passport.registeredAt },
-] as const;
+type ProductPassportScreenProps = {
+  product: RecommendedProduct;
+};
+
+function createPassportViewModel(
+  product: RecommendedProduct,
+): PassportViewModel {
+  return {
+    brand: product.brand,
+    modelName: product.displayName,
+    passportId: product.id.toUpperCase(),
+    registeredAt: "2026. 08. 13",
+    owner: "MY COLLECTION",
+    material:
+      product.category === "BAG"
+        ? "Visetos · Nappa leather"
+        : "MCM signature material",
+    origin: "Made in Korea",
+  };
+}
 
 function VerifiedMark() {
   return (
@@ -62,7 +77,7 @@ function McmWatermark() {
   );
 }
 
-function ProductPassportCard() {
+function ProductPassportCard({ passport }: { passport: PassportViewModel }) {
   const prefersReducedMotion = useReducedMotion();
   const [isFlipped, setIsFlipped] = useState(false);
   const [shinePass, setShinePass] = useState(0);
@@ -124,7 +139,7 @@ function ProductPassportCard() {
                 </span>
               </span>
               <span className="text-[18px] font-black tracking-[-0.06em] text-white/85">
-                MCM
+                {passport.brand}
               </span>
             </span>
 
@@ -222,11 +237,20 @@ function ProductPassportCard() {
   );
 }
 
-export function ProductPassportScreen() {
+export function ProductPassportScreen({ product }: ProductPassportScreenProps) {
+  const passport = createPassportViewModel(product);
+  const passportDetails = [
+    { label: "제품명", value: passport.modelName },
+    { label: "제품 ID", value: product.id },
+    { label: "패스포트 ID", value: passport.passportId },
+    { label: "소재", value: passport.material },
+    { label: "등록일", value: passport.registeredAt },
+  ] as const;
+
   return (
     <MobileScreenLayout contentClassName="bg-[#f7f5f1] px-6 pt-4 pb-10">
       <LuxuryReveal>
-        <BackButton fallbackHref="/screen22" />
+        <BackButton fallbackHref={`/recommendations/${product.id}/analysis`} />
       </LuxuryReveal>
 
       <LuxuryReveal className="mt-4" delay={40}>
@@ -238,7 +262,7 @@ export function ProductPassportScreen() {
       </LuxuryReveal>
 
       <LuxuryReveal className="mt-8" delay={90}>
-        <ProductPassportCard />
+        <ProductPassportCard passport={passport} />
         <p className="mt-4 flex items-center justify-center gap-2 text-[11px] text-[#85858d]">
           <span
             aria-hidden="true"

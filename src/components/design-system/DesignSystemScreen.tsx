@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { ScreenHeader } from "@/components/common/section/ScreenHeader";
 
@@ -33,12 +35,12 @@ const DesignSystemScreen = () => {
         Components
       </h2>
 
-      <button
-        type="button"
+      <Link
+        href="/login"
         className="mt-[16px] flex h-[50px] w-full items-center justify-center rounded-[16px] bg-[#17181d] text-[16px] font-semibold tracking-[-0.04em] text-white"
       >
         Primary Button
-      </button>
+      </Link>
 
       <div className="mt-[16px] flex gap-[8px]">
         <button
