@@ -190,3 +190,43 @@ a {
 .place-map-popup .maplibregl-popup-tip {
   border-top-color: white;
 }
+
+.condition-range {
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    #17181d 0%,
+    #17181d var(--condition-fill, 50%),
+    #d1d3da var(--condition-fill, 50%),
+    #d1d3da 100%
+  );
+  outline: none;
+}
+
+.condition-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 9999px;
+  background: #17181d;
+  box-shadow: none;
+}
+
+.condition-range::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 9999px;
+  background: #17181d;
+  box-shadow: none;
+}
+
+.condition-range::-moz-range-track {
+  height: 6px;
+  border: 0;
+  border-radius: 9999px;
+  background: #d1d3da;
+}
