@@ -86,7 +86,10 @@ export function DashboardScreen() {
           24° · 맑음 · 성수동
         </p>
 
-        <article className="mt-10 overflow-hidden rounded-[22px] bg-[#16161b] px-5 py-[22px] shadow-[0_12px_30px_rgba(22,22,27,0.12)]">
+        <Link
+          href="/personalize"
+          className="mt-10 block overflow-hidden rounded-[22px] bg-[#16161b] px-5 py-[22px] shadow-[0_12px_30px_rgba(22,22,27,0.12)] transition-transform active:scale-[0.99]"
+        >
           <p className="text-[12px] font-bold tracking-[0.02em] text-[#b89a72]">
             오늘의 AI 스타일 플랜
           </p>
@@ -95,7 +98,7 @@ export function DashboardScreen() {
             <br />
             가볍게 완성해볼까요?
           </h2>
-        </article>
+        </Link>
 
         <div className="mt-8 space-y-4">
           {actionCards.map((card) => (
