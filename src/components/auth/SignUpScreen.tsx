@@ -4,12 +4,12 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
+import { getApiErrorMessage } from "@/lib/apiError";
+import { authApi } from "@/services/api";
 import { useAuthStore } from "@/store/useAuthStore";
-import {
-  createUserInfo,
-  registerLocalAccount,
-  type StoredAccount,
-} from "@/components/auth/authStorage";
+import type { Gender, OAuthProvider } from "@/types/api";
+
+const TERMS_VERSION = "2026-08-01";
 
 function TextField({
   label,
@@ -42,10 +42,12 @@ function EmailFieldWithAction({
   value,
   onChange,
   onSendCode,
+  isSending,
 }: {
   value: string;
   onChange: (value: string) => void;
-  onSendCode: () => void;
+  onSendCode: () => Promise<void>;
+  isSending: boolean;
 }) {
   return (
     <label className="block">
@@ -60,10 +62,11 @@ function EmailFieldWithAction({
         />
         <button
           type="button"
-          onClick={onSendCode}
-          className="ml-3 shrink-0 rounded-full border border-[#d8d6dd] px-3 py-1.5 text-[12px] font-bold text-[#15151a] transition hover:bg-[#f7f6f8]"
+          onClick={() => void onSendCode()}
+          disabled={isSending}
+          className="ml-3 shrink-0 rounded-full border border-[#d8d6dd] px-3 py-1.5 text-[12px] font-bold text-[#15151a] transition hover:bg-[#f7f6f8] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          인증번호 받기
+          {isSending ? "발송 중" : "인증번호 받기"}
         </button>
       </div>
     </label>
@@ -109,18 +112,18 @@ function GenderChoice({
   value,
   onChange,
 }: {
-  value: "female" | "male" | "";
-  onChange: (value: "female" | "male") => void;
+  value: Gender | "";
+  onChange: (value: Gender) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-3 gap-2">
       <label className="cursor-pointer">
         <input
           type="radio"
           name="gender"
-          value="female"
-          checked={value === "female"}
-          onChange={() => onChange("female")}
+          value="FEMALE"
+          checked={value === "FEMALE"}
+          onChange={() => onChange("FEMALE")}
           className="peer sr-only"
         />
         <div className="flex h-[54px] items-center justify-center rounded-[16px] border border-[#d8d6dd] bg-white text-[13px] font-bold text-[#15151a] transition peer-checked:border-[#15151a] peer-checked:bg-[#15151a] peer-checked:text-white">
@@ -131,13 +134,26 @@ function GenderChoice({
         <input
           type="radio"
           name="gender"
-          value="male"
-          checked={value === "male"}
-          onChange={() => onChange("male")}
+          value="MALE"
+          checked={value === "MALE"}
+          onChange={() => onChange("MALE")}
           className="peer sr-only"
         />
         <div className="flex h-[54px] items-center justify-center rounded-[16px] border border-[#d8d6dd] bg-white text-[13px] font-bold text-[#15151a] transition peer-checked:border-[#15151a] peer-checked:bg-[#15151a] peer-checked:text-white">
           남성
+        </div>
+      </label>
+      <label className="cursor-pointer">
+        <input
+          type="radio"
+          name="gender"
+          value="NOT_SPECIFIED"
+          checked={value === "NOT_SPECIFIED"}
+          onChange={() => onChange("NOT_SPECIFIED")}
+          className="peer sr-only"
+        />
+        <div className="flex h-[54px] items-center justify-center rounded-[16px] border border-[#d8d6dd] bg-white text-[13px] font-bold text-[#15151a] transition peer-checked:border-[#15151a] peer-checked:bg-[#15151a] peer-checked:text-white">
+          미선택
         </div>
       </label>
     </div>
@@ -147,15 +163,18 @@ function GenderChoice({
 function SocialButton({
   children,
   brand,
+  onClick,
 }: {
   children: string;
-  brand: "kakao" | "naver";
+  brand: OAuthProvider;
+  onClick: () => void;
 }) {
   const isKakao = brand === "kakao";
 
   return (
     <button
       type="button"
+      onClick={onClick}
       className={[
         "flex h-[54px] w-full items-center justify-center rounded-[18px] border text-[15px] font-bold transition",
         isKakao
@@ -168,11 +187,18 @@ function SocialButton({
   );
 }
 
-function PrimaryButton({ children }: { children: string }) {
+function PrimaryButton({
+  children,
+  disabled,
+}: {
+  children: string;
+  disabled: boolean;
+}) {
   return (
     <button
       type="submit"
-      className="flex h-[54px] w-full items-center justify-center rounded-[18px] bg-[#15151a] text-[15px] font-bold text-white transition hover:bg-[#202028]"
+      disabled={disabled}
+      className="flex h-[54px] w-full items-center justify-center rounded-[18px] bg-[#15151a] text-[15px] font-bold text-white transition hover:bg-[#202028] disabled:cursor-not-allowed disabled:opacity-60"
     >
       {children}
     </button>
@@ -180,7 +206,7 @@ function PrimaryButton({ children }: { children: string }) {
 }
 
 export function SignUpScreen() {
-  const setUser = useAuthStore((state) => state.setUser);
+  const setSession = useAuthStore((state) => state.setSession);
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [emailCodeSent, setEmailCodeSent] = useState(false);
@@ -189,12 +215,41 @@ export function SignUpScreen() {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [nickname, setNickname] = useState("");
-  const [gender, setGender] = useState<"female" | "male" | "">("");
+  const [gender, setGender] = useState<Gender | "">("");
+  const [serviceConsent, setServiceConsent] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSendCode = async () => {
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail) {
+      setError("이메일을 입력해 주세요.");
+      return;
+    }
+
+    setIsSendingCode(true);
+    setError("");
+    setNotice("");
+
+    try {
+      await authApi.sendEmailVerification(normalizedEmail);
+      setEmailCodeSent(true);
+      setNotice("인증번호를 발송했습니다. 5분 안에 입력해 주세요.");
+    } catch (sendError) {
+      setError(
+        getApiErrorMessage(sendError, "인증번호를 발송하지 못했습니다."),
+      );
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!email.trim()) {
@@ -232,26 +287,85 @@ export function SignUpScreen() {
       return;
     }
 
-    if (!privacyConsent) {
-      setError("개인정보수집동의는 필수입니다.");
+    if (!/^(?=.*[A-Za-z])(?=.*\d).{8,64}$/.test(password)) {
+      setError("비밀번호는 영문과 숫자를 포함한 8~64자여야 합니다.");
       return;
     }
 
-    const account: StoredAccount = {
-      id: id.trim(),
-      password,
-      email: email.trim(),
-      nickname: nickname.trim(),
-      gender: gender || undefined,
-      provider: "local",
-      privacyConsent,
-      marketingConsent,
-    };
+    if (!emailCodeSent || !/^\d{6}$/.test(emailCode)) {
+      setError("이메일로 받은 6자리 인증번호를 입력해 주세요.");
+      return;
+    }
 
-    registerLocalAccount(account);
-    setUser(createUserInfo(account));
+    if (!serviceConsent || !privacyConsent) {
+      setError("서비스 이용약관과 개인정보 처리방침에 동의해 주세요.");
+      return;
+    }
+
+    setIsSubmitting(true);
     setError("");
-    router.push("/login");
+    setNotice("");
+
+    try {
+      const normalizedEmail = email.trim();
+      const loginId = id.trim();
+      const verification = await authApi.confirmEmailVerification(
+        normalizedEmail,
+        emailCode,
+      );
+      const availability = await authApi.checkLoginIdAvailability(loginId);
+
+      if (!availability.data.data.available) {
+        setError("이미 사용 중인 아이디입니다.");
+        return;
+      }
+
+      const response = await authApi.signup({
+        signupToken: verification.data.data.signupToken,
+        loginId,
+        password,
+        passwordConfirm,
+        nickname: nickname.trim(),
+        gender,
+        termsAgreements: [
+          {
+            termsType: "SERVICE_TERMS",
+            termsVersion: TERMS_VERSION,
+            agreed: serviceConsent,
+          },
+          {
+            termsType: "PRIVACY_POLICY",
+            termsVersion: TERMS_VERSION,
+            agreed: privacyConsent,
+          },
+          {
+            termsType: "EMAIL_MARKETING",
+            termsVersion: TERMS_VERSION,
+            agreed: marketingConsent,
+          },
+        ],
+      });
+
+      setSession(response.data.data);
+      router.replace("/dashboard");
+    } catch (submitError) {
+      setError(
+        getApiErrorMessage(
+          submitError,
+          "회원가입에 실패했습니다. 입력 내용을 확인해 주세요.",
+        ),
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const startOAuth = (provider: OAuthProvider) => {
+    try {
+      window.location.assign(authApi.getOAuthStartUrl(provider));
+    } catch (oauthError) {
+      setError(getApiErrorMessage(oauthError, "가입 주소를 확인해 주세요."));
+    }
   };
 
   return (
@@ -277,7 +391,8 @@ export function SignUpScreen() {
                 <EmailFieldWithAction
                   value={email}
                   onChange={setEmail}
-                  onSendCode={() => setEmailCodeSent(true)}
+                  onSendCode={handleSendCode}
+                  isSending={isSendingCode}
                 />
                 {emailCodeSent ? (
                   <TextField
@@ -321,7 +436,13 @@ export function SignUpScreen() {
               <SectionTitle>동의 사항</SectionTitle>
               <div className="space-y-3">
                 <CheckboxRow
-                  label="개인정보수집동의"
+                  label="서비스 이용약관 동의"
+                  required
+                  checked={serviceConsent}
+                  onChange={setServiceConsent}
+                />
+                <CheckboxRow
+                  label="개인정보 처리방침 동의"
                   required
                   checked={privacyConsent}
                   onChange={setPrivacyConsent}
@@ -337,12 +458,27 @@ export function SignUpScreen() {
             {error ? (
               <p className="text-[12px] font-medium text-[#c23535]">{error}</p>
             ) : null}
+            {notice ? (
+              <p className="text-[12px] font-medium text-[#4b7357]">{notice}</p>
+            ) : null}
 
             <div className="space-y-4">
-              <PrimaryButton>가입하기</PrimaryButton>
+              <PrimaryButton disabled={isSubmitting}>
+                {isSubmitting ? "가입 처리 중..." : "가입하기"}
+              </PrimaryButton>
               <div className="grid grid-cols-2 gap-3">
-                <SocialButton brand="kakao">카카오로 시작하기</SocialButton>
-                <SocialButton brand="naver">네이버로 시작하기</SocialButton>
+                <SocialButton
+                  brand="kakao"
+                  onClick={() => startOAuth("kakao")}
+                >
+                  카카오로 시작하기
+                </SocialButton>
+                <SocialButton
+                  brand="naver"
+                  onClick={() => startOAuth("naver")}
+                >
+                  네이버로 시작하기
+                </SocialButton>
               </div>
               <p className="text-center text-[12px] font-bold text-[#55555d]">
                 간편로그인 회원가입은{" "}

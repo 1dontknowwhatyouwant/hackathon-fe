@@ -3,7 +3,7 @@
 import { create } from "zustand";
 
 // 실제 백엔드 연결 시 활성화합니다.
-// import { backendApi } from "@/services/backendApi";
+// import { backendApi } from "@/services/api";
 import {
   dummyClosetItems,
   dummyUser,
@@ -22,6 +22,8 @@ type MenuDataState = {
   loadItems: () => Promise<void>;
   loadProfile: () => Promise<void>;
   createItem: (input: ItemCreateInput) => Promise<ClosetItem>;
+  addCreatedItem: (item: ClosetItem) => void;
+  updateItemImage: (itemId: string, imageUrl: string) => void;
 };
 
 export const useMenuDataStore = create<MenuDataState>((set) => ({
@@ -35,9 +37,16 @@ export const useMenuDataStore = create<MenuDataState>((set) => ({
 
     try {
       // 백엔드 연결 시 아래 호출로 더미 데이터 대입을 교체합니다.
-      // const response = await backendApi.items.list();
-      // set({ items: response.data.data });
-      set({ items: dummyClosetItems });
+      // const response = await backendApi.closet.getItems();
+      // const items = response.data.data.items.map(mapApiItemToClosetItem);
+      // set({ items });
+      set((state) => {
+        const previewItems = state.items.filter((item) =>
+          item.id.startsWith("preview-"),
+        );
+
+        return { items: [...previewItems, ...dummyClosetItems] };
+      });
     } catch {
       set({ error: "아이템을 불러오지 못했습니다." });
     } finally {
@@ -50,7 +59,7 @@ export const useMenuDataStore = create<MenuDataState>((set) => ({
 
     try {
       // 백엔드 연결 시 응답의 공개 사용자 정보만 useAuthStore에 저장합니다.
-      // const response = await backendApi.users.me();
+      // const response = await backendApi.profile.getMe();
       // useAuthStore.getState().setUser(response.data.data);
       // set({ profile: response.data.data });
       const storedUser = useAuthStore.getState().user;
@@ -67,12 +76,17 @@ export const useMenuDataStore = create<MenuDataState>((set) => ({
 
     try {
       // 백엔드 연결 시 아래 호출 결과를 items에 추가합니다.
-      // const response = await backendApi.items.create(input);
-      // const createdItem = response.data.data;
+      // const response = await backendApi.closet.createItem(toCreateMyItemRequest(input));
+      // const createdItem = await loadCreatedItem(response.data.data.myItemId);
       const createdItem: ClosetItem = {
         ...input,
         id: `preview-${Date.now()}`,
         colorHex: input.colorHex ?? "#d7cec2",
+        brandName: input.brandName ?? null,
+        material: input.material ?? "미입력",
+        purchaseDate: input.purchaseDate ?? null,
+        purchasePrice: input.purchasePrice ?? null,
+        memo: input.memo ?? null,
       };
 
       set((state) => ({ items: [createdItem, ...state.items] }));
@@ -84,4 +98,16 @@ export const useMenuDataStore = create<MenuDataState>((set) => ({
       set({ isLoading: false });
     }
   },
+
+  addCreatedItem: (item) =>
+    set((state) => ({
+      items: [item, ...state.items.filter((existing) => existing.id !== item.id)],
+    })),
+
+  updateItemImage: (itemId, imageUrl) =>
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === itemId ? { ...item, imageUrl } : item,
+      ),
+    })),
 }));
