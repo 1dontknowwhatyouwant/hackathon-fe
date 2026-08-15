@@ -12,7 +12,7 @@ const actionCards = [
   {
     title: "스마트 착용 추천",
     description: "세부 정보를 확인하세요",
-    href: "/recommendations",
+    href: "/personalize",
   },
   {
     title: "내 제품 관리 알림",
@@ -22,7 +22,7 @@ const actionCards = [
   {
     title: "구매 전 활용 체크",
     description: "세부 정보를 확인하세요",
-    href: "/recommendations",
+    href: "/personalize",
   },
 ];
 
@@ -86,10 +86,7 @@ export function DashboardScreen() {
           24° · 맑음 · 성수동
         </p>
 
-        <Link
-          href="/personalize"
-          className="mt-10 block overflow-hidden rounded-[22px] bg-[#16161b] px-5 py-[22px] shadow-[0_12px_30px_rgba(22,22,27,0.12)] transition-transform active:scale-[0.99]"
-        >
+        <section className="mt-10 overflow-hidden rounded-[22px] bg-[#16161b] px-5 py-[22px] shadow-[0_12px_30px_rgba(22,22,27,0.12)]">
           <p className="text-[12px] font-bold tracking-[0.02em] text-[#b89a72]">
             오늘의 AI 스타일 플랜
           </p>
@@ -98,7 +95,7 @@ export function DashboardScreen() {
             <br />
             가볍게 완성해볼까요?
           </h2>
-        </Link>
+        </section>
 
         <div className="mt-8 space-y-4">
           {actionCards.map((card) => (
