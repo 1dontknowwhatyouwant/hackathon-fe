@@ -15,7 +15,7 @@ const CoverScreen = () => {
     }, 1000);
 
     return () => window.clearTimeout(timer);
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     if (!showNext) {
@@ -23,7 +23,7 @@ const CoverScreen = () => {
     }
 
     const timer = window.setTimeout(() => {
-      router.push("/design-system");
+      router.push("/login");
     }, 700);
 
     return () => window.clearTimeout(timer);
@@ -34,26 +34,30 @@ const CoverScreen = () => {
   };
 
   return (
-    <MobileScreenLayout contentClassName="relative bg-[#17181d] text-[#17181d]">
-      <section
-        className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+    <MobileScreenLayout
+      contentClassName="relative bg-[#efede8] text-[#15151a]"
+      frameClassName="bg-[#f7f2eb]"
+    >
+      <button
+        type="button"
+        onClick={handleStart}
+        aria-label="로그인 화면으로 이동"
+        className={`relative flex h-full w-full flex-col overflow-hidden rounded-[36px] px-6 py-5 text-[#15151a] transition-opacity duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
           showNext ? "pointer-events-none opacity-0" : "opacity-100"
         }`}
       >
-        <h1 className="text-center text-[42px] leading-[0.92] font-black tracking-[-0.06em] text-white">
-          입을래?
-        </h1>
-        <p className="mt-[18px] text-[16px] font-normal tracking-[-0.03em] text-[#a9abb1]">
-          Luxury lifecycle styling service
+        <div className="absolute left-1/2 top-[332px] flex -translate-x-1/2 flex-col items-center">
+          <h1 className="text-[50px] font-bold leading-none tracking-[-0.07em] text-[#15151a]">
+            입을래?
+          </h1>
+          <p className="mt-[50px] text-[11px] font-bold leading-none tracking-[-0.02em] text-[#8b7355]">
+            MCM AI LIFESTYLE
+          </p>
+        </div>
+        <p className="absolute left-1/2 top-[691px] w-full -translate-x-1/2 px-4 text-center text-[12px] font-normal leading-none tracking-[-0.03em] text-[#777780]">
+          나의 취향과 제품의 가치를 함께 기억해요
         </p>
-
-        <button
-          type="button"
-          className="mt-[88px] h-[54px] w-[176px] rounded-full bg-[#be9d71]"
-          aria-label="로그인"
-          onClick={handleStart}
-        />
-      </section>
+      </button>
     </MobileScreenLayout>
   );
 };
