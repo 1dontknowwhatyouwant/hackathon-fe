@@ -90,7 +90,7 @@ export function ProductValueCheckScreen({
       contentClassName="px-6 pt-4 pb-8"
     >
       <LuxuryReveal>
-        <BackButton fallbackHref={`/recommendations/${product.id}`} />
+        <BackButton />
       </LuxuryReveal>
 
       <LuxuryReveal className="mt-5" delay={40}>

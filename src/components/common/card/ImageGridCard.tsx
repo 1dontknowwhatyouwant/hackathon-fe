@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import Link from "next/link";
 
 type ImageGridCardProps = {
   title: string;
@@ -7,6 +8,7 @@ type ImageGridCardProps = {
   imageUrl?: string;
   fallbackColor?: string;
   fallbackLabel?: string;
+  href?: string;
   onClick?: () => void;
 };
 
@@ -20,6 +22,7 @@ export function ImageGridCard({
   imageUrl,
   fallbackColor = "#e9e5df",
   fallbackLabel,
+  href,
   onClick,
 }: ImageGridCardProps) {
   const imageStyle: CSSProperties = imageUrl
@@ -62,6 +65,17 @@ export function ImageGridCard({
       >
         {content}
       </button>
+    );
+  }
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={`${imageGridClassName} block transition-[border-color,transform] hover:border-[#c8c2b9] active:scale-[0.985] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15151a]`}
+      >
+        {content}
+      </Link>
     );
   }
 

@@ -3,29 +3,18 @@
 import { useRouter } from "next/navigation";
 
 type BackButtonProps = {
-  fallbackHref?: string;
   label?: string;
   variant?: "default" | "plain";
 };
 
 export function BackButton({
-  fallbackHref = "/",
   label = "이전 화면으로 이동",
   variant = "default",
 }: BackButtonProps) {
   const router = useRouter();
 
   const handleBack = () => {
-    const hasSameOriginReferrer = document.referrer
-      ? new URL(document.referrer).origin === window.location.origin
-      : false;
-
-    if (hasSameOriginReferrer && window.history.length > 1) {
-      router.back();
-      return;
-    }
-
-    router.replace(fallbackHref);
+    router.back();
   };
 
   return (

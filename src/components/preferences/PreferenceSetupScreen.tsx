@@ -176,7 +176,7 @@ export function PreferenceSetupScreen() {
   return (
     <MobileScreenLayout contentClassName="bg-white px-6 pt-4 pb-9">
       <LuxuryReveal>
-        <BackButton fallbackHref="/my" />
+        <BackButton />
       </LuxuryReveal>
 
       <LuxuryReveal className="mt-5" delay={40}>

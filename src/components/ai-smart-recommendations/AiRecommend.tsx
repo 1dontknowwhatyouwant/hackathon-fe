@@ -14,7 +14,7 @@ export default function AiRecommendPage() {
   return (
     <MobileScreenLayout contentClassName="relative min-h-full bg-white px-6 pb-[104px] pt-[72px] text-[#17181d]">
       <div className="absolute left-6 top-4 z-10">
-        <BackButton fallbackHref="/personalize/condition" />
+        <BackButton />
       </div>
 
       <LuxuryReveal>

@@ -13,6 +13,8 @@ export const dummyClosetItems: ClosetItem[] = [
     purchaseDate: "2026-04-18",
     purchasePrice: 129_000,
     memo: "출근 룩과 데일리 코디에 자주 입는 셔츠",
+    createdAt: "2026-04-18T09:00:00+09:00",
+    version: 1,
   },
   {
     id: "item-02",
@@ -25,6 +27,8 @@ export const dummyClosetItems: ClosetItem[] = [
     purchaseDate: "2026-02-03",
     purchasePrice: 159_000,
     memo: "오프화이트 셔츠와 가장 자주 조합하는 데님",
+    createdAt: "2026-02-03T09:00:00+09:00",
+    version: 1,
   },
   {
     id: "item-03",
@@ -37,6 +41,8 @@ export const dummyClosetItems: ClosetItem[] = [
     purchaseDate: "2026-05-27",
     purchasePrice: 690_000,
     memo: "밝은 색상의 가방과 함께 착용",
+    createdAt: "2026-05-27T09:00:00+09:00",
+    version: 1,
   },
   {
     id: "item-04",
@@ -49,6 +55,8 @@ export const dummyClosetItems: ClosetItem[] = [
     purchaseDate: "2026-08-01",
     purchasePrice: 1_450_000,
     memo: "제품 패스포트가 연결된 MCM 쇼퍼백",
+    createdAt: "2026-08-10T09:00:00+09:00",
+    version: 1,
   },
 ];
 
