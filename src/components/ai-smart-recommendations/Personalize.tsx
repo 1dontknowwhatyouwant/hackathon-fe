@@ -57,7 +57,7 @@ export function Personalize() {
       contentClassName="relative min-h-full bg-white px-6 pb-[104px] pt-[72px] text-[#17181d]"
     >
       <div className="absolute left-6 top-4 z-10">
-        <BackButton fallbackHref="/dashboard" />
+        <BackButton fallbackHref="/" />
       </div>
 
       <LuxuryReveal>
@@ -100,7 +100,10 @@ export function Personalize() {
         </section>
       </LuxuryReveal>
 
-      <LuxuryReveal className="absolute bottom-[28px] left-6 right-6" delay={210}>
+      <LuxuryReveal
+        className="absolute bottom-[28px] left-6 right-6"
+        delay={210}
+      >
         <section>
           <Button
             variant="cta"
