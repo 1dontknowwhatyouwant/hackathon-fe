@@ -67,7 +67,16 @@ function parseItemAnalysisResult(value: unknown): ItemAnalysisValues | null {
     return null;
   }
 
+  const name =
+    typeof candidate.name === "string" ? candidate.name.trim() : "";
+  const brandName =
+    typeof candidate.brandName === "string"
+      ? candidate.brandName.trim()
+      : "";
+
   return {
+    ...(name ? { name } : {}),
+    ...(brandName ? { brandName } : {}),
     category: candidate.category as ItemAnalysisValues["category"],
     primaryColor: candidate.primaryColor as ItemAnalysisValues["primaryColor"],
     material: candidate.material as ItemAnalysisValues["material"],
