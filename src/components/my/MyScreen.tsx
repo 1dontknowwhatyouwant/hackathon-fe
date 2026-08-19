@@ -40,7 +40,7 @@ export function MyScreen() {
     {
       title: "저장한 장소",
       description: "장소 추천 다시 보기",
-      href: "/place",
+      href: "/place/saved",
     },
     {
       title: "찜한 제품",

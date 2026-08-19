@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
@@ -10,6 +11,7 @@ import { PlaceKeywords } from "@/components/place/PlaceKeywords";
 import { PlaceList } from "@/components/place/PlaceList";
 import { PlaceMap } from "@/components/place/PlaceMap";
 import { backendApi } from "@/services/api";
+import { usePlaceStore } from "@/store/usePlaceStore";
 import type { ApiPlaceRecommendation } from "@/types/api";
 import type { PlaceRecommendation } from "@/types/place";
 
@@ -48,14 +50,19 @@ export function PlaceResultScreen({
   latitude,
   longitude,
 }: PlaceResultScreenProps) {
+  const router = useRouter();
   const hasBackendRequest =
     Boolean(stylePlanId) && latitude !== undefined && longitude !== undefined;
   const [displayPlaces, setDisplayPlaces] = useState(places);
-  const [selectedPlaceId, setSelectedPlaceId] = useState(
-    () => places[0]?.id,
-  );
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string>();
+  const [detailReadyPlaceId, setDetailReadyPlaceId] = useState<string>();
   const [isLoading, setIsLoading] = useState(hasBackendRequest);
   const [error, setError] = useState<string | null>(null);
+  const registerPlaces = usePlaceStore((state) => state.registerPlaces);
+
+  useEffect(() => {
+    registerPlaces(displayPlaces);
+  }, [displayPlaces, registerPlaces]);
 
   useEffect(() => {
     if (
@@ -85,7 +92,8 @@ export function PlaceResultScreen({
         );
 
         setDisplayPlaces(nextPlaces);
-        setSelectedPlaceId(nextPlaces[0]?.id);
+        setSelectedPlaceId(undefined);
+        setDetailReadyPlaceId(undefined);
       })
       .catch(() => {
         if (!controller.signal.aborted) {
@@ -102,7 +110,18 @@ export function PlaceResultScreen({
   }, [keywords, latitude, longitude, stylePlanId]);
 
   const handlePlaceSelect = (place: PlaceRecommendation) => {
+    if (detailReadyPlaceId === place.id) {
+      router.push(`/place/${encodeURIComponent(place.id)}`);
+      return;
+    }
+
     setSelectedPlaceId(place.id);
+    setDetailReadyPlaceId(place.id);
+  };
+
+  const handleMarkerSelect = (place: PlaceRecommendation) => {
+    setSelectedPlaceId(place.id);
+    setDetailReadyPlaceId(undefined);
   };
 
   return (
@@ -129,6 +148,7 @@ export function PlaceResultScreen({
         <PlaceList
           places={displayPlaces}
           selectedPlaceId={selectedPlaceId}
+          detailReadyPlaceId={detailReadyPlaceId}
           onPlaceSelect={handlePlaceSelect}
         />
       </LuxuryReveal>
@@ -138,7 +158,7 @@ export function PlaceResultScreen({
           places={displayPlaces}
           areaLabel={displayPlaces[0]?.area ?? keywords[0]}
           selectedPlaceId={selectedPlaceId}
-          onMarkerSelect={handlePlaceSelect}
+          onMarkerSelect={handleMarkerSelect}
         />
       </LuxuryReveal>
     </MobileScreenLayout>
