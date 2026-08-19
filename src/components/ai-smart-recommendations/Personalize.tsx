@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import Button from "@/components/common/button/Button";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
+import { BackButton } from "@/components/common/navigation/BackButton";
 
 const preferenceTags = [
   "미니멀",
@@ -53,8 +54,12 @@ export function Personalize() {
   return (
     <MobileScreenLayout
       figmaNodeId="96:113"
-      contentClassName="relative min-h-full bg-white px-6 pb-[104px] pt-[48px] text-[#17181d]"
+      contentClassName="relative min-h-full bg-white px-6 pb-[104px] pt-[72px] text-[#17181d]"
     >
+      <div className="absolute left-6 top-4 z-10">
+        <BackButton fallbackHref="/" />
+      </div>
+
       <LuxuryReveal>
         <p className="text-[11px] font-bold leading-none tracking-[0.04em] text-[#8b7355]">
           PERSONALIZE
