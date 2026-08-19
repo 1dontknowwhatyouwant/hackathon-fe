@@ -167,13 +167,13 @@ export function AnalysisProgressScreen() {
 
       progressAnimation.stop();
       if (outcome.status === "FAILED") {
-        failAnalysis(outcome.message);
+        failAnalysis(outcome.message, outcome.image);
         setResultMessage(outcome.message);
         setResultStatus("FAILED");
         return;
       }
 
-      applyAnalysis(outcome.values, outcome.jobId);
+      applyAnalysis(outcome.values, outcome.jobId, outcome.image);
       progressAnimation = animate(progress, 100, {
         duration: prefersReducedMotion ? 0.01 : 0.45,
         ease: [0.22, 1, 0.36, 1],

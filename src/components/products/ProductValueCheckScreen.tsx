@@ -9,7 +9,10 @@ import { AnimatedCounter } from "@/components/common/motion/AnimatedCounter";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BackButton } from "@/components/common/navigation/BackButton";
 import { ScreenHeader } from "@/components/common/section/ScreenHeader";
-import { backendApi } from "@/services/api";
+import {
+  PurchaseUtilityInsufficientDataError,
+  requestPurchaseUtilityAnalysis,
+} from "@/services/purchaseUtilityWorkflow";
 import type { PurchaseUtilityAnalysis } from "@/types/api";
 import type { RecommendedProduct } from "@/types/product";
 
@@ -66,15 +69,15 @@ export function ProductValueCheckScreen({
 
     const controller = new AbortController();
 
-    void backendApi.utility
-      .analyzePurchaseUtility(
-        { productId: product.id },
-        controller.signal,
-      )
-      .then(({ data }) => setAnalysis(toViewModel(data.data)))
-      .catch(() => {
+    void requestPurchaseUtilityAnalysis(product.id, controller.signal)
+      .then((result) => setAnalysis(toViewModel(result)))
+      .catch((analysisError: unknown) => {
         if (!controller.signal.aborted) {
-          setError("활용 가능성을 계산하지 못했습니다. 다시 시도해 주세요.");
+          setError(
+            analysisError instanceof PurchaseUtilityInsufficientDataError
+              ? analysisError.message
+              : "활용 가능성을 계산하지 못했습니다. 다시 시도해 주세요.",
+          );
         }
       });
 

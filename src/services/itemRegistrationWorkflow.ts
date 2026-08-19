@@ -1,21 +1,18 @@
 import { backendApi } from "@/services/api";
 import { pollAiJob } from "@/services/aiJobPolling";
-import { itemCategories, type ImagePurpose } from "@/types/api";
 import type { ItemAnalysisValues } from "@/store/useItemRegistrationStore";
+import {
+  colorGroups,
+  itemCategories,
+  materialGroups,
+  type ImageAsset,
+} from "@/types/api";
 
-type CloudinaryUploadResult = {
-  public_id: string;
-  secure_url: string;
-  format: string;
-  bytes: number;
-  width: number;
-  height: number;
-  version: number;
-  signature: string;
-};
+const maxImageBytes = 10 * 1024 * 1024;
+const allowedImageTypes = new Set(["image/jpeg", "image/png"]);
 
-type UploadedImage = {
-  imageId: string;
+export type UploadedImage = {
+  imageAssetId: string;
   url: string;
 };
 
@@ -23,11 +20,13 @@ export type ItemAnalysisOutcome =
   | {
       status: "SUCCEEDED";
       jobId: string;
+      image: UploadedImage;
       values: ItemAnalysisValues;
     }
   | {
       status: "FAILED";
       jobId: string | null;
+      image: UploadedImage | null;
       message: string;
     };
 
@@ -35,22 +34,18 @@ function createIdempotencyKey() {
   return globalThis.crypto?.randomUUID?.() ?? `item-analysis-${Date.now()}`;
 }
 
-function isCloudinaryUploadResult(value: unknown): value is CloudinaryUploadResult {
-  if (!value || typeof value !== "object") {
-    return false;
+function validateImage(file: File) {
+  if (!allowedImageTypes.has(file.type)) {
+    throw new Error("JPEG 또는 PNG 이미지만 업로드할 수 있습니다.");
   }
 
-  const candidate = value as Partial<CloudinaryUploadResult>;
-  return (
-    typeof candidate.public_id === "string" &&
-    typeof candidate.secure_url === "string" &&
-    typeof candidate.format === "string" &&
-    typeof candidate.bytes === "number" &&
-    typeof candidate.width === "number" &&
-    typeof candidate.height === "number" &&
-    typeof candidate.version === "number" &&
-    typeof candidate.signature === "string"
-  );
+  if (file.size > maxImageBytes) {
+    throw new Error("이미지는 10MB 이하만 업로드할 수 있습니다.");
+  }
+}
+
+function toUploadedImage(image: ImageAsset): UploadedImage {
+  return { imageAssetId: image.imageAssetId, url: image.imageUrl };
 }
 
 function parseItemAnalysisResult(value: unknown): ItemAnalysisValues | null {
@@ -61,75 +56,31 @@ function parseItemAnalysisResult(value: unknown): ItemAnalysisValues | null {
   const candidate = value as Partial<Record<keyof ItemAnalysisValues, unknown>>;
   if (
     typeof candidate.category !== "string" ||
-    !itemCategories.includes(candidate.category as (typeof itemCategories)[number]) ||
+    !itemCategories.includes(
+      candidate.category as (typeof itemCategories)[number],
+    ) ||
     typeof candidate.primaryColor !== "string" ||
-    !candidate.primaryColor.trim() ||
+    !colorGroups.includes(candidate.primaryColor as (typeof colorGroups)[number]) ||
     typeof candidate.material !== "string" ||
-    !candidate.material.trim()
+    !materialGroups.includes(candidate.material as (typeof materialGroups)[number])
   ) {
     return null;
   }
 
   return {
     category: candidate.category as ItemAnalysisValues["category"],
-    primaryColor: candidate.primaryColor.trim(),
-    material: candidate.material.trim(),
+    primaryColor: candidate.primaryColor as ItemAnalysisValues["primaryColor"],
+    material: candidate.material as ItemAnalysisValues["material"],
   };
 }
 
-export async function uploadRegistrationImage(
+export async function uploadImageAsset(
   file: File,
-  purpose: ImagePurpose,
-  referenceId: string | null,
   signal?: AbortSignal,
 ): Promise<UploadedImage> {
-  const signatureResponse = await backendApi.closet.createImageUploadSignature(
-    purpose,
-    referenceId,
-  );
-  const signature = signatureResponse.data.data;
-  const formData = new FormData();
-
-  formData.append("file", file);
-  formData.append("api_key", signature.apiKey);
-  formData.append("timestamp", String(signature.timestamp));
-  formData.append("signature", signature.signature);
-  formData.append("folder", signature.folder);
-  formData.append("public_id", signature.publicId);
-
-  const cloudinaryResponse = await fetch(
-    `https://api.cloudinary.com/v1_1/${encodeURIComponent(signature.cloudName)}/image/upload`,
-    { method: "POST", body: formData, signal },
-  );
-  const cloudinaryResult: unknown = await cloudinaryResponse.json();
-
-  if (!cloudinaryResponse.ok || !isCloudinaryUploadResult(cloudinaryResult)) {
-    throw new Error("이미지 업로드 응답을 확인하지 못했습니다.");
-  }
-
-  const normalizedFormat = cloudinaryResult.format.toLowerCase();
-  if (!["jpg", "jpeg", "png", "webp"].includes(normalizedFormat)) {
-    throw new Error("지원하지 않는 이미지 형식입니다.");
-  }
-
-  const completeResponse = await backendApi.closet.completeImageUpload({
-    purpose,
-    referenceId,
-    ...(purpose === "ITEM" ? { sortOrder: 0 } : {}),
-    publicId: cloudinaryResult.public_id,
-    secureUrl: cloudinaryResult.secure_url,
-    format: normalizedFormat as "jpg" | "jpeg" | "png" | "webp",
-    bytes: cloudinaryResult.bytes,
-    width: cloudinaryResult.width,
-    height: cloudinaryResult.height,
-    version: cloudinaryResult.version,
-    responseSignature: cloudinaryResult.signature,
-  });
-
-  return {
-    imageId: completeResponse.data.data.imageId,
-    url: completeResponse.data.data.url,
-  };
+  validateImage(file);
+  const response = await backendApi.closet.uploadImageAsset(file, signal);
+  return toUploadedImage(response.data.data);
 }
 
 export async function analyzeItemPhoto(
@@ -137,19 +88,14 @@ export async function analyzeItemPhoto(
   signal?: AbortSignal,
 ): Promise<ItemAnalysisOutcome> {
   let jobId: string | null = null;
+  let image: UploadedImage | null = null;
 
   try {
-    const aiInputImage = await uploadRegistrationImage(
-      file,
-      "AI_INPUT",
-      null,
-      signal,
-    );
+    image = await uploadImageAsset(file, signal);
     const acceptedResponse = await backendApi.intelligence.createAiJob(
       {
         type: "ITEM_ANALYSIS",
-        imageIds: [aiInputImage.imageId],
-        context: { language: "ko" },
+        context: { imageAssetId: image.imageAssetId },
       },
       createIdempotencyKey(),
     );
@@ -161,7 +107,10 @@ export async function analyzeItemPhoto(
       return {
         status: "FAILED",
         jobId,
-        message: "AI 분석에 실패했어요. 세 가지 정보를 직접 입력해 주세요.",
+        image,
+        message:
+          job.error?.message ??
+          "AI 분석에 실패했어요. 정보를 직접 입력해 주세요.",
       };
     }
 
@@ -170,11 +119,13 @@ export async function analyzeItemPhoto(
       return {
         status: "FAILED",
         jobId,
-        message: "분석 결과를 확인하지 못했어요. 세 가지 정보를 직접 입력해 주세요.",
+        image,
+        message:
+          "일부 분석값을 확정하지 못했어요. 정보를 직접 입력해 주세요.",
       };
     }
 
-    return { status: "SUCCEEDED", jobId, values };
+    return { status: "SUCCEEDED", jobId, image, values };
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       throw error;
@@ -183,6 +134,7 @@ export async function analyzeItemPhoto(
     return {
       status: "FAILED",
       jobId,
+      image,
       message:
         error instanceof Error
           ? error.message
@@ -191,10 +143,19 @@ export async function analyzeItemPhoto(
   }
 }
 
-export function uploadItemImage(
+export async function attachUploadedItemImage(
+  image: UploadedImage,
+  myItemId: string,
+) {
+  await backendApi.closet.attachImage(myItemId, image.imageAssetId);
+  return image;
+}
+
+export async function uploadItemImage(
   file: File,
   myItemId: string,
   signal?: AbortSignal,
 ) {
-  return uploadRegistrationImage(file, "ITEM", myItemId, signal);
+  const image = await uploadImageAsset(file, signal);
+  return attachUploadedItemImage(image, myItemId);
 }

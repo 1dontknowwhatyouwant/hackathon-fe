@@ -2,8 +2,7 @@
 
 import { create } from "zustand";
 
-// 실제 백엔드 연결 시 활성화합니다.
-// import { backendApi } from "@/services/api";
+import { backendApi } from "@/services/api";
 import {
   dummyClosetItems,
   dummyUser,
@@ -13,6 +12,25 @@ import type {
   ClosetItem,
   ItemCreateInput,
 } from "@/types/menu";
+import type { MyItemSummary } from "@/types/api";
+
+const useApiMocks = process.env.NEXT_PUBLIC_USE_API_MOCKS !== "false";
+
+function mapApiItemToClosetItem(item: MyItemSummary): ClosetItem {
+  return {
+    id: item.myItemId,
+    name: item.name,
+    category: item.category,
+    color: item.primaryColor ?? "미입력",
+    colorHex: "#d7cec2",
+    imageUrl: item.primaryImageUrl ?? undefined,
+    brandName: item.brandName,
+    material: item.material ?? "미입력",
+    purchaseDate: null,
+    purchasePrice: null,
+    memo: null,
+  };
+}
 
 type MenuDataState = {
   items: ClosetItem[];
@@ -36,10 +54,12 @@ export const useMenuDataStore = create<MenuDataState>((set) => ({
     set({ isLoading: true, error: null });
 
     try {
-      // 백엔드 연결 시 아래 호출로 더미 데이터 대입을 교체합니다.
-      // const response = await backendApi.closet.getItems();
-      // const items = response.data.data.items.map(mapApiItemToClosetItem);
-      // set({ items });
+      if (!useApiMocks) {
+        const response = await backendApi.closet.getItems();
+        set({ items: response.data.data.items.map(mapApiItemToClosetItem) });
+        return;
+      }
+
       set((state) => {
         const previewItems = state.items.filter((item) =>
           item.id.startsWith("preview-"),
@@ -58,10 +78,14 @@ export const useMenuDataStore = create<MenuDataState>((set) => ({
     set({ isLoading: true, error: null });
 
     try {
-      // 백엔드 연결 시 응답의 공개 사용자 정보만 useAuthStore에 저장합니다.
-      // const response = await backendApi.profile.getMe();
-      // useAuthStore.getState().setUser(response.data.data);
-      // set({ profile: response.data.data });
+      if (!useApiMocks) {
+        const response = await backendApi.profile.getMe();
+        const user = response.data.data;
+        useAuthStore.getState().setUser(user);
+        set({ profile: user });
+        return;
+      }
+
       const storedUser = useAuthStore.getState().user;
       set({ profile: storedUser ?? dummyUser });
     } catch {

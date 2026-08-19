@@ -10,16 +10,22 @@ import { ScreenHeader } from "@/components/common/section/ScreenHeader";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { backendApi } from "@/services/api";
 import { useAuthStore } from "@/store/useAuthStore";
-import type { OAuthProvider, UserProfile } from "@/types/api";
+import type {
+  AuthenticationMethod,
+  OAuthProvider,
+  UserProfile,
+} from "@/types/api";
 
 type ReauthenticationStatus = "IDLE" | "PROCESSING" | "READY";
 
-function toOAuthProvider(loginType: UserProfile["loginType"]): OAuthProvider | null {
-  if (loginType === "KAKAO") {
+function toOAuthProvider(
+  method: AuthenticationMethod,
+): OAuthProvider | null {
+  if (method === "KAKAO") {
     return "kakao";
   }
 
-  if (loginType === "NAVER") {
+  if (method === "NAVER") {
     return "naver";
   }
 
@@ -93,26 +99,14 @@ export function AccountDeletionScreen() {
     }
   };
 
-  const handleSocialReauthentication = async () => {
-    if (!profile) {
-      return;
-    }
-
-    const provider = toOAuthProvider(profile.loginType);
-    if (!provider) {
-      return;
-    }
-
+  const handleSocialReauthentication = (provider: OAuthProvider) => {
     setStatus("PROCESSING");
     setError(null);
 
     try {
-      const returnTo = `${window.location.origin}/auth/reauth/account-deletion/callback`;
-      const response = await backendApi.auth.startAccountDeletionOAuthReauth(
-        provider,
-        returnTo,
+      window.location.assign(
+        backendApi.auth.getAccountDeletionOAuthReauthUrl(provider),
       );
-      window.location.assign(response.data.data.authorizationUrl);
     } catch (oauthError) {
       setStatus("IDLE");
       setError(
@@ -130,7 +124,7 @@ export function AccountDeletionScreen() {
     try {
       await backendApi.profile.deleteMe();
       clearSession();
-      router.replace("/login?accountDeletion=accepted");
+      router.replace("/login?accountDeleted=true");
     } catch (deleteError) {
       setError(
         getApiErrorMessage(
@@ -144,8 +138,11 @@ export function AccountDeletionScreen() {
     }
   };
 
-  const isLocal = profile?.loginType === "LOCAL";
-  const provider = profile ? toOAuthProvider(profile.loginType) : null;
+  const isLocal = profile?.authenticationMethods.includes("LOCAL") ?? false;
+  const socialProviders =
+    profile?.authenticationMethods
+      .map(toOAuthProvider)
+      .filter((provider): provider is OAuthProvider => provider !== null) ?? [];
 
   return (
     <MobileScreenLayout contentClassName="bg-white px-6 pt-4 pb-9">
@@ -189,19 +186,26 @@ export function AccountDeletionScreen() {
             </form>
           ) : null}
 
-          {profile && status !== "READY" && provider ? (
-            <div>
+          {profile && status !== "READY" && socialProviders.length > 0 ? (
+            <div className={isLocal ? "mt-6 border-t border-[#dedee2] pt-5" : ""}>
               <p className="text-[13px] leading-5 text-[#55555d]">
-                {profile.loginType === "KAKAO" ? "카카오" : "네이버"} 계정으로 다시 로그인해 주세요.
+                연결된 소셜 계정으로 다시 로그인해 주세요.
               </p>
-              <button
-                type="button"
-                disabled={status === "PROCESSING"}
-                onClick={handleSocialReauthentication}
-                className="mt-4 flex h-[50px] w-full items-center justify-center rounded-[15px] bg-[#15151a] text-[14px] font-bold text-white disabled:opacity-45"
-              >
-                {status === "PROCESSING" ? "재인증 준비 중" : "소셜 계정으로 재인증"}
-              </button>
+              <div className="mt-4 space-y-3">
+                {socialProviders.map((provider) => (
+                  <button
+                    key={provider}
+                    type="button"
+                    disabled={status === "PROCESSING"}
+                    onClick={() => handleSocialReauthentication(provider)}
+                    className="flex h-[50px] w-full items-center justify-center rounded-[15px] bg-[#15151a] text-[14px] font-bold text-white disabled:opacity-45"
+                  >
+                    {status === "PROCESSING"
+                      ? "재인증 준비 중"
+                      : `${provider === "kakao" ? "카카오" : "네이버"}로 재인증`}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : null}
 
@@ -209,7 +213,7 @@ export function AccountDeletionScreen() {
             <div>
               <p className="text-[13px] font-bold text-[#4f7154]">본인 확인이 완료되었습니다.</p>
               <p className="mt-2 text-[11px] leading-4 text-[#777780]">
-                재인증은 5분 동안 한 번만 사용할 수 있습니다.
+                재인증은 10분 동안 유효하며 한 번만 사용할 수 있습니다.
               </p>
               <button
                 type="button"

@@ -1,7 +1,7 @@
 import { api } from "@/lib/axios";
 import type {
-  AccountDeletionAccepted,
   ApiSuccessResponse,
+  ColorGroup,
   Gender,
   HomeData,
   ItemCategory,
@@ -13,14 +13,12 @@ import type {
 type UpdateMyProfileRequest = {
   nickname?: string;
   gender?: Gender;
-  version: number;
 };
 
 type SavePreferenceRequest = {
-  preferredColors: string[];
+  preferredColors: ColorGroup[];
   preferredCategories: ItemCategory[];
   preferredStyleTags: StyleTag[];
-  aiJobId: string | null;
   version: number;
 };
 
@@ -30,14 +28,13 @@ export const profileApi = {
   updateMe: (body: UpdateMyProfileRequest) =>
     api.patch<ApiSuccessResponse<UserProfile>>("/users/me", body),
 
-  deleteMe: () =>
-    api.delete<ApiSuccessResponse<AccountDeletionAccepted>>("/users/me"),
+  deleteMe: () => api.delete<void>("/users/me"),
 
   getPreferences: () =>
-    api.get<ApiSuccessResponse<PreferenceProfile>>("/preferences/me"),
+    api.get<ApiSuccessResponse<PreferenceProfile>>("/preferences"),
 
   savePreferences: (body: SavePreferenceRequest) =>
-    api.put<ApiSuccessResponse<PreferenceProfile>>("/preferences/me", body),
+    api.put<ApiSuccessResponse<PreferenceProfile>>("/preferences", body),
 
   getHome: () => api.get<ApiSuccessResponse<HomeData>>("/home"),
 };

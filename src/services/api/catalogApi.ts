@@ -2,6 +2,8 @@ import { api } from "@/lib/axios";
 import type {
   ApiPage,
   ApiSuccessResponse,
+  CartItem,
+  ColorGroup,
   CurrentSeasonTag,
   FeatureTag,
   ItemCategory,
@@ -14,15 +16,10 @@ import type {
 
 type ProductListQuery = PageQuery & {
   keyword?: string;
-  category?: ItemCategory[];
-  color?: string[];
+  category?: ItemCategory;
+  color?: ColorGroup;
   minPrice?: number;
   maxPrice?: number;
-};
-
-type FavoriteProduct = ProductSummary & {
-  favorited: true;
-  favoritedAt: string;
 };
 
 type CreateRecommendationRequest = {
@@ -58,17 +55,23 @@ export const catalogApi = {
       `/recommendations/${recommendationId}`,
     ),
 
-  getFavorites: (params: PageQuery = {}) =>
-    api.get<ApiSuccessResponse<ApiPage<FavoriteProduct>>>(
-      "/products/favorites",
-      { params },
-    ),
+  getWishlist: (params: PageQuery = {}) =>
+    api.get<ApiSuccessResponse<ApiPage<ProductSummary>>>("/wishlists", {
+      params,
+    }),
 
   addFavorite: (productId: string) =>
-    api.put<
-      ApiSuccessResponse<{ productId: string; favorited: true }>
-    >(`/products/${productId}/favorite`),
+    api.put<void>(`/products/${productId}/favorite`),
 
   removeFavorite: (productId: string) =>
     api.delete<void>(`/products/${productId}/favorite`),
+
+  getCartItems: (params: PageQuery = {}) =>
+    api.get<ApiSuccessResponse<ApiPage<CartItem>>>("/cart-items", { params }),
+
+  addToCart: (productId: string) =>
+    api.put<void>(`/products/${productId}/cart`),
+
+  removeFromCart: (productId: string) =>
+    api.delete<void>(`/products/${productId}/cart`),
 };
