@@ -1,12 +1,12 @@
 import { api } from "@/lib/axios";
 import { useAuthStore } from "@/store/useAuthStore";
 import type {
-  AccountDeletionReauthentication,
   ApiSuccessResponse,
   AuthTokenData,
   EmailVerificationPurpose,
   LoginRequest,
   OAuthProvider,
+  SocialSignupRequest,
   SignupRequest,
 } from "@/types/api";
 
@@ -24,6 +24,16 @@ type LoginIdAvailability = {
   loginId: string;
   available: boolean;
 };
+
+function getAuthRedirectUrl(path: string) {
+  const apiBaseUrl = api.defaults.baseURL?.replace(/\/$/, "");
+
+  if (!apiBaseUrl) {
+    throw new Error("NEXT_PUBLIC_API_BASE_URL이 설정되지 않았습니다.");
+  }
+
+  return `${apiBaseUrl}${path}`;
+}
 
 export const authApi = {
   sendEmailVerification: (
@@ -53,14 +63,14 @@ export const authApi = {
   signup: (body: SignupRequest) =>
     api.post<ApiSuccessResponse<AuthTokenData>>("/auth/signup", body),
 
+  socialSignup: (body: SocialSignupRequest) =>
+    api.post<ApiSuccessResponse<AuthTokenData>>("/auth/oauth/signup", body),
+
   login: (body: LoginRequest) =>
     api.post<ApiSuccessResponse<AuthTokenData>>("/auth/login", body),
 
   reauthenticateForAccountDeletion: (password: string) =>
-    api.post<ApiSuccessResponse<AccountDeletionReauthentication>>(
-      "/auth/reauth/password",
-      { password },
-    ),
+    api.post<void>("/auth/reauthentications", { password }),
 
   logout: async () => {
     try {
@@ -71,21 +81,9 @@ export const authApi = {
   },
 
   getOAuthStartUrl: (provider: OAuthProvider) => {
-    const apiBaseUrl = api.defaults.baseURL?.replace(/\/$/, "");
-
-    if (!apiBaseUrl) {
-      throw new Error("NEXT_PUBLIC_API_BASE_URL이 설정되지 않았습니다.");
-    }
-
-    return `${apiBaseUrl}/auth/oauth/${provider}`;
+    return getAuthRedirectUrl(`/auth/oauth/${provider}`);
   },
 
-  startAccountDeletionOAuthReauth: (
-    provider: OAuthProvider,
-    returnTo: string,
-  ) =>
-    api.post<ApiSuccessResponse<{ authorizationUrl: string }>>(
-      `/auth/reauth/oauth/${provider}/start`,
-      { returnTo },
-    ),
+  getAccountDeletionOAuthReauthUrl: (provider: OAuthProvider) =>
+    getAuthRedirectUrl(`/auth/oauth/${provider}/reauthentication`),
 };

@@ -6,7 +6,6 @@ import type {
   ApiPlace,
   ApiPlaceRecommendation,
   ApiSuccessResponse,
-  ItemCategory,
   OccasionTag,
   PageQuery,
   PlaceCategory,
@@ -16,25 +15,18 @@ import type {
 
 type AiJobRequest =
   | {
-      type: "PREFERENCE_ANALYSIS";
-      context: {
-        selectedColors: string[];
-        selectedCategories: ItemCategory[];
-        selectedStyleTags: StyleTag[];
-        language: "ko";
-      };
+      type: "ITEM_ANALYSIS";
+      context: { imageAssetId: string };
     }
   | {
-      type: "ITEM_ANALYSIS";
-      imageIds: string[];
-      context: { language: "ko" };
+      type: "PURCHASE_UTILITY";
+      context: { productId: string };
     }
   | {
       type: "STYLE_PLAN";
       context: {
         occasion: OccasionTag;
         styleTags: StyleTag[];
-        styleIntensity: number;
         weatherCondition: string | null;
         prioritizeOwnedItems: boolean;
         language: "ko";
@@ -42,7 +34,7 @@ type AiJobRequest =
     };
 
 type CreateStylePlanRequest = {
-  aiJobId: string | null;
+  aiJobId: number | null;
   title: string;
   occasion: OccasionTag;
   plannedAt: string | null;
@@ -50,12 +42,12 @@ type CreateStylePlanRequest = {
   description: string | null;
   status: "DRAFT" | "CONFIRMED";
   ownedItems: Array<{
-    myItemId: string;
+    myItemId: number;
     role: "MAIN" | "TOP" | "BOTTOM" | "SHOES" | "BAG" | "ACCESSORY";
     sortOrder: number;
   }>;
   recommendedProducts: Array<{
-    productId: string;
+    productId: number;
     rank: number;
     reason: string;
   }>;
@@ -170,9 +162,7 @@ export const intelligenceApi = {
     ),
 
   savePlace: (placeId: string) =>
-    api.put<ApiSuccessResponse<{ placeId: string; saved: true }>>(
-      `/places/${placeId}/saved`,
-    ),
+    api.put<ApiSuccessResponse<ApiPlace>>(`/places/${placeId}/saved`),
 
   removeSavedPlace: (placeId: string) =>
     api.delete<void>(`/places/${placeId}/saved`),

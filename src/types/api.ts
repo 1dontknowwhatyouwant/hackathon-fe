@@ -7,7 +7,6 @@ export type ApiErrorDetail = {
   code: string;
   message: string;
   fields?: ApiFieldError[];
-  retryable?: boolean;
 };
 
 export type ApiSuccessResponse<T> = {
@@ -42,15 +41,7 @@ export type TermsType =
   | "PRIVACY_POLICY"
   | "EMAIL_MARKETING";
 export type OAuthProvider = "kakao" | "naver";
-
-export type AccountDeletionReauthentication = {
-  reauthenticated: true;
-  expiresInSeconds: number;
-};
-
-export type AccountDeletionAccepted = {
-  status: "DELETION_PENDING";
-};
+export type AuthenticationMethod = "LOCAL" | "KAKAO" | "NAVER";
 
 export type SessionUser = {
   userId: string;
@@ -88,30 +79,67 @@ export type SignupRequest = {
   gender: Gender;
 };
 
-export type EmailVerificationPurpose = "SIGNUP";
+export type SocialSignupRequest = {
+  termsAgreements: TermsAgreement[];
+  nickname: string;
+  gender: Gender;
+  notificationEmail: string | null;
+};
 
-export type UserProfile = SessionUser & {
-  loginType: "LOCAL" | "KAKAO" | "NAVER";
-  loginId: string | null;
-  email: string | null;
-  preferenceCompleted: boolean;
-  status: "ACTIVE" | "SUSPENDED" | "DELETION_PENDING" | "DELETED";
-  version: number;
-  createdAt: string;
+export type EmailVerificationPurpose =
+  | "SIGNUP"
+  | "NOTIFICATION_EMAIL";
+
+export type UserProfile = {
+  userId: string;
+  nickname: string;
+  gender: Gender;
+  authenticationMethods: AuthenticationMethod[];
 };
 
 export const itemCategories = [
   "BAG",
-  "BACKPACK",
-  "WALLET",
-  "CARD_HOLDER",
+  "LEATHER_GOODS",
+  "FASHION_ACCESSORY",
   "CLOTHING",
   "SHOES",
-  "JEWELRY",
-  "ACCESSORY",
-  "OTHER",
 ] as const;
 export type ItemCategory = (typeof itemCategories)[number];
+
+export const colorGroups = [
+  "BLACK",
+  "WHITE",
+  "GRAY",
+  "BROWN",
+  "BEIGE",
+  "RED",
+  "ORANGE",
+  "YELLOW",
+  "GREEN",
+  "BLUE",
+  "PURPLE",
+  "PINK",
+  "METALLIC",
+  "MULTI",
+  "OTHER",
+] as const;
+export type ColorGroup = (typeof colorGroups)[number];
+
+export const materialGroups = [
+  "LEATHER",
+  "SYNTHETIC_LEATHER",
+  "CANVAS",
+  "FABRIC",
+  "NYLON",
+  "METAL",
+  "OTHER",
+  "UNKNOWN",
+] as const;
+export type MaterialGroup = (typeof materialGroups)[number];
+export type MaterialSource =
+  | "PRODUCT_DATA"
+  | "USER_CONFIRMED"
+  | "AI_ESTIMATED";
 
 export const styleTags = ["CASUAL", "FORMAL", "NEAT", "GLAMOROUS"] as const;
 export type StyleTag = (typeof styleTags)[number];
@@ -136,13 +164,8 @@ export const occasionTags = [
 ] as const;
 export type OccasionTag = (typeof occasionTags)[number];
 
-export const featureTags = [
-  "COMPACT",
-  "SPACIOUS",
-  "MULTIWAY",
-] as const;
+export const featureTags = ["COMPACT", "SPACIOUS", "MULTIWAY"] as const;
 export type FeatureTag = (typeof featureTags)[number];
-
 export type CurrentSeasonTag = Exclude<SeasonTag, "ALL_SEASON">;
 
 export const productTagLabels = {
@@ -182,7 +205,7 @@ export const productTagLabels = {
 
 export type PreferenceProfile = {
   completed: boolean;
-  preferredColors: string[];
+  preferredColors: ColorGroup[];
   preferredCategories: ItemCategory[];
   preferredStyleTags: StyleTag[];
   summary: string | null;
@@ -192,35 +215,37 @@ export type PreferenceProfile = {
   version: number;
 };
 
+export type ProductTags = {
+  styles: StyleTag[];
+  seasons: SeasonTag[];
+  occasions: OccasionTag[];
+  features: FeatureTag[];
+};
+
 export type ProductSummary = {
   productId: string;
-  brand: "MCM" | "OTHER";
-  sku: string;
+  brand: "MCM";
   name: string;
   category: ItemCategory;
   price: number;
-  primaryColor: string;
-  material: string;
+  primaryColor: ColorGroup;
   primaryImageUrl: string | null;
   favorited: boolean;
-  isSample: boolean;
 };
 
 export type ProductDetail = ProductSummary & {
+  sku: string;
   description: string | null;
+  material: MaterialGroup;
   productUrl: string | null;
   images: Array<{
     url: string;
     altText: string | null;
     sortOrder: number;
-    primary: boolean;
+    isPrimary: boolean;
   }>;
-  tags: {
-    style: StyleTag[];
-    season: SeasonTag[];
-    occasion: OccasionTag[];
-    feature: FeatureTag[];
-  };
+  tags: ProductTags;
+  inCart: boolean;
 };
 
 export const productRecommendationScoreWeights = {
@@ -237,26 +262,38 @@ export type ProductRecommendationScore = {
   feature: number;
 };
 
+export type RecommendationProduct = {
+  productId: string;
+  name: string;
+  category: ItemCategory;
+  price: number;
+  primaryColor: ColorGroup;
+  primaryImageUrl: string | null;
+  tags: ProductTags;
+  score: number;
+  scoreBreakdown: ProductRecommendationScore;
+  reason: string;
+  favorited: boolean;
+};
+
 export type Recommendation = {
   recommendationId: string;
   generationType: "RULE_BASED";
   scorePolicyVersion: string;
-  products: Array<{
-    rank: number;
-    score: number;
-    scoreBreakdown: ProductRecommendationScore;
-    reason: string;
-    product: Pick<
-      ProductSummary,
-      | "productId"
-      | "name"
-      | "category"
-      | "price"
-      | "primaryImageUrl"
-      | "favorited"
-    >;
-  }>;
+  summary: string;
+  products: RecommendationProduct[];
   generatedAt: string;
+};
+
+export type CartItem = {
+  cartItemId: string;
+  productId: string;
+  brand: "MCM";
+  name: string;
+  price: number;
+  primaryImageUrl: string | null;
+  productUrl: string | null;
+  addedAt: string;
 };
 
 export type MyItemSummary = {
@@ -264,34 +301,39 @@ export type MyItemSummary = {
   name: string;
   brandName: string | null;
   category: ItemCategory;
-  primaryColor: string;
-  material: string;
+  primaryColor: ColorGroup | null;
+  material: MaterialGroup | null;
   primaryImageUrl: string | null;
   createdAt: string;
 };
 
+export type MyItemImage = {
+  imageId: string;
+  url: string;
+  sortOrder: number;
+};
+
 export type MyItemDetail = Omit<MyItemSummary, "primaryImageUrl"> & {
   linkedProductId: string | null;
-  materialSource: "PRODUCT_DATA" | "USER_CONFIRMED" | "AI_ESTIMATED";
+  materialSource: MaterialSource | null;
   purchaseDate: string | null;
   purchasePrice: number | null;
+  purchaseOrderNumber: string | null;
+  purchasePlace: string | null;
   memo: string | null;
-  images: Array<{ imageId: string; url: string; sortOrder: number }>;
+  nextCareDate: string | null;
+  aiJobId: string | null;
+  images: MyItemImage[];
   version: number;
   updatedAt: string;
 };
 
-export type ImagePurpose = "PROFILE" | "ITEM" | "AI_INPUT";
-export type ImageAssetStatus =
-  | "TEMPORARY"
-  | "ACTIVE"
-  | "DELETE_PENDING"
-  | "DELETED";
+export type ImageAsset = {
+  imageAssetId: string;
+  imageUrl: string;
+};
 
-export type AiJobType =
-  | "PREFERENCE_ANALYSIS"
-  | "ITEM_ANALYSIS"
-  | "STYLE_PLAN";
+export type AiJobType = "ITEM_ANALYSIS" | "PURCHASE_UTILITY" | "STYLE_PLAN";
 export type AiJobStatus = "PENDING" | "PROCESSING" | "SUCCEEDED" | "FAILED";
 
 type AiJobIdentity = {
@@ -301,59 +343,57 @@ type AiJobIdentity = {
 };
 
 export type AiJobAccepted = AiJobIdentity & {
-  status: "PENDING";
-  cached: boolean;
+  status: AiJobStatus;
 };
 
-export type AiJobFallback = {
-  type: "RULE_BASED" | "MANUAL";
-  result: unknown;
+export type AiJob = AiJobIdentity & {
+  status: AiJobStatus;
+  result: unknown | null;
+  fallback: unknown | null;
+  error: Pick<ApiErrorDetail, "code" | "message"> | null;
+  completedAt: string | null;
 };
 
-export type AiJob =
-  | (AiJobIdentity & {
-      status: "PENDING" | "PROCESSING";
-      result: null;
-      fallback: null;
-      error: null;
-      completedAt: null;
-    })
-  | (AiJobIdentity & {
-      status: "SUCCEEDED";
-      result: unknown;
-      fallback: null;
-      error: null;
-      completedAt: string;
-    })
-  | (AiJobIdentity & {
-      status: "FAILED";
-      result: null;
-      fallback: AiJobFallback | null;
-      error: ApiErrorDetail;
-      completedAt: string;
-    });
+export type ItemAnalysisResult = {
+  brandName: string | null;
+  name: string | null;
+  category: ItemCategory | null;
+  primaryColor: ColorGroup | null;
+  material: MaterialGroup | null;
+};
+
+export type PurchaseUtilityJobResult =
+  | { status: "READY"; analysisId: string }
+  | {
+      status: "INSUFFICIENT_DATA";
+      analysisId: null;
+      message: string;
+    };
 
 export type PurchaseUtilityAnalysis = {
   analysisId: string;
+  scorePolicyVersion: string;
   product: Pick<
     ProductSummary,
     "productId" | "name" | "category" | "price" | "primaryImageUrl"
   >;
   utilityScore: number;
-  compatibleItemCount: number;
   factors: {
     preferenceTagFitScore: number;
     styleCombinationScore: number;
     seasonUsabilityScore: number;
     ownedCategoryCombinationScore: number;
   };
+  compatibleItemCount: number;
   compatibleItems: Array<{
     myItemId: string;
     name: string;
     imageUrl: string | null;
     reason: string;
   }>;
+  careDifficulty: "EASY" | "MODERATE" | "HARD" | "UNKNOWN";
   summary: string;
+  explanationGenerationType: "AI" | "RULE_BASED";
   analyzedAt: string;
 };
 
@@ -370,10 +410,11 @@ export type ApiPlace = {
   name: string;
   category: PlaceCategory;
   categoryName: string;
-  address: string | null;
+  address?: string | null;
   roadAddress: string | null;
   latitude: number;
   longitude: number;
+  placeUrl: string | null;
   saved: boolean;
 };
 
@@ -388,59 +429,6 @@ export type ApiPlaceRecommendation = {
   place: ApiPlace;
 };
 
-export type UsageRecordItem = {
-  myItemId: string;
-  name: string;
-  sortOrder: number;
-};
-
-export type UsageRecord = {
-  usageRecordId: string;
-  wornAt: string;
-  occasion: OccasionTag;
-  placeName: string | null;
-  weatherSummary: string | null;
-  memo: string | null;
-  items: UsageRecordItem[];
-  version: number;
-  createdAt: string;
-};
-
-export type ItemUtilization =
-  | {
-      myItemId: string;
-      calculable: true;
-      usageCount: number;
-      lastUsedAt: string | null;
-      daysSinceLastUse: number | null;
-      utilizationScore: number;
-      utilizationLevel: "LOW" | "MEDIUM" | "HIGH";
-      policyVersion: string;
-      missingData: [];
-    }
-  | {
-      myItemId: string;
-      calculable: false;
-      usageCount: number;
-      lastUsedAt: string | null;
-      daysSinceLastUse: null;
-      utilizationScore: null;
-      utilizationLevel: null;
-      policyVersion: string;
-      missingData: string[];
-    };
-
-export type ReuseRecommendations = {
-  generationType: "RULE_BASED";
-  items: Array<{
-    myItemId: string;
-    name: string;
-    lastUsedAt: string | null;
-    usageCount: number;
-    reasonCode: "LONG_UNUSED";
-  }>;
-};
-
 export type ProductPassport = {
   myItemId: string;
   productInfo: {
@@ -448,34 +436,59 @@ export type ProductPassport = {
     brandName: string | null;
     name: string;
     category: ItemCategory;
-    primaryColor: string;
-    material: string;
-    images: Array<{ imageId: string; url: string; sortOrder: number }>;
+    primaryColor: ColorGroup | null;
+    material: MaterialGroup | null;
+    imageUrl: string | null;
+    sku: string | null;
+    productUrl: string | null;
   };
   purchaseInfo: {
+    purchaseOrderNumber: string | null;
     purchaseDate: string | null;
     purchasePrice: number | null;
+    purchasePlace: string | null;
   };
-  usageSummary: {
-    usageCount: number;
-    lastUsedAt: string | null;
-  };
-  recentUsageRecords: UsageRecord[];
 };
 
 export type CareGuide = {
   myItemId: string;
   available: boolean;
-  material: string;
-  guide: Array<{
-    code: string;
-    title: string;
-    description: string;
-  }>;
-  schedule: {
-    recommendedIntervalDays: number | null;
-    recommendedNextCareAt: string | null;
-  };
+  material?: MaterialGroup | null;
+  [key: string]: unknown;
+};
+
+export type StorageGuide = {
+  myItemId: string;
+  available: boolean;
+  material?: MaterialGroup | null;
+  [key: string]: unknown;
+};
+
+export type CareCalendar = {
+  myItemId: string;
+  month: string;
+  available: boolean;
+  [key: string]: unknown;
+};
+
+export type CareReminderSetting = {
+  myItemId: string;
+  enabled: boolean;
+  enabledAt: string | null;
+};
+
+export type ServiceNotification = {
+  notificationId: string;
+  type: "CARE_REMINDER";
+  title: string;
+  message: string;
+  myItemId: string;
+  itemName: string;
+  imageUrl: string | null;
+  scheduledDate: string;
+  routineTypes: string[];
+  read: boolean;
+  createdAt: string;
 };
 
 export type StylePlanSummary = {
@@ -500,10 +513,10 @@ export type HomeData = {
     StylePlanSummary,
     "stylePlanId" | "title" | "thumbnailImageUrl"
   > | null;
-  preferenceProducts: Array<{
+  recommendedProducts: Array<{
     productId: string;
     name: string;
-    preferenceMatchScore: number;
+    matchScore: number;
     primaryImageUrl: string | null;
   }>;
 };

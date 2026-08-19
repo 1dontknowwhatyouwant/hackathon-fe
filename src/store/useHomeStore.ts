@@ -22,10 +22,10 @@ const dummyHomeData: HomeData = {
     myItemCount: 12,
   },
   latestStylePlan: null,
-  preferenceProducts: dummyRecommendedProducts.slice(0, 2).map((product) => ({
+  recommendedProducts: dummyRecommendedProducts.slice(0, 2).map((product) => ({
     productId: product.id,
     name: product.displayName,
-    preferenceMatchScore: product.recommendationScore,
+    matchScore: product.recommendationScore,
     primaryImageUrl: product.imageUrl ?? null,
   })),
 };

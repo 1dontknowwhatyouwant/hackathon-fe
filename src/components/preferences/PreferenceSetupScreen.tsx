@@ -10,11 +10,11 @@ import { ChoiceChipGroup } from "@/components/common/selection/ChoiceChipGroup";
 import { ScreenHeader } from "@/components/common/section/ScreenHeader";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { backendApi } from "@/services/api";
-import { pollAiJob } from "@/services/aiJobPolling";
 import {
   itemCategories,
   productTagLabels,
   styleTags,
+  type ColorGroup,
   type ItemCategory,
   type StyleTag,
 } from "@/types/api";
@@ -30,14 +30,10 @@ const colorOptions = [
 
 const categoryLabels: Record<ItemCategory, string> = {
   BAG: "가방",
-  BACKPACK: "백팩",
-  WALLET: "지갑",
-  CARD_HOLDER: "카드 홀더",
+  LEATHER_GOODS: "가죽 소품",
+  FASHION_ACCESSORY: "패션 액세서리",
   CLOTHING: "의류",
   SHOES: "신발",
-  JEWELRY: "주얼리",
-  ACCESSORY: "액세서리",
-  OTHER: "기타",
 };
 
 const categoryOptions = itemCategories.map((value) => ({
@@ -59,13 +55,9 @@ function toggleValue<T extends string>(values: readonly T[], value: T) {
     : [...values, value];
 }
 
-function createIdempotencyKey() {
-  return globalThis.crypto?.randomUUID?.() ?? `preference-${Date.now()}`;
-}
-
 export function PreferenceSetupScreen() {
   const router = useRouter();
-  const [preferredColors, setPreferredColors] = useState<string[]>([]);
+  const [preferredColors, setPreferredColors] = useState<ColorGroup[]>([]);
   const [preferredCategories, setPreferredCategories] = useState<ItemCategory[]>([]);
   const [preferredStyleTags, setPreferredStyleTags] = useState<StyleTag[]>([]);
   const [version, setVersion] = useState(0);
@@ -87,7 +79,7 @@ export function PreferenceSetupScreen() {
         if (stored) {
           try {
             const preview = JSON.parse(stored) as {
-              preferredColors?: string[];
+              preferredColors?: ColorGroup[];
               preferredCategories?: ItemCategory[];
               preferredStyleTags?: StyleTag[];
             };
@@ -147,9 +139,7 @@ export function PreferenceSetupScreen() {
 
     setIsSaving(true);
     setError(null);
-    setMessage("선택한 취향을 분석하고 있습니다.");
-
-    let aiJobId: string | null = null;
+    setMessage("선택한 취향을 저장하고 있습니다.");
 
     try {
       if (useApiMocks) {
@@ -165,34 +155,10 @@ export function PreferenceSetupScreen() {
         return;
       }
 
-      try {
-        const accepted = await backendApi.intelligence.createAiJob(
-          {
-            type: "PREFERENCE_ANALYSIS",
-            context: {
-              selectedColors: preferredColors,
-              selectedCategories: preferredCategories,
-              selectedStyleTags: preferredStyleTags,
-              language: "ko",
-            },
-          },
-          createIdempotencyKey(),
-        );
-        const job = await pollAiJob(accepted.data.data.jobId);
-
-        if (job.status === "SUCCEEDED") {
-          aiJobId = job.jobId;
-        }
-      } catch {
-        // AI가 실패해도 사용자가 직접 선택한 취향 값은 그대로 저장합니다.
-        aiJobId = null;
-      }
-
       await backendApi.profile.savePreferences({
         preferredColors,
         preferredCategories,
         preferredStyleTags,
-        aiJobId,
         version,
       });
 
@@ -279,7 +245,7 @@ export function PreferenceSetupScreen() {
           onClick={handleSave}
           className="flex h-[52px] w-full items-center justify-center rounded-[16px] bg-[#15151a] text-[15px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-45"
         >
-          {isSaving ? "분석하고 저장하는 중" : "취향 저장"}
+          {isSaving ? "취향 저장 중" : "취향 저장"}
         </button>
       </LuxuryReveal>
     </MobileScreenLayout>

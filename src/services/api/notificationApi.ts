@@ -1,0 +1,21 @@
+import { api } from "@/lib/axios";
+import type {
+  ApiPage,
+  ApiSuccessResponse,
+  PageQuery,
+  ServiceNotification,
+} from "@/types/api";
+
+export const notificationApi = {
+  getNotifications: (params: PageQuery = {}) =>
+    api.get<ApiSuccessResponse<ApiPage<ServiceNotification>>>(
+      "/notifications",
+      { params },
+    ),
+
+  setNotificationRead: (notificationId: string, read: boolean) =>
+    api.patch<ApiSuccessResponse<ServiceNotification>>(
+      `/notifications/${notificationId}`,
+      { read },
+    ),
+};

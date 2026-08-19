@@ -6,16 +6,13 @@ import axios, {
 import { useAuthStore } from "@/store/useAuthStore";
 import type { ApiErrorResponse, ApiSuccessResponse, AuthTokenData } from "@/types/api";
 
-const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 const timeout = 10_000;
 const paramsSerializer = { indexes: null } as const;
 
 export const api = axios.create({
   baseURL,
   withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
   paramsSerializer,
   timeout,
 });
@@ -23,9 +20,6 @@ export const api = axios.create({
 const refreshClient = axios.create({
   baseURL,
   withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
   paramsSerializer,
   timeout,
 });

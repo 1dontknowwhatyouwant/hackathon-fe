@@ -8,31 +8,46 @@ import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BottomNavigation } from "@/components/common/navigation/BottomNavigation";
 import { ScreenHeader } from "@/components/common/section/ScreenHeader";
 import { backendApi } from "@/services/api";
-import { uploadItemImage } from "@/services/itemRegistrationWorkflow";
+import {
+  attachUploadedItemImage,
+  uploadItemImage,
+} from "@/services/itemRegistrationWorkflow";
 import { useItemRegistrationStore } from "@/store/useItemRegistrationStore";
 import { useMenuDataStore } from "@/store/useMenuDataStore";
-import type { ItemCategory } from "@/types/api";
+import {
+  colorGroups,
+  materialGroups,
+  type ItemCategory,
+  type MaterialGroup,
+} from "@/types/api";
 
 const categories: ReadonlyArray<{ value: ItemCategory; label: string }> = [
   { value: "BAG", label: "가방" },
-  { value: "BACKPACK", label: "백팩" },
-  { value: "WALLET", label: "지갑" },
-  { value: "CARD_HOLDER", label: "카드지갑" },
+  { value: "LEATHER_GOODS", label: "가죽 소품" },
+  { value: "FASHION_ACCESSORY", label: "패션 액세서리" },
   { value: "CLOTHING", label: "의류" },
   { value: "SHOES", label: "신발" },
-  { value: "JEWELRY", label: "주얼리" },
-  { value: "ACCESSORY", label: "액세서리" },
-  { value: "OTHER", label: "기타" },
 ];
 
 const colors = [
   { value: "BLACK", label: "블랙", hex: "#222226" },
-  { value: "OFF_WHITE", label: "오프화이트", hex: "#ece8df" },
+  { value: "WHITE", label: "화이트", hex: "#ece8df" },
   { value: "BEIGE", label: "베이지", hex: "#c9b89f" },
   { value: "BROWN", label: "브라운", hex: "#806a51" },
-  { value: "NAVY", label: "네이비", hex: "#3f4b62" },
+  { value: "BLUE", label: "블루", hex: "#3f4b62" },
   { value: "RED", label: "레드", hex: "#9a4e4e" },
 ] as const;
+
+const materialLabels: Record<MaterialGroup, string> = {
+  LEATHER: "가죽",
+  SYNTHETIC_LEATHER: "인조가죽",
+  CANVAS: "캔버스",
+  FABRIC: "패브릭",
+  NYLON: "나일론",
+  METAL: "메탈",
+  OTHER: "기타",
+  UNKNOWN: "모름",
+};
 
 const fieldClassName =
   "mt-2 h-[50px] w-full rounded-[15px] border border-[#dedee2] bg-[#fafafa] px-4 text-[13px] text-[#15151a] outline-none transition-colors placeholder:text-[#b0b0b7] focus:border-[#8b7355]";
@@ -64,6 +79,15 @@ function getColorPresentation(primaryColor: string) {
   };
 }
 
+function toNumericRequestId(id: string | null) {
+  if (!id) {
+    return null;
+  }
+
+  const value = Number(id);
+  return Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
 export function ItemRegisterScreen() {
   const router = useRouter();
   const draft = useItemRegistrationStore((state) => state.draft);
@@ -79,6 +103,9 @@ export function ItemRegisterScreen() {
     (state) => state.analysisMessage,
   );
   const aiJobId = useItemRegistrationStore((state) => state.aiJobId);
+  const analysisImage = useItemRegistrationStore(
+    (state) => state.analysisImage,
+  );
   const materialSource = useItemRegistrationStore(
     (state) => state.materialSource,
   );
@@ -161,7 +188,9 @@ export function ItemRegisterScreen() {
     setSubmitError(null);
 
     try {
-      const uploadedImage = await uploadItemImage(photoFile, createdItemId);
+      const uploadedImage = analysisImage
+        ? await attachUploadedItemImage(analysisImage, createdItemId)
+        : await uploadItemImage(photoFile, createdItemId);
       updateItemImage(createdItemId, uploadedImage.url);
       finishRegistration();
     } catch {
@@ -175,9 +204,7 @@ export function ItemRegisterScreen() {
     event.preventDefault();
 
     const normalizedName = draft.name.trim();
-    const normalizedMaterial = draft.material.trim();
-    const normalizedColor = draft.primaryColor.trim();
-    if (!normalizedName || !draft.category || !normalizedColor || !normalizedMaterial) {
+    if (!normalizedName || !draft.category || !draft.primaryColor || !draft.material) {
       setSubmitError("이름, 카테고리, 대표 색상, 소재를 모두 입력해 주세요.");
       return;
     }
@@ -191,16 +218,20 @@ export function ItemRegisterScreen() {
         name: normalizedName,
         brandName: draft.brandName.trim() || null,
         category: draft.category,
-        primaryColor: normalizedColor,
-        material: normalizedMaterial,
+        primaryColor: draft.primaryColor,
+        material: draft.material,
         materialSource,
         purchaseDate: draft.purchaseDate || null,
         purchasePrice: draft.purchasePrice ? Number(draft.purchasePrice) : null,
+        purchaseOrderNumber: null,
+        purchasePlace: null,
         memo: draft.memo.trim() || null,
-        aiJobId: analysisStatus === "SUCCEEDED" ? aiJobId : null,
+        aiJobId:
+          analysisStatus === "SUCCEEDED" ? toNumericRequestId(aiJobId) : null,
+        nextCareDate: null,
       });
       const myItemId = response.data.data.myItemId;
-      const colorPresentation = getColorPresentation(normalizedColor);
+      const colorPresentation = getColorPresentation(draft.primaryColor);
 
       markItemCreated(myItemId);
       addCreatedItem({
@@ -210,7 +241,7 @@ export function ItemRegisterScreen() {
         color: colorPresentation.label,
         colorHex: colorPresentation.hex,
         brandName: draft.brandName.trim() || null,
-        material: normalizedMaterial,
+        material: draft.material,
         purchaseDate: draft.purchaseDate || null,
         purchasePrice: draft.purchasePrice ? Number(draft.purchasePrice) : null,
         memo: draft.memo.trim() || null,
@@ -225,7 +256,9 @@ export function ItemRegisterScreen() {
 
       setSubmissionStatus("UPLOADING");
       try {
-        const uploadedImage = await uploadItemImage(photoFile, myItemId);
+        const uploadedImage = analysisImage
+          ? await attachUploadedItemImage(analysisImage, myItemId)
+          : await uploadItemImage(photoFile, myItemId);
         updateItemImage(myItemId, uploadedImage.url);
         clearPendingImageUpload();
         resetDraft();
@@ -339,7 +372,7 @@ export function ItemRegisterScreen() {
             >
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/jpeg,image/png"
                 className="sr-only"
                 onChange={(event) => void handleImageChange(event)}
               />
@@ -464,12 +497,22 @@ export function ItemRegisterScreen() {
                 <span className="text-[11px] font-bold text-[#55555d]">대표 색상</span>
                 <span className="text-[9px] font-bold text-[#8b7355]">직접 입력 / AI 제안 가능</span>
               </span>
-              <input
+              <select
                 value={draft.primaryColor}
-                placeholder="예: BROWN"
                 className={`${fieldClassName} uppercase`}
-                onChange={(event) => updateDraft({ primaryColor: event.target.value.toUpperCase() })}
-              />
+                onChange={(event) =>
+                  updateDraft({
+                    primaryColor: event.target.value as (typeof colorGroups)[number],
+                  })
+                }
+              >
+                <option value="">색상 선택</option>
+                {colorGroups.map((color) => (
+                  <option key={color} value={color}>
+                    {color}
+                  </option>
+                ))}
+              </select>
             </label>
             <div className="mt-3 flex items-start justify-between" aria-label="대표 색상 빠른 선택">
               {colors.map((color) => {
@@ -496,18 +539,34 @@ export function ItemRegisterScreen() {
               })}
             </div>
 
-            <label className="mt-5 block">
-              <span className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-[#55555d]">소재</span>
-                <span className="text-[9px] font-bold text-[#8b7355]">직접 입력 / AI 제안 가능</span>
-              </span>
-              <input
-                value={draft.material}
-                placeholder="예: LEATHER"
-                className={`${fieldClassName} uppercase`}
-                onChange={(event) => updateMaterial(event.target.value.toUpperCase())}
-              />
-            </label>
+            <fieldset className="mt-5">
+              <legend className="w-full">
+                <span className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#55555d]">소재</span>
+                  <span className="text-[9px] font-bold text-[#8b7355]">직접 선택 / AI 제안 가능</span>
+                </span>
+              </legend>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {materialGroups.map((material) => {
+                  const isSelected = material === draft.material;
+                  return (
+                    <button
+                      key={material}
+                      type="button"
+                      aria-pressed={isSelected}
+                      className={`h-9 rounded-full border px-4 text-[11px] font-bold transition-colors ${
+                        isSelected
+                          ? "border-[#15151a] bg-[#15151a] text-white"
+                          : "border-[#d8d8de] bg-white text-[#66666e]"
+                      }`}
+                      onClick={() => updateMaterial(material)}
+                    >
+                      {materialLabels[material]}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
           </section>
         </LuxuryReveal>
 
