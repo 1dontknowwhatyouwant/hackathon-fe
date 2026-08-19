@@ -31,7 +31,7 @@ function TextField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder ?? label}
-        className="h-[54px] w-full rounded-[16px] border border-[#d8d6dd] bg-white px-4 text-[13px] leading-4 text-[#15151a] outline-none transition placeholder:text-[#9999a1] focus:border-[#15151a]"
+        className="h-[56px] w-full rounded-[16px] border border-[#d8d6dd] bg-white px-4 text-[13px] leading-4 text-[#15151a] outline-none transition placeholder:text-[#9999a1] focus:border-[#15151a]"
       />
     </label>
   );
@@ -53,10 +53,10 @@ function SocialButton({
       type="button"
       onClick={onClick}
       className={[
-        "flex h-[54px] w-full items-center justify-center rounded-[18px] border text-[15px] font-bold transition",
+        "flex h-[52px] w-full items-center justify-center rounded-[16px] border text-[15px] font-bold transition",
         isKakao
-          ? "border-[#f4d44d] bg-[#fee500] text-[#15151a] hover:bg-[#f9df00]"
-          : "border-[#2db400] bg-[#03c75a] text-white hover:bg-[#02b153]",
+          ? "border-[#f3d33d] bg-[#fee500] text-[#15151a] hover:bg-[#f9df00]"
+          : "border-[#16a34a] bg-[#03c75a] text-white hover:bg-[#02b153]",
       ].join(" ")}
     >
       {children}
@@ -75,12 +75,15 @@ function PrimaryButton({
     <button
       type="submit"
       disabled={disabled}
-      className="flex h-[54px] w-full items-center justify-center rounded-[18px] bg-[#15151a] text-[15px] font-bold text-white transition hover:bg-[#202028] disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex h-[52px] w-full items-center justify-center rounded-[16px] bg-[#15151a] text-[15px] font-bold text-white transition hover:bg-[#202028] disabled:cursor-not-allowed disabled:opacity-60"
     >
       {children}
     </button>
   );
 }
+
+const buttonBaseClass =
+  "flex h-[52px] w-full items-center justify-center rounded-[16px] text-[15px] font-bold transition";
 
 export function LoginScreen() {
   const router = useRouter();
@@ -137,15 +140,15 @@ export function LoginScreen() {
             다시 만나서 반가워요
           </h1>
           <p className="mt-2 text-[13px] leading-4 text-[#777780]">
-            아이디와 비밀번호로 로그인하세요
+            아이디 또는 이메일로 로그인하세요
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-10">
-          <div className="space-y-5">
+          <div className="space-y-4">
             <TextField
-              label="아이디"
-              placeholder="아이디"
+              label="아이디 또는 이메일"
+              placeholder="아이디 또는 이메일"
               value={id}
               onChange={setId}
             />
@@ -159,33 +162,35 @@ export function LoginScreen() {
           </div>
 
           {error ? (
-            <p className="mt-3 text-[12px] font-medium text-[#c23535]">{error}</p>
+            <p className="mt-3 text-[12px] font-medium text-[#c23535]">
+              {error}
+            </p>
           ) : null}
 
-          <div className="mt-[40px] space-y-4">
+          <p className="mt-5 text-right text-[12px] font-medium text-[#76757f]">
+            <span className="transition hover:text-[#15151a]">아이디 찾기</span>
+            <span className="px-1.5">·</span>
+            <span className="transition hover:text-[#15151a]">
+              비밀번호 재설정
+            </span>
+          </p>
+
+          <div className="mt-[172px] space-y-4">
             <PrimaryButton disabled={isSubmitting}>
               {isSubmitting ? "로그인 중..." : "로그인"}
             </PrimaryButton>
-            <div className="grid grid-cols-2 gap-3">
-              <SocialButton
-                brand="kakao"
-                onClick={() => startOAuth("kakao")}
-              >
-                카카오 로그인
-              </SocialButton>
-              <SocialButton
-                brand="naver"
-                onClick={() => startOAuth("naver")}
-              >
-                네이버 로그인
-              </SocialButton>
-            </div>
-            <p className="text-center text-[12px] font-bold text-[#55555d]">
-              계정이 없나요?{" "}
-              <Link href="/signup" className="underline underline-offset-2">
-                회원가입
-              </Link>
-            </p>
+            <SocialButton brand="kakao" onClick={() => startOAuth("kakao")}>
+              카카오로 계속하기
+            </SocialButton>
+            <SocialButton brand="naver" onClick={() => startOAuth("naver")}>
+              네이버로 계속하기
+            </SocialButton>
+            <Link
+              href="/signup"
+              className={`${buttonBaseClass} border border-[#d7d9e0] bg-[#f7f7f8] text-[#15151a] hover:bg-[#efeff3]`}
+            >
+              처음이신가요? 회원가입
+            </Link>
           </div>
         </form>
       </section>
