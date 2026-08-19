@@ -278,7 +278,7 @@ export function AnalysisProgressScreen() {
             <button
               type="button"
               className="flex h-[52px] w-full items-center justify-center rounded-[16px] bg-[#15151a] text-[15px] font-bold text-white"
-              onClick={() => router.push("/items/new")}
+              onClick={() => router.push("/items/new/confirm")}
             >
               {isComplete ? "분석 결과 확인하고 등록하기" : "직접 입력해서 등록하기"}
             </button>

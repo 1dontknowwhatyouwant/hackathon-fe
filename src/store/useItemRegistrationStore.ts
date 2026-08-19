@@ -9,6 +9,8 @@ import type {
 } from "@/types/api";
 
 export type ItemAnalysisValues = {
+  name?: string;
+  brandName?: string;
   category: ItemCategory;
   primaryColor: ColorGroup;
   material: MaterialGroup;
@@ -131,6 +133,8 @@ export const useItemRegistrationStore = create<ItemRegistrationState>((set) => (
         state.analysisStatus === "SUCCEEDED"
           ? {
               ...state.draft,
+              name: "",
+              brandName: "",
               category: "",
               primaryColor: "",
               material: "",

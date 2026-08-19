@@ -56,8 +56,8 @@ export function ItemsScreen() {
       <LuxuryReveal>
         <ScreenHeader
           eyebrow="MY CLOSET"
-          title="나의 아이템"
-          description={`직접 등록한 아이템 ${items.length}개를 모아봤어요`}
+          title="내 아이템"
+          description="등록한 제품을 선택해 자세히 확인해요"
         />
       </LuxuryReveal>
 
@@ -143,6 +143,7 @@ export function ItemsScreen() {
                     imageUrl={item.imageUrl}
                     fallbackColor={item.colorHex}
                     fallbackLabel="MY ITEM"
+                    href={`/items/${encodeURIComponent(item.id)}`}
                   />
                 </LuxuryReveal>
               </li>
@@ -150,6 +151,15 @@ export function ItemsScreen() {
           </ul>
         )}
       </section>
+
+      <LuxuryReveal className="mt-8" delay={300}>
+        <Link
+          href="/items/new"
+          className="flex h-[52px] w-full items-center justify-center rounded-[16px] bg-[#15151a] text-[14px] font-bold text-white transition-colors hover:bg-[#2a2a30] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15151a]"
+        >
+          새 제품 등록
+        </Link>
+      </LuxuryReveal>
     </MobileScreenLayout>
   );
 }

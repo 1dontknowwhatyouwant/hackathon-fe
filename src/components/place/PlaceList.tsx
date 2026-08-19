@@ -6,12 +6,14 @@ import type { PlaceRecommendation } from "@/types/place";
 type PlaceListProps = {
   places: PlaceRecommendation[];
   selectedPlaceId?: string;
+  detailReadyPlaceId?: string;
   onPlaceSelect?: (place: PlaceRecommendation) => void;
 };
 
 export function PlaceList({
   places,
   selectedPlaceId,
+  detailReadyPlaceId,
   onPlaceSelect,
 }: PlaceListProps) {
   return (
@@ -22,6 +24,7 @@ export function PlaceList({
             place={place}
             index={index}
             selected={selectedPlaceId === place.id}
+            detailReady={detailReadyPlaceId === place.id}
             onSelect={onPlaceSelect}
           />
         </li>

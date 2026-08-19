@@ -128,17 +128,19 @@ function ProductPassportCard({ passport }: { passport: PassportViewModel }) {
         <span className={styles.cardFace}>
           <McmWatermark />
 
-          <span className="absolute inset-0 z-10 flex flex-col p-6 text-left">
+          <span
+            className={`${styles.cardContent} absolute inset-0 z-10 flex flex-col p-6 text-left`}
+          >
             <span className="flex items-start justify-between">
               <span>
-                <span className="block text-[9px] font-bold tracking-[0.24em] text-white/55">
+                <span className="block text-[9px] font-bold tracking-[0.24em] text-white/85">
                   DIGITAL PRODUCT
                 </span>
                 <span className="mt-1 block text-[13px] font-bold tracking-[0.16em] text-white">
                   PASSPORT
                 </span>
               </span>
-              <span className="text-[18px] font-black tracking-[-0.06em] text-white/85">
+              <span className="text-[18px] font-black tracking-[-0.06em] text-white">
                 {passport.brand}
               </span>
             </span>
@@ -148,7 +150,7 @@ function ProductPassportCard({ passport }: { passport: PassportViewModel }) {
                 <span className="block text-[17px] font-semibold tracking-[-0.03em] text-white">
                   {passport.modelName}
                 </span>
-                <span className="mt-2 block font-mono text-[10px] tracking-[0.12em] text-white/48">
+                <span className="mt-2 block font-mono text-[10px] font-semibold tracking-[0.12em] text-white/75">
                   {passport.passportId}
                 </span>
               </span>
@@ -163,9 +165,11 @@ function ProductPassportCard({ passport }: { passport: PassportViewModel }) {
         <span className={`${styles.cardFace} ${styles.cardBack}`}>
           <McmWatermark />
 
-          <span className="absolute inset-0 z-10 flex flex-col p-6 text-left">
+          <span
+            className={`${styles.cardContent} absolute inset-0 z-10 flex flex-col p-6 text-left`}
+          >
             <span className="flex items-center justify-between border-b border-white/12 pb-4">
-              <span className="text-[9px] font-bold tracking-[0.22em] text-white/55">
+              <span className="text-[9px] font-bold tracking-[0.22em] text-white/85">
                 AUTHENTICITY DATA
               </span>
               <span className="flex items-center gap-2 text-[9px] font-bold tracking-[0.1em] text-[#c6b18f]">
@@ -176,36 +180,36 @@ function ProductPassportCard({ passport }: { passport: PassportViewModel }) {
 
             <span className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3">
               <span>
-                <span className="block text-[8px] tracking-[0.12em] text-white/38">
+                <span className="block text-[8px] font-semibold tracking-[0.12em] text-white/65">
                   OWNER
                 </span>
-                <span className="mt-1 block text-[11px] font-semibold text-white/88">
+                <span className="mt-1 block text-[11px] font-semibold text-white">
                   {passport.owner}
                 </span>
               </span>
               <span>
-                <span className="block text-[8px] tracking-[0.12em] text-white/38">
+                <span className="block text-[8px] font-semibold tracking-[0.12em] text-white/65">
                   REGISTERED
                 </span>
-                <span className="mt-1 block text-[11px] font-semibold text-white/88">
+                <span className="mt-1 block text-[11px] font-semibold text-white">
                   {passport.registeredAt}
                 </span>
               </span>
               <span className="col-span-2">
-                <span className="block text-[8px] tracking-[0.12em] text-white/38">
+                <span className="block text-[8px] font-semibold tracking-[0.12em] text-white/65">
                   ORIGIN
                 </span>
-                <span className="mt-1 block text-[11px] font-semibold text-white/88">
+                <span className="mt-1 block text-[11px] font-semibold text-white">
                   {passport.origin}
                 </span>
               </span>
             </span>
 
             <span className="mt-auto flex items-center justify-between">
-              <span className="font-mono text-[9px] tracking-[0.1em] text-white/42">
+              <span className="font-mono text-[9px] font-semibold tracking-[0.1em] text-white/70">
                 {passport.passportId}
               </span>
-              <span className="grid size-8 grid-cols-3 gap-[2px] opacity-55" aria-hidden="true">
+              <span className="grid size-8 grid-cols-3 gap-[2px] opacity-85" aria-hidden="true">
                 {Array.from({ length: 9 }, (_, index) => (
                   <span
                     key={index}
@@ -250,7 +254,7 @@ export function ProductPassportScreen({ product }: ProductPassportScreenProps) {
   return (
     <MobileScreenLayout contentClassName="bg-[#f7f5f1] px-6 pt-4 pb-10">
       <LuxuryReveal>
-        <BackButton fallbackHref={`/recommendations/${product.id}/analysis`} />
+        <BackButton />
       </LuxuryReveal>
 
       <LuxuryReveal className="mt-4" delay={40}>

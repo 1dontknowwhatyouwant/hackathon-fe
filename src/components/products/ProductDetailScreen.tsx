@@ -27,7 +27,7 @@ export function ProductDetailScreen({ product }: ProductDetailScreenProps) {
     >
       <div className="px-6">
         <LuxuryReveal>
-          <BackButton fallbackHref="/recommendations" />
+          <BackButton />
         </LuxuryReveal>
 
         <LuxuryReveal className="mt-3" delay={40}>
