@@ -25,7 +25,7 @@ const CoverScreen = () => {
     <MobileScreenLayout
       animateContent={false}
       contentClassName="relative bg-[#0e0e12] text-white"
-      frameClassName="bg-[#0e0e12] sm:rounded-[28px]"
+      frameClassName="!bg-[#0e0e12] sm:rounded-[28px]"
     >
       <div
         className={`cover-screen-enter relative flex h-full w-full flex-col overflow-hidden bg-[#0e0e12] px-6 text-white ${isLeaving ? "cover-screen-exit" : ""}`}

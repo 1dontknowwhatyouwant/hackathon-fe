@@ -1,6 +1,10 @@
+"use client";
+
 import type { ReactNode } from "react";
 
+import { PulseLoader } from "@/components/common/feedback/PulseLoader";
 import { PageTransition } from "@/components/common/motion/PageTransition";
+import { useApiActivityStore } from "@/store/useApiActivityStore";
 
 type MobileScreenLayoutProps = {
   animateContent?: boolean;
@@ -19,6 +23,10 @@ export function MobileScreenLayout({
   frameClassName = "",
   figmaNodeId,
 }: MobileScreenLayoutProps) {
+  const hasActiveApiRequest = useApiActivityStore(
+    (state) => Object.keys(state.activeRequestIds).length > 0,
+  );
+
   return (
     <main className="min-h-dvh bg-[#efede8] sm:flex sm:items-center sm:justify-center sm:px-6 sm:py-8">
       <div
@@ -32,6 +40,15 @@ export function MobileScreenLayout({
         </div>
 
         {bottomNavigation}
+
+        {hasActiveApiRequest ? (
+          <div
+            className="absolute inset-0 z-[100] flex items-center justify-center bg-white"
+            aria-busy="true"
+          >
+            <PulseLoader label="화면에 필요한 정보를 불러오는 중입니다." />
+          </div>
+        ) : null}
       </div>
     </main>
   );

@@ -4,6 +4,10 @@ import axios, {
 } from "axios";
 
 import { useAuthStore } from "@/store/useAuthStore";
+import {
+  createApiRequestId,
+  useApiActivityStore,
+} from "@/store/useApiActivityStore";
 import type { ApiErrorResponse, ApiSuccessResponse, AuthTokenData } from "@/types/api";
 
 const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
@@ -26,6 +30,7 @@ const refreshClient = axios.create({
 
 type RetryableRequestConfig = InternalAxiosRequestConfig & {
   _authRetry?: boolean;
+  _activityRequestId?: string;
 };
 
 let refreshPromise: Promise<string> | null = null;
@@ -61,17 +66,35 @@ export async function initializeAuthSession() {
 }
 
 api.interceptors.request.use((config) => {
+  const trackedConfig = config as RetryableRequestConfig;
   const accessToken = useAuthStore.getState().accessToken;
 
-  if (accessToken) {
-    config.headers.Authorization = `Bearer ${accessToken}`;
+  if (!trackedConfig._activityRequestId) {
+    trackedConfig._activityRequestId = createApiRequestId();
+    useApiActivityStore
+      .getState()
+      .beginRequest(trackedConfig._activityRequestId);
   }
 
-  return config;
+  if (accessToken) {
+    trackedConfig.headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  return trackedConfig;
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const request = response.config as RetryableRequestConfig;
+
+    if (request._activityRequestId) {
+      useApiActivityStore
+        .getState()
+        .finishRequest(request._activityRequestId);
+    }
+
+    return response;
+  },
   async (error: AxiosError<ApiErrorResponse>) => {
     const request = error.config as RetryableRequestConfig | undefined;
     const requestUrl = request?.url ?? "";
@@ -83,23 +106,31 @@ api.interceptors.response.use(
       "/auth/oauth/",
     ].some((path) => requestUrl.startsWith(path));
 
-    if (
-      error.response?.status !== 401 ||
-      !request ||
-      request._authRetry ||
-      isPublicAuthRequest
-    ) {
-      return Promise.reject(error);
-    }
-
-    request._authRetry = true;
-
     try {
-      const accessToken = await refreshAccessToken();
-      request.headers.Authorization = `Bearer ${accessToken}`;
-      return api.request(request);
-    } catch (refreshError) {
-      return Promise.reject(refreshError);
+      if (
+        error.response?.status !== 401 ||
+        !request ||
+        request._authRetry ||
+        isPublicAuthRequest
+      ) {
+        return Promise.reject(error);
+      }
+
+      request._authRetry = true;
+
+      try {
+        const accessToken = await refreshAccessToken();
+        request.headers.Authorization = `Bearer ${accessToken}`;
+        return await api.request(request);
+      } catch (refreshError) {
+        return Promise.reject(refreshError);
+      }
+    } finally {
+      if (request?._activityRequestId) {
+        useApiActivityStore
+          .getState()
+          .finishRequest(request._activityRequestId);
+      }
     }
   },
 );
