@@ -47,13 +47,6 @@ const openMeteoWeatherCodeMap: Record<number, { label: string; icon: string }> =
     99: { label: "강한 뇌우", icon: "⛈" },
   };
 
-function formatLocationLabel(
-  parts: Array<string | undefined>,
-  fallback: string,
-) {
-  const compact = parts.filter((value) => value && value.trim().length > 0);
-  return compact.length > 0 ? compact.join(" · ") : fallback;
-}
 
 function getGeolocationErrorMessage(error: GeolocationPositionError) {
   if (error.code === error.PERMISSION_DENIED) {

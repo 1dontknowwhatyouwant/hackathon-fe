@@ -32,7 +32,7 @@ export function SignupTermsDialog({ activeTermId, onClose }: SignupTermsDialogPr
     <AnimatePresence>
       {term ? (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/35 px-3 py-3 backdrop-blur-[2px] sm:items-center sm:px-6"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 backdrop-blur-[2px]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -45,24 +45,24 @@ export function SignupTermsDialog({ activeTermId, onClose }: SignupTermsDialogPr
             role="dialog"
             aria-modal="true"
             aria-labelledby="signup-term-title"
-            className="flex max-h-[82dvh] w-full max-w-[366px] flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_26px_80px_rgba(0,0,0,0.24)]"
+            className="flex h-[50dvh] max-h-[422px] min-h-[280px] w-2/3 max-w-[300px] flex-col overflow-hidden rounded-[24px] bg-white shadow-[0_26px_80px_rgba(0,0,0,0.24)]"
             initial={prefersReducedMotion ? false : { opacity: 0, y: 28, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={prefersReducedMotion ? undefined : { opacity: 0, y: 20, scale: 0.98 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.34, ease: [0.22, 1, 0.36, 1] }}
           >
-            <header className="border-b border-[#ece9e5] px-6 pb-5 pt-6">
+            <header className="border-b border-[#ece9e5] px-5 pb-4 pt-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-bold tracking-[0.1em] text-[#8b7355]">{term.eyebrow}</p>
-                  <h2 id="signup-term-title" className="mt-2 text-[22px] font-bold tracking-[-0.035em] text-[#15151a]">{term.title}</h2>
+                  <h2 id="signup-term-title" className="mt-2 text-[18px] font-bold tracking-[-0.035em] text-[#15151a]">{term.title}</h2>
                 </div>
                 <button type="button" aria-label="약관 상세 닫기" onClick={onClose} className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f2f0ed] text-[20px] text-[#55555d]">×</button>
               </div>
-              <p className="mt-3 text-[12px] leading-5 text-[#777780]">{term.summary}</p>
+              <p className="mt-2 text-[11px] leading-4 text-[#777780]">{term.summary}</p>
             </header>
 
-            <div className="min-h-0 flex-1 space-y-7 overflow-y-auto px-6 py-6 overscroll-contain">
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 overscroll-contain">
               {term.sections.map((section) => (
                 <section key={section.heading}>
                   <h3 className="text-[14px] font-bold text-[#202026]">{section.heading}</h3>
@@ -72,8 +72,8 @@ export function SignupTermsDialog({ activeTermId, onClose }: SignupTermsDialogPr
               ))}
             </div>
 
-            <footer className="border-t border-[#ece9e5] bg-white px-6 py-4">
-              <button type="button" onClick={onClose} className="flex h-[50px] w-full items-center justify-center rounded-[15px] bg-[#15151a] text-[14px] font-bold text-white">내용 확인</button>
+            <footer className="border-t border-[#ece9e5] bg-white px-5 py-3">
+              <button type="button" onClick={onClose} className="flex h-[44px] w-full items-center justify-center rounded-[14px] bg-[#15151a] text-[13px] font-bold text-white">내용 확인</button>
             </footer>
           </motion.section>
         </motion.div>
