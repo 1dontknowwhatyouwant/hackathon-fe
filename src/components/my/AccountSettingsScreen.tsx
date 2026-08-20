@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PiBellBold, PiLockKeyBold, PiUserCircleBold } from "react-icons/pi";
 
 import { DetailActionCard } from "@/components/common/card/DetailActionCard";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
@@ -14,17 +15,20 @@ const accountMenus = [
   {
     title: "프로필 수정",
     description: "닉네임과 취향 변경",
-    href: "/preferences",
+    href: "/my/settings/profile",
+    leading: <PiUserCircleBold aria-hidden="true" className="size-6" />,
   },
   {
     title: "비밀번호 변경",
     description: "보안을 위해 주기적으로 변경",
+    leading: <PiLockKeyBold aria-hidden="true" className="size-6" />,
   },
   {
     title: "알림·마케팅 설정",
     description: "수신 항목 선택",
+    leading: <PiBellBold aria-hidden="true" className="size-6" />,
   },
-] as const;
+];
 
 export function AccountSettingsScreen() {
   const router = useRouter();

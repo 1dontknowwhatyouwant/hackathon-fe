@@ -2,6 +2,12 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import {
+  PiHandbagSimpleBold,
+  PiHeartBold,
+  PiIdentificationCardBold,
+  PiMapPinBold,
+} from "react-icons/pi";
 
 import { DetailActionCard } from "@/components/common/card/DetailActionCard";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
@@ -31,23 +37,27 @@ export function MyScreen() {
       title: "내 아이템",
       description: `등록한 제품 ${items.length}개`,
       href: "/items",
+      leading: <PiHandbagSimpleBold aria-hidden="true" className="size-6" />,
     },
     {
       title: "제품 패스포트",
       description: "생성된 패스포트 3개",
       href: "/recommendations/mcm-item-01/passport",
+      leading: <PiIdentificationCardBold aria-hidden="true" className="size-6" />,
     },
     {
       title: "저장한 장소",
       description: "장소 추천 다시 보기",
       href: "/place/saved",
+      leading: <PiMapPinBold aria-hidden="true" className="size-6" />,
     },
     {
       title: "찜한 제품",
       description: "저장한 제품 4개",
       href: "/recommendations",
+      leading: <PiHeartBold aria-hidden="true" className="size-6" />,
     },
-  ] as const;
+  ];
 
   return (
     <MobileScreenLayout
