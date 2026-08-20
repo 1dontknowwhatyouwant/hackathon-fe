@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { AuthRouteGuard } from "@/components/providers/AuthRouteGuard";
 import { AuthStoreHydrator } from "@/components/providers/AuthStoreHydrator";
 import { DevelopmentCacheReset } from "@/components/providers/DevelopmentCacheReset";
 
@@ -21,7 +20,7 @@ export default function RootLayout({
       <body>
         <DevelopmentCacheReset />
         <AuthStoreHydrator />
-        <AuthRouteGuard>{children}</AuthRouteGuard>
+        {children}
       </body>
     </html>
   );

@@ -2,22 +2,25 @@
 
 import type { CSSProperties } from "react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import Button from "@/components/common/button/Button";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BackButton } from "@/components/common/navigation/BackButton";
 
+const CONDITION_STORAGE_KEY = "personalize:condition-levels";
+
 const CONDITION_ITEMS = [
   {
     leftLabel: "캐주얼",
     rightLabel: "포멀",
-    defaultValue: 26,
+    defaultValue: 3,
   },
   {
     leftLabel: "깔끔하게",
     rightLabel: "화려하게",
-    defaultValue: 62,
+    defaultValue: 7,
   },
 ] as const;
 
@@ -32,20 +35,26 @@ function ConditionSlider({
   value: number;
   onChange: (value: number) => void;
 }) {
+  const fillPercent = ((value - 1) / 9) * 100;
+
   return (
     <div>
-      <div className="flex items-center justify-between text-[14px] font-bold leading-none text-[#15151a]">
+      <div className="flex items-end justify-between gap-4 text-[14px] font-bold leading-none text-[#15151a]">
         <p>{leftLabel}</p>
         <p>{rightLabel}</p>
       </div>
       <div className="mt-6">
         <input
           type="range"
-          min={0}
-          max={100}
+          min={1}
+          max={10}
+          step={1}
           value={value}
           onChange={(event) => onChange(Number(event.target.value))}
-          style={{ "--condition-fill": `${value}%` } as CSSProperties}
+          aria-valuemin={1}
+          aria-valuemax={10}
+          aria-valuenow={value}
+          style={{ "--condition-fill": `${fillPercent}%` } as CSSProperties}
           className="condition-range w-full"
         />
       </div>
@@ -80,9 +89,24 @@ function ConditionCard({
 }
 
 export default function ConditionPage() {
+  const router = useRouter();
   const [values, setValues] = useState<number[]>(
     CONDITION_ITEMS.map((item) => item.defaultValue),
   );
+
+  const handleComplete = () => {
+    window.localStorage.setItem(
+      CONDITION_STORAGE_KEY,
+      JSON.stringify(
+        CONDITION_ITEMS.map((item, index) => ({
+          pair: `${item.leftLabel}-${item.rightLabel}`,
+          level: values[index],
+        })),
+      ),
+    );
+
+    router.push("/personalize/condition/ai-recommend");
+  };
 
   return (
     <MobileScreenLayout contentClassName="relative min-h-full bg-white px-6 pb-[104px] pt-[72px] text-[#17181d]">
@@ -139,7 +163,8 @@ export default function ConditionPage() {
         <section>
           <Button
             variant="cta"
-            href="/personalize/condition/ai-recommend"
+            type="button"
+            onClick={handleComplete}
             className="w-full"
           >
             결과 보기
