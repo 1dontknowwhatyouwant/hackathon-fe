@@ -205,13 +205,13 @@ export function SignUpScreen() {
       return;
     }
 
+    setEmailCodeSent(true);
     setIsSendingCode(true);
     setError("");
     setNotice("");
 
     try {
       await authApi.sendEmailVerification(normalizedEmail);
-      setEmailCodeSent(true);
       setNotice("인증번호를 발송했습니다. 만료되기 전에 입력해 주세요.");
     } catch (sendError) {
       setError(
@@ -360,12 +360,14 @@ export function SignUpScreen() {
                   isSending={isSendingCode}
                 />
                 {emailCodeSent ? (
-                  <TextField
-                    label="인증번호"
-                    placeholder="인증번호"
-                    value={emailCode}
-                    onChange={setEmailCode}
-                  />
+                  <div className="pt-1">
+                    <TextField
+                      label="인증번호"
+                      placeholder="인증번호"
+                      value={emailCode}
+                      onChange={setEmailCode}
+                    />
+                  </div>
                 ) : null}
                 <TextField
                   label="아이디"
