@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ChangeEvent, useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PiCameraBold } from "react-icons/pi";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
@@ -10,88 +13,88 @@ import { dummyUser } from "@/data/menuPageDummies";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { backendApi } from "@/services/api";
 import { useAuthStore } from "@/store/useAuthStore";
-import type { Gender } from "@/types/api";
-
-const moodOptions = ["미니멀", "클래식", "전시", "스트릿", "카페"] as const;
-type Mood = (typeof moodOptions)[number];
 
 const useApiMocks = process.env.NEXT_PUBLIC_USE_API_MOCKS !== "false";
-const mockProfileOptionsKey = "mock-profile-options";
+const nicknamePattern = /^[가-힣A-Za-z0-9_]{2,20}$/;
 
-type StoredProfileOptions = {
-  moods: Mood[];
-  marketingConsent: "AGREED" | "DECLINED";
-};
+type NicknameStatus = "IDLE" | "AVAILABLE";
 
 export function ProfileEditScreen() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const setUser = useAuthStore((state) => state.setUser);
-  const [nickname, setNickname] = useState("");
-  const [gender, setGender] = useState<Gender>("NOT_SPECIFIED");
-  const [moods, setMoods] = useState<Mood[]>(["미니멀", "클래식", "전시"]);
-  const [marketingConsent, setMarketingConsent] = useState<
-    StoredProfileOptions["marketingConsent"]
-  >("DECLINED");
-  const [isLoading, setIsLoading] = useState(true);
+  const currentUser = useAuthStore((state) => state.user);
+  const initialNickname = currentUser?.nickname?.trim() || "유연";
+  const [nickname, setNickname] = useState(initialNickname);
+  const [nicknameStatus, setNicknameStatus] = useState<NicknameStatus>("IDLE");
+  const [profilePreview, setProfilePreview] = useState<string | null>(
+    currentUser?.profileImageUrl ?? null,
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
+  const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
 
-    const loadProfile = async () => {
-      try {
-        const profile = useApiMocks
-          ? (useAuthStore.getState().user ?? dummyUser)
-          : (await backendApi.profile.getMe()).data.data;
+    if (!file) {
+      return;
+    }
 
-        if (!active) {
-          return;
-        }
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("이미지 파일만 선택할 수 있어요.");
+      event.target.value = "";
+      return;
+    }
 
-        setNickname(profile.nickname?.trim() || "SUJEONG");
-        setGender(profile.gender ?? "NOT_SPECIFIED");
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError("5MB 이하의 이미지를 선택해 주세요.");
+      event.target.value = "";
+      return;
+    }
 
-        if (useApiMocks) {
-          const storedOptions = window.localStorage.getItem(mockProfileOptionsKey);
-
-          if (storedOptions) {
-            const parsed = JSON.parse(storedOptions) as StoredProfileOptions;
-            setMoods(parsed.moods);
-            setMarketingConsent(parsed.marketingConsent);
-          }
-        }
-      } catch {
-        if (active) {
-          setError("프로필 정보를 불러오지 못했습니다.");
-        }
-      } finally {
-        if (active) {
-          setIsLoading(false);
-        }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setProfilePreview(reader.result);
+        setPhotoError(null);
       }
     };
-
-    void loadProfile();
-
-    return () => {
-      active = false;
+    reader.onerror = () => {
+      setPhotoError("사진을 불러오지 못했어요. 사진 없이도 저장할 수 있어요.");
     };
-  }, []);
+    reader.readAsDataURL(file);
+  };
 
-  const toggleMood = (mood: Mood) => {
-    setMoods((current) =>
-      current.includes(mood)
-        ? current.filter((item) => item !== mood)
-        : [...current, mood],
-    );
+  const handleNicknameCheck = () => {
+    const normalizedNickname = nickname.trim();
+
+    if (!nicknamePattern.test(normalizedNickname)) {
+      setNicknameStatus("IDLE");
+      setError("닉네임은 한글, 영문, 숫자, 밑줄로 2~20자까지 입력해 주세요.");
+      return;
+    }
+
+    // TODO(API): 닉네임 중복 확인 엔드포인트가 확정되면 이 지점에서 조회합니다.
+    setNickname(normalizedNickname);
+    setNicknameStatus("AVAILABLE");
+    setError(null);
   };
 
   const handleSave = async () => {
     const normalizedNickname = nickname.trim();
 
-    if (!normalizedNickname || isSaving) {
-      setError("닉네임을 입력해 주세요.");
+    if (isSaving) {
+      return;
+    }
+
+    if (!nicknamePattern.test(normalizedNickname)) {
+      setError("닉네임은 한글, 영문, 숫자, 밑줄로 2~20자까지 입력해 주세요.");
+      return;
+    }
+
+    if (nicknameStatus !== "AVAILABLE" && normalizedNickname !== initialNickname) {
+      setError("변경한 닉네임의 확인 버튼을 눌러 주세요.");
       return;
     }
 
@@ -100,18 +103,23 @@ export function ProfileEditScreen() {
 
     try {
       if (useApiMocks) {
-        const currentUser = useAuthStore.getState().user ?? dummyUser;
-        setUser({ ...currentUser, nickname: normalizedNickname, gender });
-        window.localStorage.setItem(
-          mockProfileOptionsKey,
-          JSON.stringify({ moods, marketingConsent } satisfies StoredProfileOptions),
-        );
+        const fallbackUser = currentUser ?? dummyUser;
+        setUser({
+          ...fallbackUser,
+          nickname: normalizedNickname,
+          profileImageUrl: profilePreview,
+        });
       } else {
         const response = await backendApi.profile.updateMe({
           nickname: normalizedNickname,
-          gender,
         });
-        setUser(response.data.data);
+        setUser({
+          ...response.data.data,
+          profileImageUrl: currentUser?.profileImageUrl ?? null,
+        });
+
+        // TODO(API): 프로필 이미지 업로드·연결 엔드포인트가 확정되면
+        // 선택한 이미지를 별도로 전송합니다. 이미지 실패 여부와 관계없이 닉네임 저장은 유지합니다.
       }
 
       router.back();
@@ -134,90 +142,102 @@ export function ProfileEditScreen() {
       contentClassName="flex min-h-full flex-col bg-white px-6 pt-4 pb-[88px] text-[#121217]"
     >
       <LuxuryReveal>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center">
           <BackButton variant="plain" />
-          <span className="text-[11px] font-bold text-[#bda178]">
-            21 · 프로필 수정
-          </span>
         </div>
         <h1 className="mt-2 text-[28px] leading-[34px] font-bold tracking-[-0.04em]">
           프로필 수정
         </h1>
-        <p className="mt-[6px] text-[13px] leading-4 text-[#7a7a85]">
-          닉네임과 취향을 변경할 수 있어요
+        <p className="mt-[6px] text-[13px] leading-5 text-[#7a7a85]">
+          닉네임과 저장된 취향을 변경할 수 있어요.
         </p>
       </LuxuryReveal>
 
-      <LuxuryReveal className="mt-11 space-y-4" delay={50}>
-        <label className="block">
-          <span className="sr-only">닉네임</span>
+      <LuxuryReveal className="mt-8 flex flex-col items-center" delay={50}>
+        <div
+          aria-label="프로필 사진 미리보기"
+          className="relative flex size-[76px] items-center justify-center overflow-hidden rounded-full bg-[#e9e5df] text-[24px] font-bold text-[#4a433a]"
+        >
+          {profilePreview ? (
+            <Image
+              src={profilePreview}
+              alt="프로필 사진"
+              fill
+              sizes="76px"
+              unoptimized
+              className="object-cover"
+            />
+          ) : (
+            "S"
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handlePhotoChange}
+          className="sr-only"
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="mt-3 flex items-center gap-1.5 text-[12px] font-bold text-[#55555d] transition-colors hover:text-[#121217]"
+        >
+          <PiCameraBold aria-hidden="true" className="size-4" />
+          프로필 사진 변경
+        </button>
+        {photoError ? (
+          <p role="alert" className="mt-2 text-center text-[11px] leading-4 text-[#c72e2e]">
+            {photoError}
+          </p>
+        ) : null}
+      </LuxuryReveal>
+
+      <LuxuryReveal className="mt-8" delay={90}>
+        <label htmlFor="profile-nickname" className="text-[13px] font-bold">
+          닉네임
+        </label>
+        <div className="mt-2 flex h-[54px] items-center rounded-[14px] border border-[#dbdbe0] bg-white px-4 focus-within:border-[#121217]">
           <input
+            id="profile-nickname"
             value={nickname}
-            onChange={(event) => setNickname(event.target.value)}
-            placeholder="닉네임 · SUJEONG"
-            disabled={isLoading}
-            className="h-[54px] w-full rounded-[12px] border border-[#dbdbe0] bg-white px-[17px] text-[13px] text-[#121217] outline-none transition-colors placeholder:text-[#7a7a85] focus:border-[#121217] disabled:opacity-50"
+            maxLength={20}
+            onChange={(event) => {
+              setNickname(event.target.value);
+              setNicknameStatus("IDLE");
+              setError(null);
+            }}
+            className="min-w-0 flex-1 bg-transparent text-[14px] text-[#121217] outline-none"
           />
-        </label>
-
-        <label className="block">
-          <span className="sr-only">성별</span>
-          <select
-            value={gender}
-            onChange={(event) => setGender(event.target.value as Gender)}
-            disabled={isLoading}
-            className="h-[54px] w-full appearance-none rounded-[12px] border border-[#dbdbe0] bg-white px-[17px] text-[13px] text-[#7a7a85] outline-none transition-colors focus:border-[#121217] disabled:opacity-50"
+          <button
+            type="button"
+            onClick={handleNicknameCheck}
+            className={`ml-3 shrink-0 text-[12px] font-bold ${
+              nicknameStatus === "AVAILABLE" ? "text-[#6e845f]" : "text-[#121217]"
+            }`}
           >
-            <option value="NOT_SPECIFIED">성별 · 선택 안 함</option>
-            <option value="FEMALE">성별 · 여성</option>
-            <option value="MALE">성별 · 남성</option>
-          </select>
-        </label>
+            {nicknameStatus === "AVAILABLE" ? "확인 완료" : "확인"}
+          </button>
+        </div>
       </LuxuryReveal>
 
-      <LuxuryReveal className="mt-7" delay={90}>
-        <fieldset>
-          <legend className="text-[14px] font-bold">선호 무드</legend>
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            {moodOptions.map((mood) => {
-              const selected = moods.includes(mood);
-
-              return (
-                <button
-                  key={mood}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => toggleMood(mood)}
-                  className={`flex h-[38px] items-center justify-center rounded-full border text-[12px] font-bold transition-colors ${
-                    selected
-                      ? "border-[#121217] bg-[#121217] text-white"
-                      : "border-[#dbdbe0] bg-white text-[#121217]"
-                  }`}
-                >
-                  {mood}
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
-      </LuxuryReveal>
-
-      <LuxuryReveal className="mt-[54px]" delay={130}>
-        <label className="block">
-          <span className="sr-only">마케팅 수신 동의</span>
-          <select
-            value={marketingConsent}
-            onChange={(event) =>
-              setMarketingConsent(
-                event.target.value as StoredProfileOptions["marketingConsent"],
-              )
-            }
-            className="h-[54px] w-full appearance-none rounded-[12px] border border-[#dbdbe0] bg-white px-[17px] text-[13px] text-[#7a7a85] outline-none transition-colors focus:border-[#121217]"
-          >
-            <option value="DECLINED">마케팅 수신동의 · 미동의</option>
-            <option value="AGREED">마케팅 수신동의 · 동의</option>
-          </select>
-        </label>
+      <LuxuryReveal className="mt-6" delay={120}>
+        <Link
+          href="/preferences"
+          className="flex h-[72px] items-center rounded-[16px] border border-[#dedee2] bg-[#f8f8f9] px-4 transition-colors hover:border-[#c8c2b9] hover:bg-[#f5f3f0]"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14px] font-bold text-[#15151a]">
+              취향 프로필
+            </span>
+            <span className="mt-[7px] block text-[11px] text-[#888890]">
+              색상 · 카테고리 · 스타일 변경
+            </span>
+          </span>
+          <span aria-hidden="true" className="ml-3 text-[22px] text-[#777780]">
+            ›
+          </span>
+        </Link>
       </LuxuryReveal>
 
       {error ? (
@@ -226,10 +246,10 @@ export function ProfileEditScreen() {
         </p>
       ) : null}
 
-      <LuxuryReveal className="mt-auto pt-10" delay={170}>
+      <LuxuryReveal className="mt-auto pt-10" delay={160}>
         <button
           type="button"
-          disabled={isLoading || isSaving}
+          disabled={isSaving}
           onClick={handleSave}
           className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-[#121217] text-[14px] font-bold text-white transition-colors hover:bg-[#26262c] disabled:cursor-wait disabled:opacity-50"
         >
