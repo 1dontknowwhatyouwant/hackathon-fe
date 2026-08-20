@@ -64,14 +64,22 @@ function getGeolocationErrorMessage(error: GeolocationPositionError) {
   return "위치 정보를 불러오지 못했습니다.";
 }
 
-function pickDongLabel(parts: Array<string | undefined>, fallback: string) {
+function pickLocationLabel(parts: Array<string | undefined>, fallback: string) {
   const candidates = parts
     .flatMap((part) => (part ? part.split(/[\s·,/()-]+/) : []))
     .map((part) => part.trim())
     .filter(Boolean);
 
-  const dong = candidates.find((part) => part.endsWith("동"));
-  return dong ?? fallback;
+  const administrativeSuffixes = ["동", "읍", "면", "리", "구", "군", "시"];
+
+  for (const suffix of administrativeSuffixes) {
+    const matchedLocation = candidates.find((part) => part.endsWith(suffix));
+    if (matchedLocation) {
+      return matchedLocation;
+    }
+  }
+
+  return candidates[0] ?? fallback;
 }
 
 function pickBestLocationLabel(
@@ -89,7 +97,7 @@ function pickBestLocationLabel(
   }>,
   fallback: string,
 ) {
-  return pickDongLabel(
+  return pickLocationLabel(
     [
       address.neighbourhood,
       address.suburb,

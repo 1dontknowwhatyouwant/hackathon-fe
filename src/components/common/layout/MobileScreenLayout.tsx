@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { PageTransition } from "@/components/common/motion/PageTransition";
+
 type MobileScreenLayoutProps = {
   children: ReactNode;
   bottomNavigation?: ReactNode;
@@ -24,7 +26,7 @@ export function MobileScreenLayout({
         <div
           className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${contentClassName}`}
         >
-          {children}
+          <PageTransition>{children}</PageTransition>
         </div>
 
         {bottomNavigation}

@@ -15,7 +15,7 @@ export function PageTransition({ children }: PageTransitionProps) {
     <AnimatePresence mode="wait" initial>
       <motion.div
         key={pathname}
-        className="min-h-dvh w-full"
+        className="min-h-full w-full"
         initial={prefersReducedMotion ? false : { opacity: 0, y: 8, filter: "blur(2px)" }}
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
         exit={prefersReducedMotion ? undefined : { opacity: 0, y: -5, filter: "blur(1px)" }}

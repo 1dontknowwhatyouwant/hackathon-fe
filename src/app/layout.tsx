@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import { AuthStoreHydrator } from "@/components/providers/AuthStoreHydrator";
 import { DevelopmentCacheReset } from "@/components/providers/DevelopmentCacheReset";
-import { PageTransition } from "@/components/common/motion/PageTransition";
 
 import "./globals.css";
 
@@ -21,7 +20,7 @@ export default function RootLayout({
       <body>
         <DevelopmentCacheReset />
         <AuthStoreHydrator />
-        <PageTransition>{children}</PageTransition>
+        {children}
       </body>
     </html>
   );
