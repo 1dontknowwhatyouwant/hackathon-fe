@@ -54,10 +54,6 @@ a {
   animation: cover-screen-enter 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.cover-screen-exit {
-  animation: cover-screen-exit 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
 @keyframes cover-screen-enter {
   from {
     opacity: 0;
@@ -70,106 +66,9 @@ a {
   }
 }
 
-@keyframes cover-screen-exit {
-  from {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    opacity: 0;
-    transform: translate3d(0, -10px, 0);
-  }
-}
-
-/* Loader adapted from Uiverse.io by Li-Deheng */
-.pulse-loader {
-  --loader-color: #a88f70;
-  --loader-animation: 2s ease-in-out infinite;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pulse-loader__circle {
-  position: relative;
-  display: flex;
-  width: 20px;
-  height: 20px;
-  align-items: center;
-  justify-content: center;
-  margin: 0 10px;
-  border: 2px solid var(--loader-color);
-  border-radius: 50%;
-  background-color: transparent;
-  animation: pulse-loader-circle var(--loader-animation);
-}
-
-.pulse-loader__dot {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background-color: var(--loader-color);
-  animation: pulse-loader-dot var(--loader-animation);
-}
-
-.pulse-loader__outline {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  animation: pulse-loader-outline var(--loader-animation);
-}
-
-@keyframes pulse-loader-circle {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  50% {
-    transform: scale(1.5);
-    opacity: 0.5;
-  }
-}
-
-@keyframes pulse-loader-dot {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(0);
-  }
-}
-
-@keyframes pulse-loader-outline {
-  0% {
-    transform: scale(0);
-    outline: 20px solid var(--loader-color);
-    outline-offset: 0;
-    opacity: 1;
-  }
-
-  100% {
-    transform: scale(1);
-    outline: 0 solid transparent;
-    outline-offset: 20px;
-    opacity: 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .luxury-reveal,
-  .cover-screen-enter,
-  .cover-screen-exit,
-  .pulse-loader__circle,
-  .pulse-loader__dot,
-  .pulse-loader__outline {
+  .cover-screen-enter {
     animation: none;
   }
 
