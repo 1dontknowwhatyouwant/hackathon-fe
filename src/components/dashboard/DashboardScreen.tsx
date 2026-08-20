@@ -5,7 +5,6 @@ import Link from "next/link";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BottomNavigation } from "@/components/common/navigation/BottomNavigation";
-import { HomePreferenceProducts } from "@/components/dashboard/HomePreferenceProducts";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useHomeStore } from "@/store/useHomeStore";
 import { useMenuDataStore } from "@/store/useMenuDataStore";
@@ -268,8 +267,6 @@ export function DashboardScreen() {
   const profile = useMenuDataStore((state) => state.profile);
   const loadProfile = useMenuDataStore((state) => state.loadProfile);
   const homeData = useHomeStore((state) => state.data);
-  const isHomeLoading = useHomeStore((state) => state.isLoading);
-  const homeError = useHomeStore((state) => state.error);
   const loadHome = useHomeStore((state) => state.loadHome);
   const products = useProductRecommendationStore((state) => state.products);
   const productStatus = useProductRecommendationStore((state) => state.status);
@@ -462,33 +459,6 @@ export function DashboardScreen() {
           ) : null}
         </LuxuryReveal>
 
-        <LuxuryReveal className="mt-10" delay={460}>
-          <div className="mb-4 flex items-end justify-between">
-            <div>
-              <p className="text-[10px] font-bold tracking-[0.04em] text-[#8b7355]">
-                FOR YOUR TASTE
-              </p>
-              <h2 className="mt-1 text-[20px] font-bold tracking-[-0.035em]">
-                취향에 맞는 제품
-              </h2>
-            </div>
-            <Link
-              href="/preferences"
-              className="text-[11px] font-bold text-[#777780]"
-            >
-              취향 수정
-            </Link>
-          </div>
-          {homeError ? (
-            <p className="mb-3 text-[10px] leading-4 text-[#9a6d45]">
-              {homeError}
-            </p>
-          ) : null}
-          <HomePreferenceProducts
-            products={homeData?.recommendedProducts ?? []}
-            isLoading={isHomeLoading}
-          />
-        </LuxuryReveal>
       </section>
 
     </MobileScreenLayout>
