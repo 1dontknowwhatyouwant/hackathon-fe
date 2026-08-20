@@ -15,7 +15,7 @@ export type BottomNavigationItem = {
 };
 
 export const defaultBottomNavigationItems: BottomNavigationItem[] = [
-  { key: "home", label: "홈", href: "/dashboard", icon: "⌂" },
+  { key: "home", label: "홈", href: "/dashboard", icon: "⌂"},
   {
     key: "recommendation",
     label: "추천",
