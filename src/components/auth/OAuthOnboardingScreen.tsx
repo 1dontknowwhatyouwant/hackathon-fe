@@ -65,7 +65,7 @@ export function OAuthOnboardingScreen() {
       });
 
       setSession(response.data.data);
-      router.replace("/preferences");
+      router.replace("/personalize");
     } catch (submitError) {
       setError(
         getApiErrorMessage(

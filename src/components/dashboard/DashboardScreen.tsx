@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ConfirmDialog } from "@/components/common/feedback/ConfirmDialog";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BottomNavigation } from "@/components/common/navigation/BottomNavigation";
@@ -279,6 +280,9 @@ export function DashboardScreen() {
   );
   const [weather, setWeather] = useState<WeatherSummary | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [locationRequestVersion, setLocationRequestVersion] = useState(0);
+  const [showLocationPermissionDialog, setShowLocationPermissionDialog] =
+    useState(false);
 
   useEffect(() => {
     if (hasHydrated && !profile) {
@@ -303,6 +307,22 @@ export function DashboardScreen() {
           throw new Error("현재 위치를 사용할 수 없습니다.");
         }
 
+        if (locationRequestVersion === 0 && navigator.permissions) {
+          try {
+            const permission = await navigator.permissions.query({
+              name: "geolocation",
+            });
+
+            if (permission.state !== "granted") {
+              setWeatherError("위치 허용 시 현재 날씨를 보여드려요.");
+              setShowLocationPermissionDialog(true);
+              return;
+            }
+          } catch {
+            // Permissions API를 지원하지 않는 브라우저는 위치 요청 단계로 진행합니다.
+          }
+        }
+
         const coordinates = await new Promise<{
           latitude: number;
           longitude: number;
@@ -313,7 +333,12 @@ export function DashboardScreen() {
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
             }),
-          (error) => reject(new Error(getGeolocationErrorMessage(error))),
+          (error) => {
+            if (error.code === error.PERMISSION_DENIED) {
+              setShowLocationPermissionDialog(true);
+            }
+            reject(new Error(getGeolocationErrorMessage(error)));
+          },
           {
             enableHighAccuracy: false,
             timeout: 10_000,
@@ -342,6 +367,7 @@ export function DashboardScreen() {
         if (!controller.signal.aborted) {
           setWeather({ ...summary, locationLabel });
           setWeatherError(null);
+          setShowLocationPermissionDialog(false);
         }
       } catch (error) {
         if (!controller.signal.aborted) {
@@ -358,7 +384,7 @@ export function DashboardScreen() {
     void loadWeather();
 
     return () => controller.abort();
-  }, []);
+  }, [locationRequestVersion]);
 
   const nickname = profile?.nickname?.trim() || "사용자";
 
@@ -479,6 +505,20 @@ export function DashboardScreen() {
           />
         </LuxuryReveal>
       </section>
+
+      <ConfirmDialog
+        open={showLocationPermissionDialog}
+        title="현재 위치를 허용해 주세요"
+        description="현재 위치의 날씨와 지역 정보를 보여드리기 위해 위치 접근이 필요해요. 이미 차단했다면 브라우저의 사이트 설정에서 위치 권한을 허용한 뒤 다시 눌러 주세요."
+        cancelLabel="나중에"
+        confirmLabel="위치 허용"
+        onCancel={() => setShowLocationPermissionDialog(false)}
+        onConfirm={() => {
+          setShowLocationPermissionDialog(false);
+          setWeatherError(null);
+          setLocationRequestVersion((current) => current + 1);
+        }}
+      />
     </MobileScreenLayout>
   );
 }
