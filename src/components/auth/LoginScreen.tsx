@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { getApiErrorMessage } from "@/lib/apiError";
@@ -87,6 +87,7 @@ const buttonBaseClass =
 
 export function LoginScreen() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const setSession = useAuthStore((state) => state.setSession);
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
@@ -108,7 +109,8 @@ export function LoginScreen() {
     try {
       const response = await authApi.login({ loginId, password });
       setSession(response.data.data);
-      router.replace("/dashboard");
+      const returnTo = searchParams.get("returnTo");
+      router.replace(returnTo ? returnTo : "/dashboard");
     } catch (submitError) {
       setError(
         getApiErrorMessage(
@@ -140,15 +142,15 @@ export function LoginScreen() {
             다시 만나서 반가워요
           </h1>
           <p className="mt-2 text-[13px] leading-4 text-[#777780]">
-            아이디 또는 이메일로 로그인하세요
+            아이디와 비밀번호를 입력해 로그인해 주세요.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-10">
           <div className="space-y-4">
             <TextField
-              label="아이디 또는 이메일"
-              placeholder="아이디 또는 이메일"
+              label="아이디"
+              placeholder="아이디"
               value={id}
               onChange={setId}
             />
@@ -166,14 +168,6 @@ export function LoginScreen() {
               {error}
             </p>
           ) : null}
-
-          <p className="mt-5 text-right text-[12px] font-medium text-[#76757f]">
-            <span className="transition hover:text-[#15151a]">아이디 찾기</span>
-            <span className="px-1.5">·</span>
-            <span className="transition hover:text-[#15151a]">
-              비밀번호 재설정
-            </span>
-          </p>
 
           <div className="mt-[172px] space-y-4">
             <PrimaryButton disabled={isSubmitting}>
