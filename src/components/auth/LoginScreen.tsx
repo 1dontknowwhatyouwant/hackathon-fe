@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { getApiErrorMessage } from "@/lib/apiError";
@@ -87,7 +87,6 @@ const buttonBaseClass =
 
 export function LoginScreen() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const setSession = useAuthStore((state) => state.setSession);
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
@@ -109,7 +108,9 @@ export function LoginScreen() {
     try {
       const response = await authApi.login({ loginId, password });
       setSession(response.data.data);
-      const returnTo = searchParams.get("returnTo");
+      const returnTo = new URLSearchParams(window.location.search).get(
+        "returnTo",
+      );
       router.replace(returnTo ? returnTo : "/dashboard");
     } catch (submitError) {
       setError(

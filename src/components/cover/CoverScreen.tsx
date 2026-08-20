@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
@@ -8,11 +8,6 @@ import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayou
 const CoverScreen = () => {
   const router = useRouter();
   const [isLeaving, setIsLeaving] = useState(false);
-  const [hasMounted, setHasMounted] = useState(false);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
 
   const handleStart = () => {
     if (isLeaving) {
@@ -32,7 +27,7 @@ const CoverScreen = () => {
       frameClassName="bg-[#0e0e12] sm:rounded-[28px]"
     >
       <div
-        className={`relative flex h-full w-full flex-col overflow-hidden bg-[#0e0e12] px-6 text-white ${hasMounted ? "cover-screen-enter" : ""} ${isLeaving ? "cover-screen-exit" : ""}`}
+        className={`cover-screen-enter relative flex h-full w-full flex-col overflow-hidden bg-[#0e0e12] px-6 text-white ${isLeaving ? "cover-screen-exit" : ""}`}
       >
         <div className="absolute inset-x-0 top-1/2 -translate-y-[62%] px-6 text-center">
           <h1 className="text-[44px] font-bold leading-none tracking-[-0.05em] text-white">

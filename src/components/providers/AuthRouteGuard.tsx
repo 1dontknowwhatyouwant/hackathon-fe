@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { useAuthStore } from "@/store/useAuthStore";
@@ -19,7 +19,6 @@ type AuthRouteGuardProps = {
 export function AuthRouteGuard({ children }: AuthRouteGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const accessToken = useAuthStore((state) => state.accessToken);
 
@@ -28,10 +27,10 @@ export function AuthRouteGuard({ children }: AuthRouteGuardProps) {
       return;
     }
 
-    const query = searchParams.toString();
+    const query = window.location.search.slice(1);
     const returnTo = query ? `${pathname}?${query}` : pathname;
     router.replace(`/login?returnTo=${encodeURIComponent(returnTo)}`);
-  }, [accessToken, hasHydrated, pathname, router, searchParams]);
+  }, [accessToken, hasHydrated, pathname, router]);
 
   if (!hasHydrated && !isPublicRoute(pathname)) {
     return null;
