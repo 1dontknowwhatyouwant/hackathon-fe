@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { PulseLoader } from "@/components/common/feedback/PulseLoader";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { refreshAccessToken } from "@/lib/axios";
 
@@ -47,7 +46,9 @@ export function OAuthSuccessScreen() {
           </Link>
         </div>
       ) : (
-        <PulseLoader label="소셜 로그인을 완료하고 있습니다." />
+        <p className="text-[13px] text-[#777780]" role="status">
+          소셜 로그인을 완료하고 있습니다.
+        </p>
       )}
     </MobileScreenLayout>
   );

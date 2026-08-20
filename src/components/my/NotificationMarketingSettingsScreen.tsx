@@ -126,7 +126,8 @@ export function NotificationMarketingSettingsScreen() {
   };
 
   return (
-    <MobileScreenLayout contentClassName="flex min-h-full flex-col bg-white px-6 pt-4 pb-[88px] text-[#121217]">
+    <MobileScreenLayout contentClassName="flex min-h-full flex-col bg-white px-6 pt-4 pb-8 text-[#121217]">
+      <div className="flex min-h-full flex-col">
       <LuxuryReveal>
         <BackButton variant="plain" />
         <h1 className="mt-2 text-[28px] leading-[34px] font-bold tracking-[-0.04em]">
@@ -191,6 +192,7 @@ export function NotificationMarketingSettingsScreen() {
           {isLoading ? "불러오는 중" : isSaving ? "저장 중" : "설정 저장"}
         </button>
       </LuxuryReveal>
+      </div>
     </MobileScreenLayout>
   );
 }

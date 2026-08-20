@@ -45,7 +45,7 @@ export function SignupTermsDialog({ activeTermId, onClose }: SignupTermsDialogPr
             role="dialog"
             aria-modal="true"
             aria-labelledby="signup-term-title"
-            className="flex h-[50dvh] max-h-[422px] min-h-[280px] w-2/3 max-w-[300px] flex-col overflow-hidden rounded-[24px] bg-white shadow-[0_26px_80px_rgba(0,0,0,0.24)]"
+            className="flex h-[62dvh] max-h-[540px] min-h-[360px] w-[82%] max-w-[340px] flex-col overflow-hidden rounded-[24px] bg-white shadow-[0_26px_80px_rgba(0,0,0,0.24)]"
             initial={prefersReducedMotion ? false : { opacity: 0, y: 28, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={prefersReducedMotion ? undefined : { opacity: 0, y: 20, scale: 0.98 }}

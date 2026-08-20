@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
+import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { authApi } from "@/services/api";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -135,7 +136,7 @@ export function LoginScreen() {
   return (
     <MobileScreenLayout contentClassName="bg-white px-6 pb-[32px] pt-[48px] text-[#17181d]">
       <section className="flex min-h-full flex-col">
-        <div>
+        <LuxuryReveal>
           <p className="text-[11px] font-bold tracking-[0.01em] text-[#8b7355]">
             MEMBERSHIP
           </p>
@@ -145,10 +146,10 @@ export function LoginScreen() {
           <p className="mt-2 text-[13px] leading-4 text-[#777780]">
             아이디와 비밀번호를 입력해 로그인해 주세요.
           </p>
-        </div>
+        </LuxuryReveal>
 
         <form onSubmit={handleSubmit} className="mt-10">
-          <div className="space-y-4">
+          <LuxuryReveal className="space-y-4" delay={70}>
             <TextField
               label="아이디"
               placeholder="아이디"
@@ -162,15 +163,17 @@ export function LoginScreen() {
               value={password}
               onChange={setPassword}
             />
-          </div>
+          </LuxuryReveal>
 
           {error ? (
-            <p className="mt-3 text-[12px] font-medium text-[#c23535]">
-              {error}
-            </p>
+            <LuxuryReveal className="mt-3" delay={30}>
+              <p className="text-[12px] font-medium text-[#c23535]">
+                {error}
+              </p>
+            </LuxuryReveal>
           ) : null}
 
-          <div className="mt-[172px] space-y-4">
+          <LuxuryReveal className="mt-[172px] space-y-4" delay={140}>
             <PrimaryButton disabled={isSubmitting}>
               {isSubmitting ? "로그인 중..." : "로그인"}
             </PrimaryButton>
@@ -186,7 +189,7 @@ export function LoginScreen() {
             >
               처음이신가요? 회원가입
             </Link>
-          </div>
+          </LuxuryReveal>
         </form>
       </section>
     </MobileScreenLayout>

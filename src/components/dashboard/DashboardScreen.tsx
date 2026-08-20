@@ -49,7 +49,7 @@ const openMeteoWeatherCodeMap: Record<number, { label: string; icon: string }> =
 
 function getGeolocationErrorMessage(error: GeolocationPositionError) {
   if (error.code === error.PERMISSION_DENIED) {
-    return "위치 권한이 허용되지 않았습니다.";
+    return "브라우저 설정에서 위치 권한을 허용해 주세요.";
   }
 
   if (error.code === error.POSITION_UNAVAILABLE) {
@@ -242,7 +242,7 @@ function ProductRowCard({
       className="flex h-[72px] items-center gap-3 rounded-[18px] border border-[#e5e2de] bg-[#faf9f7] px-[14px] transition-transform active:scale-[0.99]"
     >
       <div
-        className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-[14px] bg-[#ece6dc] bg-cover bg-center"
+        className="flex size-[52px] shrink-0 items-center justify-center rounded-[15px] bg-[#ece6dc] bg-cover bg-center"
         style={imageUrl ? { backgroundImage: `url("${imageUrl}")` } : undefined}
       />
       <div className="min-w-0 flex-1">
@@ -309,19 +309,21 @@ export function DashboardScreen() {
           latitude: number;
           longitude: number;
         }>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            (position) =>
-              resolve({
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-              }),
-            (error) => reject(new Error(getGeolocationErrorMessage(error))),
-            {
-              enableHighAccuracy: false,
-              timeout: 10_000,
-              maximumAge: 30 * 60 * 1_000,
-            },
-          );
+        navigator.geolocation.getCurrentPosition(
+          (position) =>
+            resolve({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            }),
+          (error) => {
+            reject(new Error(getGeolocationErrorMessage(error)));
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 10_000,
+            maximumAge: 30 * 60 * 1_000,
+          },
+        );
         });
 
         const summary = await fetchWeatherSummary(
@@ -488,6 +490,7 @@ export function DashboardScreen() {
           />
         </LuxuryReveal>
       </section>
+
     </MobileScreenLayout>
   );
 }

@@ -93,8 +93,9 @@ export function ProfileEditScreen() {
   return (
     <MobileScreenLayout
       figmaNodeId="311:163"
-      contentClassName="flex min-h-full flex-col bg-white px-6 pt-4 pb-[88px] text-[#121217]"
+      contentClassName="flex min-h-full flex-col bg-white px-6 pt-4 pb-8 text-[#121217]"
     >
+      <div className="flex min-h-full flex-col">
       <LuxuryReveal>
         <div className="flex items-center">
           <BackButton variant="plain" />
@@ -148,7 +149,7 @@ export function ProfileEditScreen() {
 
       <LuxuryReveal className="mt-6" delay={120}>
         <Link
-          href="/preferences"
+          href="/personalize?mode=edit"
           className="flex h-[72px] items-center rounded-[16px] border border-[#dedee2] bg-[#f8f8f9] px-4 transition-colors hover:border-[#c8c2b9] hover:bg-[#f5f3f0]"
         >
           <span className="min-w-0 flex-1">
@@ -181,6 +182,7 @@ export function ProfileEditScreen() {
           {isSaving ? "저장 중" : "변경사항 저장"}
         </button>
       </LuxuryReveal>
+      </div>
     </MobileScreenLayout>
   );
 }

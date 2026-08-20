@@ -35,8 +35,9 @@ export function AccountConfirmationScreen({
   return (
     <MobileScreenLayout
       figmaNodeId={figmaNodeId}
-      contentClassName="flex min-h-full flex-col bg-white px-6 pt-6 pb-[88px] text-[#0e0e12]"
+      contentClassName="flex min-h-full flex-col bg-white px-6 pt-6 pb-2 text-[#0e0e12]"
     >
+      <div className="flex min-h-full flex-col">
       <LuxuryReveal>
         <p className="text-[17px] leading-6 font-bold">{sectionTitle}</p>
         <h1 className="mt-[58px] text-[28px] leading-[36px] font-bold tracking-[-0.04em]">
@@ -69,6 +70,7 @@ export function AccountConfirmationScreen({
           {isPending ? pendingLabel : confirmLabel}
         </button>
       </LuxuryReveal>
+      </div>
     </MobileScreenLayout>
   );
 }

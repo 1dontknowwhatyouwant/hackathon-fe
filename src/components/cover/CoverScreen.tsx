@@ -18,7 +18,7 @@ const CoverScreen = () => {
 
     window.setTimeout(() => {
       router.push("/login");
-    }, 220);
+    }, 560);
   };
 
   return (
@@ -28,7 +28,7 @@ const CoverScreen = () => {
       frameClassName="!bg-[#0e0e12] sm:rounded-[28px]"
     >
       <div
-        className={`cover-screen-enter relative flex h-full w-full flex-col overflow-hidden bg-[#0e0e12] px-6 text-white ${isLeaving ? "cover-screen-exit" : ""}`}
+        className="cover-screen-enter relative flex h-full w-full flex-col overflow-hidden bg-[#0e0e12] px-6 text-white"
       >
         <div className="absolute inset-x-0 top-1/2 -translate-y-[62%] px-6 text-center">
           <h1 className="text-[44px] font-bold leading-none tracking-[-0.05em] text-white">
@@ -42,12 +42,19 @@ const CoverScreen = () => {
           <button
             type="button"
             onClick={handleStart}
+            disabled={isLeaving}
             aria-label="로그인 화면으로 이동"
             className="w-full rounded-[14px] bg-[#c2a67d] px-6 py-[15px] text-center text-[14px] font-bold leading-none tracking-[-0.02em] text-[#0e0e12] transition-transform duration-200 active:scale-[0.99]"
           >
             시작하기
           </button>
         </div>
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-0 z-50 bg-white transition-opacity duration-[560ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            isLeaving ? "opacity-100" : "opacity-0"
+          }`}
+        />
       </div>
     </MobileScreenLayout>
   );
