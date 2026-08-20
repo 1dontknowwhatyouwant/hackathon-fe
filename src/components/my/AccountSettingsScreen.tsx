@@ -68,6 +68,7 @@ export function AccountSettingsScreen() {
       figmaNodeId="390:280"
       contentClassName="flex min-h-full flex-col bg-white px-6 pt-4 pb-8 text-[#121217]"
     >
+      <div className="flex min-h-full flex-col">
       <LuxuryReveal>
         <BackButton variant="plain" />
         <h1 className="mt-2 text-[28px] leading-[34px] font-bold tracking-[-0.04em]">
@@ -102,6 +103,7 @@ export function AccountSettingsScreen() {
           회원 탈퇴
         </Link>
       </LuxuryReveal>
+      </div>
     </MobileScreenLayout>
   );
 }
