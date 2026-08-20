@@ -7,7 +7,7 @@ import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayou
 import { getApiErrorMessage } from "@/lib/apiError";
 import { authApi } from "@/services/api";
 import { useAuthStore } from "@/store/useAuthStore";
-import type { Gender, OAuthProvider } from "@/types/api";
+import type { Gender } from "@/types/api";
 
 const TERMS_VERSION = "2026-08-01";
 
@@ -157,33 +157,6 @@ function GenderChoice({
         </div>
       </label>
     </div>
-  );
-}
-
-function SocialButton({
-  children,
-  brand,
-  onClick,
-}: {
-  children: string;
-  brand: OAuthProvider;
-  onClick: () => void;
-}) {
-  const isKakao = brand === "kakao";
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        "flex h-[54px] w-full items-center justify-center rounded-[18px] border text-[15px] font-bold transition",
-        isKakao
-          ? "border-[#f4d44d] bg-[#fee500] text-[#15151a] hover:bg-[#f9df00]"
-          : "border-[#2db400] bg-[#03c75a] text-white hover:bg-[#02b153]",
-      ].join(" ")}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -360,14 +333,6 @@ export function SignUpScreen() {
     }
   };
 
-  const startOAuth = (provider: OAuthProvider) => {
-    try {
-      window.location.assign(authApi.getOAuthStartUrl(provider));
-    } catch (oauthError) {
-      setError(getApiErrorMessage(oauthError, "가입 주소를 확인해 주세요."));
-    }
-  };
-
   return (
     <MobileScreenLayout contentClassName="bg-white px-6 pb-[32px] pt-[48px] text-[#17181d]">
       <section className="flex min-h-full flex-col">
@@ -466,26 +431,6 @@ export function SignUpScreen() {
               <PrimaryButton disabled={isSubmitting}>
                 {isSubmitting ? "가입 처리 중..." : "가입하기"}
               </PrimaryButton>
-              <div className="grid grid-cols-2 gap-3">
-                <SocialButton
-                  brand="kakao"
-                  onClick={() => startOAuth("kakao")}
-                >
-                  카카오로 시작하기
-                </SocialButton>
-                <SocialButton
-                  brand="naver"
-                  onClick={() => startOAuth("naver")}
-                >
-                  네이버로 시작하기
-                </SocialButton>
-              </div>
-              <p className="text-center text-[12px] font-bold text-[#55555d]">
-                간편로그인 회원가입은{" "}
-                <span className="underline underline-offset-2">
-                  프로필 설정 후 완료
-                </span>
-              </p>
             </div>
           </div>
         </form>
