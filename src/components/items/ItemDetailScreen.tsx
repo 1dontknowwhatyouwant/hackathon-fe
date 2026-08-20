@@ -119,7 +119,7 @@ export function ItemDetailScreen({ itemId }: ItemDetailScreenProps) {
           맞춤 관리 가이드
         </Link>
         <Link
-          href={`/recommendations/mcm-item-01/passport?myItemId=${encodeURIComponent(item.id)}`}
+          href={`/items/${encodeURIComponent(item.id)}/passport`}
           className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-[#15151a] text-[14px] font-bold text-white transition-colors hover:bg-[#2a2a30]"
         >
           제품 패스포트 보기

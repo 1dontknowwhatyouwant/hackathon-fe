@@ -7,6 +7,7 @@ import type {
   ItemCategory,
   PreferenceProfile,
   StyleTag,
+  UserNotificationSettings,
   UserProfile,
 } from "@/types/api";
 
@@ -27,6 +28,18 @@ export const profileApi = {
 
   updateMe: (body: UpdateMyProfileRequest) =>
     api.patch<ApiSuccessResponse<UserProfile>>("/users/me", body),
+
+  getNotificationSettings: (signal?: AbortSignal) =>
+    api.get<ApiSuccessResponse<UserNotificationSettings>>(
+      "/users/me/notification-settings",
+      { signal },
+    ),
+
+  updateNotificationSettings: (body: UserNotificationSettings) =>
+    api.patch<ApiSuccessResponse<UserNotificationSettings>>(
+      "/users/me/notification-settings",
+      body,
+    ),
 
   deleteMe: () => api.delete<void>("/users/me"),
 

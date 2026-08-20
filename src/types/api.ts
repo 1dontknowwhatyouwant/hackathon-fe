@@ -39,7 +39,8 @@ export type Gender = "MALE" | "FEMALE" | "NOT_SPECIFIED";
 export type TermsType =
   | "SERVICE_TERMS"
   | "PRIVACY_POLICY"
-  | "EMAIL_MARKETING";
+  | "EMAIL_MARKETING"
+  | "PUSH_MARKETING";
 export type OAuthProvider = "kakao" | "naver";
 export type AuthenticationMethod = "LOCAL" | "KAKAO" | "NAVER";
 
@@ -62,6 +63,18 @@ export type LoginRequest = {
   loginId: string;
   password: string;
 };
+
+export type PasswordChangeRequest = {
+  currentPassword: string;
+  newPassword: string;
+  newPasswordConfirm: string;
+};
+
+export type PasswordChangeErrorCode =
+  | "CURRENT_PASSWORD_MISMATCH"
+  | "PASSWORD_CONFIRM_MISMATCH"
+  | "NEW_PASSWORD_SAME_AS_CURRENT"
+  | "PASSWORD_CHANGE_NOT_AVAILABLE";
 
 export type TermsAgreement = {
   termsType: TermsType;
@@ -95,6 +108,13 @@ export type UserProfile = {
   nickname: string;
   gender: Gender;
   authenticationMethods: AuthenticationMethod[];
+};
+
+export type UserNotificationSettings = {
+  careReminderEnabled: boolean;
+  recommendationUpdateEnabled: boolean;
+  marketingPushEnabled: boolean;
+  emailMarketingEnabled: boolean;
 };
 
 export const itemCategories = [
@@ -336,6 +356,26 @@ export type ImageAsset = {
 export type AiJobType = "ITEM_ANALYSIS" | "PURCHASE_UTILITY" | "STYLE_PLAN";
 export type AiJobStatus = "PENDING" | "PROCESSING" | "SUCCEEDED" | "FAILED";
 
+export type StylePlanWeatherCondition =
+  | "SUNNY"
+  | "CLOUDY"
+  | "RAINY"
+  | "SNOWY"
+  | "HOT"
+  | "COLD"
+  | "WINDY"
+  | "INDOOR"
+  | "OTHER";
+
+export type StylePlanSliderContext = {
+  occasion: OccasionTag;
+  casualFormalLevel: number;
+  neatGlamorousLevel: number;
+  weatherCondition?: StylePlanWeatherCondition;
+  prioritizeOwnedItems: boolean;
+  language: "ko";
+};
+
 type AiJobIdentity = {
   jobId: string;
   type: AiJobType;
@@ -410,7 +450,7 @@ export type ApiPlace = {
   name: string;
   category: PlaceCategory;
   categoryName: string;
-  address?: string | null;
+  address: string | null;
   roadAddress: string | null;
   latitude: number;
   longitude: number;

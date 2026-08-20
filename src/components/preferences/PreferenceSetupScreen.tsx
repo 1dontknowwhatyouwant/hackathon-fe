@@ -46,9 +46,6 @@ const styleOptions = styleTags.map((value) => ({
   label: productTagLabels.style[value],
 }));
 
-const useApiMocks = process.env.NEXT_PUBLIC_USE_API_MOCKS !== "false";
-const mockPreferenceStorageKey = "mock-preference-profile";
-
 function toggleValue<T extends string>(values: readonly T[], value: T) {
   return values.includes(value)
     ? values.filter((item) => item !== value)
@@ -68,35 +65,6 @@ export function PreferenceSetupScreen() {
 
   useEffect(() => {
     let active = true;
-
-    if (useApiMocks) {
-      void Promise.resolve().then(() => {
-        if (!active) {
-          return;
-        }
-
-        const stored = window.localStorage.getItem(mockPreferenceStorageKey);
-        if (stored) {
-          try {
-            const preview = JSON.parse(stored) as {
-              preferredColors?: ColorGroup[];
-              preferredCategories?: ItemCategory[];
-              preferredStyleTags?: StyleTag[];
-            };
-            setPreferredColors(preview.preferredColors ?? []);
-            setPreferredCategories(preview.preferredCategories ?? []);
-            setPreferredStyleTags(preview.preferredStyleTags ?? []);
-          } catch {
-            window.localStorage.removeItem(mockPreferenceStorageKey);
-          }
-        }
-        setIsLoading(false);
-      });
-
-      return () => {
-        active = false;
-      };
-    }
 
     void backendApi.profile
       .getPreferences()
@@ -142,19 +110,6 @@ export function PreferenceSetupScreen() {
     setMessage("선택한 취향을 저장하고 있습니다.");
 
     try {
-      if (useApiMocks) {
-        window.localStorage.setItem(
-          mockPreferenceStorageKey,
-          JSON.stringify({
-            preferredColors,
-            preferredCategories,
-            preferredStyleTags,
-          }),
-        );
-        router.replace("/dashboard?preferences=updated");
-        return;
-      }
-
       await backendApi.profile.savePreferences({
         preferredColors,
         preferredCategories,

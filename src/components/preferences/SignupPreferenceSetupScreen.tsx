@@ -64,15 +64,6 @@ const styleOptions = styleTags.map((value) => ({
   label: styleLabels[value],
 }));
 
-const useApiMocks = process.env.NEXT_PUBLIC_USE_API_MOCKS !== "false";
-const mockPreferenceStorageKey = "mock-preference-profile";
-
-function toggleValue<T extends string>(values: readonly T[], value: T) {
-  return values.includes(value)
-    ? values.filter((item) => item !== value)
-    : [...values, value];
-}
-
 function toggleValueWithLimit<T extends string>(
   values: readonly T[],
   value: T,
@@ -100,7 +91,7 @@ function joinSelected<T extends string>(
   return values.map((value) => labels[value]).join(" · ");
 }
 
-function PreferenceChip<T extends string>({
+function PreferenceChip({
   label,
   selected,
   onClick,
@@ -135,17 +126,9 @@ function SectionLabel({ children }: { children: string }) {
 
 export function SignupPreferenceSetupScreen() {
   const router = useRouter();
-  const [preferredColors, setPreferredColors] = useState<ColorGroup[]>([
-    "BLACK",
-    "BEIGE",
-  ]);
-  const [preferredCategories, setPreferredCategories] = useState<ItemCategory[]>(
-    ["BAG", "SHOES"],
-  );
-  const [preferredStyleTags, setPreferredStyleTags] = useState<StyleTag[]>([
-    "CASUAL",
-    "NEAT",
-  ]);
+  const [preferredColors, setPreferredColors] = useState<ColorGroup[]>([]);
+  const [preferredCategories, setPreferredCategories] = useState<ItemCategory[]>([]);
+  const [preferredStyleTags, setPreferredStyleTags] = useState<StyleTag[]>([]);
   const [version, setVersion] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -158,35 +141,6 @@ export function SignupPreferenceSetupScreen() {
 
   useEffect(() => {
     let active = true;
-
-    if (useApiMocks) {
-      void Promise.resolve().then(() => {
-        if (!active) {
-          return;
-        }
-
-        const stored = window.localStorage.getItem(mockPreferenceStorageKey);
-        if (stored) {
-          try {
-            const preview = JSON.parse(stored) as {
-              preferredColors?: ColorGroup[];
-              preferredCategories?: ItemCategory[];
-              preferredStyleTags?: StyleTag[];
-            };
-            setPreferredColors(preview.preferredColors ?? []);
-            setPreferredCategories(preview.preferredCategories ?? []);
-            setPreferredStyleTags(preview.preferredStyleTags ?? []);
-          } catch {
-            window.localStorage.removeItem(mockPreferenceStorageKey);
-          }
-        }
-        setIsLoading(false);
-      });
-
-      return () => {
-        active = false;
-      };
-    }
 
     void backendApi.profile
       .getPreferences()
@@ -239,19 +193,6 @@ export function SignupPreferenceSetupScreen() {
     setMessage("선택한 취향을 저장하고 있습니다.");
 
     try {
-      if (useApiMocks) {
-        window.localStorage.setItem(
-          mockPreferenceStorageKey,
-          JSON.stringify({
-            preferredColors,
-            preferredCategories,
-            preferredStyleTags,
-          }),
-        );
-        router.replace("/dashboard?preferences=updated");
-        return;
-      }
-
       await backendApi.profile.savePreferences({
         preferredColors,
         preferredCategories,

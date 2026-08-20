@@ -6,25 +6,22 @@ import { useRouter } from "next/navigation";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BackButton } from "@/components/common/navigation/BackButton";
+import { getApiErrorMessage } from "@/lib/apiError";
+import { backendApi } from "@/services/api";
+import type { UserNotificationSettings } from "@/types/api";
 
-type NotificationMarketingSettings = {
-  serviceNotifications: boolean;
-  careReminders: boolean;
-  marketingMessages: boolean;
+const defaultSettings: UserNotificationSettings = {
+  careReminderEnabled: true,
+  recommendationUpdateEnabled: true,
+  marketingPushEnabled: false,
+  emailMarketingEnabled: false,
 };
-
-const defaultSettings: NotificationMarketingSettings = {
-  serviceNotifications: true,
-  careReminders: true,
-  marketingMessages: false,
-};
-
-const storageKey = "mock-notification-marketing-settings";
 
 type SettingToggleProps = {
   title: string;
   description: string;
   checked: boolean;
+  disabled?: boolean;
   onChange: (checked: boolean) => void;
 };
 
@@ -32,6 +29,7 @@ function SettingToggle({
   title,
   description,
   checked,
+  disabled = false,
   onChange,
 }: SettingToggleProps) {
   return (
@@ -45,10 +43,11 @@ function SettingToggle({
       <input
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
-        className="peer sr-only"
+        className="peer sr-only disabled:cursor-wait"
       />
-      <span className="relative h-7 w-12 shrink-0 rounded-full bg-[#d8d8dc] transition-colors peer-checked:bg-[#15151a] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#15151a] after:absolute after:top-1 after:left-1 after:size-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-5" />
+      <span className="relative h-7 w-12 shrink-0 rounded-full bg-[#d8d8dc] transition-colors peer-checked:bg-[#15151a] peer-disabled:opacity-45 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#15151a] after:absolute after:top-1 after:left-1 after:size-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-5" />
     </label>
   );
 }
@@ -56,31 +55,43 @@ function SettingToggle({
 export function NotificationMarketingSettingsScreen() {
   const router = useRouter();
   const [settings, setSettings] = useState(defaultSettings);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const restoreSettings = window.setTimeout(() => {
-      const storedSettings = window.localStorage.getItem(storageKey);
+    const controller = new AbortController();
 
-      if (!storedSettings) {
-        return;
-      }
-
+    const loadSettings = async () => {
       try {
-        setSettings({
-          ...defaultSettings,
-          ...(JSON.parse(storedSettings) as Partial<NotificationMarketingSettings>),
-        });
-      } catch {
-        window.localStorage.removeItem(storageKey);
-      }
-    }, 0);
+        const response = await backendApi.profile.getNotificationSettings(
+          controller.signal,
+        );
+        setSettings(response.data.data);
+      } catch (loadError) {
+        if (controller.signal.aborted) {
+          return;
+        }
 
-    return () => window.clearTimeout(restoreSettings);
+        setError(
+          getApiErrorMessage(
+            loadError,
+            "알림 설정을 불러오지 못했습니다. 다시 시도해 주세요.",
+          ),
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadSettings();
+    return () => controller.abort();
   }, []);
 
   const updateSetting = (
-    key: keyof NotificationMarketingSettings,
+    key: keyof UserNotificationSettings,
     value: boolean,
   ) => {
     setSettings((current) => ({ ...current, [key]: value }));
@@ -92,13 +103,23 @@ export function NotificationMarketingSettingsScreen() {
     }
 
     setIsSaving(true);
+    setError(null);
 
     try {
-      // TODO(API): API v0.4에는 알림·마케팅 설정 조회/수정 엔드포인트가 없습니다.
-      // 계약 확정 후 이 저장 지점을 실제 API 호출로 교체합니다.
-      window.localStorage.setItem(storageKey, JSON.stringify(settings));
+      const response = await backendApi.profile.updateNotificationSettings({
+        ...settings,
+      });
+      setSettings(response.data.data);
+
       router.back();
       router.refresh();
+    } catch (saveError) {
+      setError(
+        getApiErrorMessage(
+          saveError,
+          "알림 설정을 저장하지 못했습니다. 다시 시도해 주세요.",
+        ),
+      );
     } finally {
       setIsSaving(false);
     }
@@ -122,34 +143,52 @@ export function NotificationMarketingSettingsScreen() {
           className="rounded-[18px] border border-[#dedee2] bg-[#f8f8f9] px-4"
         >
           <SettingToggle
-            title="서비스 알림"
-            description="계정과 서비스 이용에 필요한 소식을 받아요."
-            checked={settings.serviceNotifications}
-            onChange={(checked) => updateSetting("serviceNotifications", checked)}
+            title="관리 일정 알림"
+            description="아이템 관리 일정과 관련된 알림을 받아요."
+            checked={settings.careReminderEnabled}
+            disabled={isLoading || isSaving}
+            onChange={(checked) => updateSetting("careReminderEnabled", checked)}
           />
           <SettingToggle
-            title="아이템 활용 알림"
-            description="보유 아이템 활용과 추천 소식을 받아요."
-            checked={settings.careReminders}
-            onChange={(checked) => updateSetting("careReminders", checked)}
+            title="추천 업데이트 알림"
+            description="새로운 맞춤 추천 소식을 받아요."
+            checked={settings.recommendationUpdateEnabled}
+            disabled={isLoading || isSaving}
+            onChange={(checked) =>
+              updateSetting("recommendationUpdateEnabled", checked)
+            }
           />
           <SettingToggle
-            title="마케팅 정보 수신"
-            description="이벤트와 혜택 정보를 선택적으로 받아요."
-            checked={settings.marketingMessages}
-            onChange={(checked) => updateSetting("marketingMessages", checked)}
+            title="마케팅 PUSH 수신"
+            description="앱 이벤트와 혜택 알림을 선택적으로 받아요."
+            checked={settings.marketingPushEnabled}
+            disabled={isLoading || isSaving}
+            onChange={(checked) => updateSetting("marketingPushEnabled", checked)}
+          />
+          <SettingToggle
+            title="이메일 마케팅 수신"
+            description="이메일로 이벤트와 혜택 정보를 받아요."
+            checked={settings.emailMarketingEnabled}
+            disabled={isLoading || isSaving}
+            onChange={(checked) => updateSetting("emailMarketingEnabled", checked)}
           />
         </section>
       </LuxuryReveal>
 
+      {error ? (
+        <p role="alert" className="mt-4 rounded-[14px] bg-[#fff1f1] px-4 py-3 text-[12px] leading-5 text-[#c72e2e]">
+          {error}
+        </p>
+      ) : null}
+
       <LuxuryReveal className="mt-auto pt-10" delay={110}>
         <button
           type="button"
-          disabled={isSaving}
+          disabled={isLoading || isSaving}
           onClick={handleSave}
           className="h-[52px] w-full rounded-[14px] bg-[#0e0e12] text-[14px] font-bold text-white transition-colors hover:bg-[#26262c] disabled:cursor-wait disabled:opacity-55"
         >
-          {isSaving ? "저장 중" : "설정 저장"}
+          {isLoading ? "불러오는 중" : isSaving ? "저장 중" : "설정 저장"}
         </button>
       </LuxuryReveal>
     </MobileScreenLayout>

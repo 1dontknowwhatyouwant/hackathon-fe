@@ -13,18 +13,9 @@ export type PlaceRecommendation = {
 };
 
 export type PlaceDetail = PlaceRecommendation & {
-  summary: string;
-  businessHours: string;
+  summary: string | null;
+  businessHours: string | null;
   address: string;
   walkingMinutes: number | null;
-  recommendationCount: number;
-  thumbnailColor: string;
-};
-
-export type PlaceMatchedProduct = {
-  id: string;
-  name: string;
-  matchScore: number;
-  priceLabel: string;
   thumbnailColor: string;
 };

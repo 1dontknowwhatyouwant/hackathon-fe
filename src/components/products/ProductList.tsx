@@ -24,7 +24,11 @@ function ProductCard({ product, onSelect }: ProductCardProps) {
   return (
     <ImageGridCard
       title={product.name}
-      subtitle={`추천 점수 ${product.recommendationScore}점`}
+      subtitle={
+        product.recommendationScore === undefined
+          ? product.brand
+          : `추천 점수 ${product.recommendationScore}점`
+      }
       imageAlt={`${product.name} 제품 이미지`}
       imageUrl={product.imageUrl}
       fallbackLabel="PRODUCT"

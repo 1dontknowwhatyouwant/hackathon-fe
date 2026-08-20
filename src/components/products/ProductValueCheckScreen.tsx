@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
 import { DetailActionCard } from "@/components/common/card/DetailActionCard";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
@@ -14,11 +13,7 @@ import {
   requestPurchaseUtilityAnalysis,
 } from "@/services/purchaseUtilityWorkflow";
 import type { PurchaseUtilityAnalysis } from "@/types/api";
-import type { RecommendedProduct } from "@/types/product";
-
-type ProductValueCheckScreenProps = {
-  product: RecommendedProduct;
-};
+type ProductValueCheckScreenProps = { productId: string };
 
 type UtilityViewModel = {
   score: number;
@@ -27,20 +22,11 @@ type UtilityViewModel = {
   seasonUsabilityScore: number;
   ownedCategoryCombinationScore: number;
   summary: string;
+  compatibleItemCount: number;
+  compatibleItems: PurchaseUtilityAnalysis["compatibleItems"];
+  careDifficulty: PurchaseUtilityAnalysis["careDifficulty"];
+  explanationGenerationType: PurchaseUtilityAnalysis["explanationGenerationType"];
 };
-
-const useApiMocks = process.env.NEXT_PUBLIC_USE_API_MOCKS !== "false";
-
-function toMockAnalysis(product: RecommendedProduct): UtilityViewModel {
-  return {
-    score: product.valueScore,
-    preferenceTagFitScore: product.preferenceTagFitScore,
-    styleCombinationScore: product.styleCombinationScore,
-    seasonUsabilityScore: product.seasonUsabilityScore,
-    ownedCategoryCombinationScore: product.ownedCategoryCombinationScore,
-    summary: "내 아이템과 취향, 보유 카테고리, 계절 활용성을 기준으로 계산했습니다.",
-  };
-}
 
 function toViewModel(analysis: PurchaseUtilityAnalysis): UtilityViewModel {
   return {
@@ -51,25 +37,21 @@ function toViewModel(analysis: PurchaseUtilityAnalysis): UtilityViewModel {
     ownedCategoryCombinationScore:
       analysis.factors.ownedCategoryCombinationScore,
     summary: analysis.summary,
+    compatibleItemCount: analysis.compatibleItemCount,
+    compatibleItems: analysis.compatibleItems,
+    careDifficulty: analysis.careDifficulty,
+    explanationGenerationType: analysis.explanationGenerationType,
   };
 }
 
-export function ProductValueCheckScreen({
-  product,
-}: ProductValueCheckScreenProps) {
-  const [analysis, setAnalysis] = useState<UtilityViewModel | null>(
-    useApiMocks ? toMockAnalysis(product) : null,
-  );
+export function ProductValueCheckScreen({ productId }: ProductValueCheckScreenProps) {
+  const [analysis, setAnalysis] = useState<UtilityViewModel | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (useApiMocks) {
-      return;
-    }
-
     const controller = new AbortController();
 
-    void requestPurchaseUtilityAnalysis(product.id, controller.signal)
+    void requestPurchaseUtilityAnalysis(productId, controller.signal)
       .then((result) => setAnalysis(toViewModel(result)))
       .catch((analysisError: unknown) => {
         if (!controller.signal.aborted) {
@@ -82,7 +64,7 @@ export function ProductValueCheckScreen({
       });
 
     return () => controller.abort();
-  }, [product]);
+  }, [productId]);
 
   return (
     <MobileScreenLayout
@@ -152,13 +134,24 @@ export function ProductValueCheckScreen({
             </LuxuryReveal>
           </div>
 
-          <LuxuryReveal className="mt-11" delay={390}>
-            <Link
-              href={`/recommendations/${product.id}/analysis`}
-              className="flex h-[52px] w-full items-center justify-center rounded-[16px] bg-[#15151a] text-[15px] font-bold text-white transition-colors hover:bg-[#2a2a30] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15151a]"
-            >
-              상세 리포트 보기
-            </Link>
+          <LuxuryReveal className="mt-8" delay={380}>
+            <section className="rounded-[18px] border border-[#dedee2] bg-[#f8f8f9] px-4 py-4">
+              <h2 className="text-[14px] font-bold text-[#15151a]">함께 활용할 수 있는 내 아이템 {analysis.compatibleItemCount}개</h2>
+              {analysis.compatibleItems.length > 0 ? (
+                <ul className="mt-4 space-y-3">
+                  {analysis.compatibleItems.map((item) => (
+                    <li key={item.myItemId} className="rounded-[14px] bg-white px-4 py-3">
+                      <p className="text-[12px] font-bold text-[#35353b]">{item.name}</p>
+                      <p className="mt-1 text-[11px] leading-4 text-[#777780]">{item.reason}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="mt-3 text-[11px] text-[#777780]">호환 아이템이 없습니다.</p>}
+              <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-[#dedee2] pt-4 text-[11px]">
+                <div><dt className="text-[#888890]">관리 난이도</dt><dd className="mt-1 font-bold text-[#35353b]">{analysis.careDifficulty}</dd></div>
+                <div><dt className="text-[#888890]">설명 생성 방식</dt><dd className="mt-1 font-bold text-[#35353b]">{analysis.explanationGenerationType}</dd></div>
+              </dl>
+            </section>
           </LuxuryReveal>
 
         </>

@@ -9,8 +9,6 @@ import { ScreenHeader } from "@/components/common/section/ScreenHeader";
 import { analyzeItemPhoto } from "@/services/itemRegistrationWorkflow";
 import { useItemRegistrationStore } from "@/store/useItemRegistrationStore";
 
-const useApiMocks = process.env.NEXT_PUBLIC_USE_API_MOCKS !== "false";
-
 function readImage(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -30,7 +28,6 @@ export function ItemRegisterScreen() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const transitionLockRef = useRef(false);
-  const draft = useItemRegistrationStore((state) => state.draft);
   const photoFile = useItemRegistrationStore((state) => state.photoFile);
   const photoPreviewUrl = useItemRegistrationStore(
     (state) => state.photoPreviewUrl,
@@ -75,25 +72,6 @@ export function ItemRegisterScreen() {
     setIsRecognizing(true);
     setError(null);
     startAnalysis();
-
-    if (useApiMocks) {
-      applyAnalysis(
-        {
-          name: draft.name || "Aren Shopper",
-          brandName: draft.brandName || "MCM",
-          category: draft.category || "BAG",
-          primaryColor: draft.primaryColor || "BLACK",
-          material: draft.material || "LEATHER",
-        },
-        "1",
-        {
-          imageAssetId: `preview-${Date.now()}`,
-          url: photoPreviewUrl ?? "",
-        },
-      );
-      moveToConfirmation();
-      return;
-    }
 
     try {
       const outcome = await analyzeItemPhoto(photoFile);

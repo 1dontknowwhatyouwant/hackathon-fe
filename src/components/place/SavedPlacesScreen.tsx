@@ -63,7 +63,7 @@ export function SavedPlacesScreen() {
           <LuxuryReveal key={place.id} delay={60 + index * 50}>
             <DetailActionCard
               title={place.name}
-              description={`저장됨 · 맞춤 추천 ${place.recommendationCount}개`}
+              description={`저장됨 · ${place.category} · ${place.area}`}
               href={`/place/${encodeURIComponent(place.id)}`}
               leading={
                 <span

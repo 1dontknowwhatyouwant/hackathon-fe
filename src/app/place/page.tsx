@@ -1,8 +1,4 @@
 import { PlaceResultScreen } from "@/components/place/PlaceResultScreen";
-import {
-  placeRecommendations,
-  placeResultKeywords,
-} from "@/data/placeRecommendations";
 
 type PlacePageProps = {
   searchParams: Promise<{
@@ -26,8 +22,8 @@ export default async function PlacePage({ searchParams }: PlacePageProps) {
 
   return (
     <PlaceResultScreen
-      keywords={placeResultKeywords}
-      places={placeRecommendations}
+      keywords={[]}
+      places={[]}
       stylePlanId={query.stylePlanId}
       latitude={parseCoordinate(query.latitude)}
       longitude={parseCoordinate(query.longitude)}

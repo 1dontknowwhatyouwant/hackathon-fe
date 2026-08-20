@@ -6,10 +6,10 @@ import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayou
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BottomNavigation } from "@/components/common/navigation/BottomNavigation";
 import { HomePreferenceProducts } from "@/components/dashboard/HomePreferenceProducts";
-import { dummyRecommendedProducts } from "@/data/productRecommendations";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useHomeStore } from "@/store/useHomeStore";
 import { useMenuDataStore } from "@/store/useMenuDataStore";
+import { useProductRecommendationStore } from "@/store/useProductRecommendationStore";
 
 const actionCards = [
   {
@@ -20,12 +20,12 @@ const actionCards = [
   {
     title: "내 제품 관리 알림",
     description: "소재별 관리 안내와 일정을 확인하세요",
-    href: "/care/guide",
+    href: "/items",
   },
   {
     title: "구매 전 활용 체크",
     description: "세부 정보를 확인하세요",
-    href: "/recommendations/mcm-item-01/value-check",
+    href: "/recommendations",
   },
 ];
 
@@ -102,6 +102,9 @@ export function DashboardScreen() {
   const isHomeLoading = useHomeStore((state) => state.isLoading);
   const homeError = useHomeStore((state) => state.error);
   const loadHome = useHomeStore((state) => state.loadHome);
+  const products = useProductRecommendationStore((state) => state.products);
+  const productStatus = useProductRecommendationStore((state) => state.status);
+  const loadProducts = useProductRecommendationStore((state) => state.loadProducts);
 
   useEffect(() => {
     if (hasHydrated && !profile) {
@@ -111,6 +114,11 @@ export function DashboardScreen() {
       void loadHome();
     }
   }, [hasHydrated, homeData, loadHome, loadProfile, profile]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    return loadProducts("ALL");
+  }, [hasHydrated, loadProducts]);
 
   const nickname = profile?.nickname?.trim() || "사용자";
 
@@ -128,20 +136,14 @@ export function DashboardScreen() {
           <h1 className="mt-[6px] text-[28px] leading-[1.14] font-bold tracking-[-0.05em]">
             오늘 뭐 입을래?
           </h1>
-          <p className="mt-[10px] text-[13px] leading-4 text-[#777780]">
-            24° · 맑음 · 성수동
-          </p>
+          <p className="mt-[10px] text-[13px] leading-4 text-[#777780]">내 취향과 아이템을 바탕으로 오늘을 준비해요.</p>
         </LuxuryReveal>
 
         <LuxuryReveal className="mt-10" delay={80}>
           <article className="overflow-hidden rounded-[22px] bg-[#16161b] px-5 py-[22px] shadow-[0_12px_30px_rgba(22,22,27,0.12)]">
-            <p className="text-[12px] font-bold tracking-[0.02em] text-[#b89a72]">
-              오늘의 AI 스타일 플랜
-            </p>
+            <p className="text-[12px] font-bold tracking-[0.02em] text-[#b89a72]">최근 스타일 플랜</p>
             <h2 className="mt-4 max-w-[230px] text-[22px] font-bold leading-[1.2] tracking-[-0.04em] text-white">
-              MCM 쇼퍼와 데님으로
-              <br />
-              가볍게 완성해볼까요?
+              {homeData?.latestStylePlan?.title ?? "아직 저장한 스타일 플랜이 없어요"}
             </h2>
           </article>
         </LuxuryReveal>
@@ -172,7 +174,7 @@ export function DashboardScreen() {
             </Link>
           </div>
           <ul className="space-y-[10px]">
-            {dummyRecommendedProducts.map((product) => (
+            {products.slice(0, 4).map((product) => (
               <li key={product.id}>
                 <ProductRowCard
                   href={`/recommendations/${product.id}`}
@@ -183,6 +185,8 @@ export function DashboardScreen() {
               </li>
             ))}
           </ul>
+          {productStatus === "loading" && products.length === 0 ? <p className="py-6 text-center text-[12px] text-[#777780]">제품을 불러오는 중입니다.</p> : null}
+          {productStatus === "error" ? <p className="py-6 text-center text-[12px] text-[#9a4545]">제품 목록을 불러오지 못했습니다.</p> : null}
         </LuxuryReveal>
 
         <LuxuryReveal className="mt-10" delay={460}>

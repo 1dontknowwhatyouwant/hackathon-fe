@@ -31,7 +31,7 @@ export function MyScreen() {
     }
   }, [hasHydrated, loadItems, loadProfile]);
 
-  const nickname = profile?.nickname?.trim() || "SUJEONG";
+  const nickname = profile?.nickname?.trim() || "사용자";
   const myMenuItems = [
     {
       title: "내 아이템",
@@ -41,8 +41,8 @@ export function MyScreen() {
     },
     {
       title: "제품 패스포트",
-      description: "생성된 패스포트 3개",
-      href: "/recommendations/mcm-item-01/passport",
+      description: "내 아이템에서 패스포트 확인",
+      href: "/items",
       leading: <PiIdentificationCardBold aria-hidden="true" className="size-6" />,
     },
     {
@@ -53,8 +53,8 @@ export function MyScreen() {
     },
     {
       title: "찜한 제품",
-      description: "저장한 제품 4개",
-      href: "/recommendations",
+      description: "저장한 제품 보기",
+      href: "/wishlist",
       leading: <PiHeartBold aria-hidden="true" className="size-6" />,
     },
   ];
@@ -80,9 +80,7 @@ export function MyScreen() {
             <h2 className="truncate text-[20px] leading-6 font-bold text-white">
               {nickname.toUpperCase()}
             </h2>
-            <p className="mt-[7px] truncate text-[12px] leading-[15px] text-[#c7c7cc]">
-              미니멀 · 클래식 · 전시
-            </p>
+            <p className="mt-[7px] truncate text-[12px] leading-[15px] text-[#c7c7cc]">등록한 아이템 {items.length}개</p>
           </div>
 
           <Link

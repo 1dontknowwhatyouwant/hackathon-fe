@@ -18,7 +18,6 @@ import type {
 } from "@/types/api";
 
 type ReauthenticationStatus = "IDLE" | "PROCESSING" | "READY";
-const useApiMocks = process.env.NEXT_PUBLIC_USE_API_MOCKS !== "false";
 
 function toOAuthProvider(
   method: AuthenticationMethod,
@@ -38,7 +37,6 @@ export function AccountDeletionScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const clearSession = useAuthStore((state) => state.clearSession);
-  const storedUser = useAuthStore((state) => state.user);
   const [hasConfirmedDeletion, setHasConfirmedDeletion] = useState(
     searchParams.get("reauthenticated") === "true",
   );
@@ -60,10 +58,6 @@ export function AccountDeletionScreen() {
     }
 
     let active = true;
-
-    if (useApiMocks) {
-      return;
-    }
 
     void backendApi.profile
       .getMe()
@@ -99,9 +93,7 @@ export function AccountDeletionScreen() {
     setError(null);
 
     try {
-      if (!useApiMocks) {
-        await backendApi.auth.reauthenticateForAccountDeletion(password);
-      }
+      await backendApi.auth.reauthenticateForAccountDeletion(password);
       setPassword("");
       setStatus("READY");
     } catch (reauthError) {
@@ -138,9 +130,7 @@ export function AccountDeletionScreen() {
     setError(null);
 
     try {
-      if (!useApiMocks) {
-        await backendApi.profile.deleteMe();
-      }
+      await backendApi.profile.deleteMe();
       clearSession();
       router.replace("/login?accountDeleted=true");
     } catch (deleteError) {
@@ -156,16 +146,7 @@ export function AccountDeletionScreen() {
     }
   };
 
-  const effectiveProfile =
-    profile ??
-    (useApiMocks && hasConfirmedDeletion
-      ? {
-          userId: storedUser?.userId ?? "mock-user",
-          nickname: storedUser?.nickname ?? "SUJEONG",
-          gender: storedUser?.gender ?? "NOT_SPECIFIED",
-          authenticationMethods: ["LOCAL"] as AuthenticationMethod[],
-        }
-      : null);
+  const effectiveProfile = profile;
   const isLocal =
     effectiveProfile?.authenticationMethods.includes("LOCAL") ?? false;
   const socialProviders =

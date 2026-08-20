@@ -51,8 +51,7 @@ export function PlaceResultScreen({
   longitude,
 }: PlaceResultScreenProps) {
   const router = useRouter();
-  const hasBackendRequest =
-    Boolean(stylePlanId) && latitude !== undefined && longitude !== undefined;
+  const hasBackendRequest = true;
   const [displayPlaces, setDisplayPlaces] = useState(places);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string>();
   const [detailReadyPlaceId, setDetailReadyPlaceId] = useState<string>();
@@ -65,39 +64,52 @@ export function PlaceResultScreen({
   }, [displayPlaces, registerPlaces]);
 
   useEffect(() => {
-    if (
-      !stylePlanId ||
-      latitude === undefined ||
-      longitude === undefined
-    ) {
-      return;
-    }
-
     const controller = new AbortController();
 
-    void backendApi.intelligence
-      .recommendPlaces(
-        stylePlanId,
-        {
-          query: null,
-          category: null,
-          latitude,
-          longitude,
-        },
-        controller.signal,
-      )
-      .then(({ data }) => {
-        const nextPlaces = data.data.places.map((recommendation) =>
-          mapBackendPlace(recommendation, keywords[0] ?? "추천 지역"),
+    if (!stylePlanId) {
+      void Promise.resolve().then(() => {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+          setError("스마트 착용 추천을 저장한 뒤 장소 추천을 확인해 주세요.");
+        }
+      });
+      return () => controller.abort();
+    }
+
+    const resolveCoordinates = () => {
+      if (latitude !== undefined && longitude !== undefined) {
+        return Promise.resolve({ latitude, longitude });
+      }
+      return new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error("현재 위치를 사용할 수 없습니다."));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+          () => reject(new Error("장소 추천을 위해 위치 권한을 허용해 주세요.")),
+          { enableHighAccuracy: false, timeout: 10_000, maximumAge: 60_000 },
         );
+      });
+    };
+
+    const request = resolveCoordinates().then((coordinates) =>
+      backendApi.intelligence
+        .recommendPlaces(stylePlanId, { query: null, category: null, ...coordinates }, controller.signal)
+        .then(({ data }) => data.data.places.map((item) => mapBackendPlace(item, "주소 정보 없음"))),
+    );
+
+    void request
+      .then((nextPlaces) => {
 
         setDisplayPlaces(nextPlaces);
         setSelectedPlaceId(undefined);
         setDetailReadyPlaceId(undefined);
       })
-      .catch(() => {
+      .catch((failure: unknown) => {
         if (!controller.signal.aborted) {
-          setError("장소 좌표를 불러오지 못해 미리보기 위치를 표시합니다.");
+          setDisplayPlaces([]);
+          setError(failure instanceof Error ? failure.message : "장소를 불러오지 못했습니다.");
         }
       })
       .finally(() => {
@@ -107,7 +119,7 @@ export function PlaceResultScreen({
       });
 
     return () => controller.abort();
-  }, [keywords, latitude, longitude, stylePlanId]);
+  }, [latitude, longitude, stylePlanId]);
 
   const handlePlaceSelect = (place: PlaceRecommendation) => {
     if (detailReadyPlaceId === place.id) {
@@ -124,6 +136,10 @@ export function PlaceResultScreen({
     setDetailReadyPlaceId(undefined);
   };
 
+  const displayKeywords = displayPlaces.length > 0
+    ? [...new Set(displayPlaces.flatMap((place) => [place.area, place.category]))].slice(0, 3)
+    : keywords;
+
   return (
     <MobileScreenLayout
       figmaNodeId="96:244"
@@ -134,7 +150,7 @@ export function PlaceResultScreen({
         <ScreenHeader
           eyebrow="PLACE MATCH"
           title="이 룩과 어울리는 곳"
-          description={<PlaceKeywords keywords={keywords} />}
+          description={displayKeywords.length > 0 ? <PlaceKeywords keywords={displayKeywords} /> : "저장한 스타일과 현재 위치를 기준으로 추천해요"}
         />
       </LuxuryReveal>
 
@@ -156,7 +172,7 @@ export function PlaceResultScreen({
       <LuxuryReveal className="mt-[52px]" delay={140}>
         <PlaceMap
           places={displayPlaces}
-          areaLabel={displayPlaces[0]?.area ?? keywords[0]}
+          areaLabel={displayPlaces[0]?.area ?? displayKeywords[0]}
           selectedPlaceId={selectedPlaceId}
           onMarkerSelect={handleMarkerSelect}
         />

@@ -17,22 +17,14 @@ export type RecommendedProduct = {
   modelName: string;
   displayName: string;
   category: ItemCategory;
-  recommendationScore: number;
-  recommendationScoreBreakdown: {
+  recommendationScore?: number;
+  recommendationScoreBreakdown?: {
     style: number;
     occasion: number;
     season: number;
     feature: number;
   };
-  recommendationReason: string;
-  utilityScore: number;
-  closetMatchScore: number;
-  expectedUseCount: number;
-  valueScore: number;
-  preferenceTagFitScore: number;
-  styleCombinationScore: number;
-  seasonUsabilityScore: number;
-  ownedCategoryCombinationScore: number;
+  recommendationReason?: string;
   price: number;
   imageUrl?: string;
 };

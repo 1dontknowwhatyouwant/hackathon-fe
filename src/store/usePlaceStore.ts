@@ -2,33 +2,27 @@
 
 import { create } from "zustand";
 
-import { placeDetails } from "@/data/placeRecommendations";
+import { getApiErrorCode } from "@/lib/apiError";
 import { backendApi } from "@/services/api";
 import type { ApiPlace } from "@/types/api";
 import type { PlaceDetail, PlaceRecommendation } from "@/types/place";
 
-const useApiMocks = process.env.NEXT_PUBLIC_USE_API_MOCKS !== "false";
-
 function mapApiPlace(place: ApiPlace): PlaceDetail {
-  const fallback = placeDetails.find((candidate) => candidate.id === place.placeId);
-
   return {
     id: place.placeId,
     name: place.name,
-    description: fallback?.description ?? place.categoryName,
+    description: place.categoryName,
     category: place.categoryName,
-    area: fallback?.area ?? place.roadAddress ?? place.address ?? "추천 지역",
+    area: place.roadAddress ?? place.address ?? "주소 정보 없음",
     coordinates: {
       latitude: place.latitude,
       longitude: place.longitude,
     },
-    summary:
-      fallback?.summary ?? "현재 룩과 분위기가 잘 어울리는 추천 장소예요.",
-    businessHours: fallback?.businessHours ?? "영업시간을 확인해 주세요",
+    summary: null,
+    businessHours: null,
     address: place.roadAddress ?? place.address ?? "주소 정보 없음",
-    walkingMinutes: fallback?.walkingMinutes ?? null,
-    recommendationCount: fallback?.recommendationCount ?? 0,
-    thumbnailColor: fallback?.thumbnailColor ?? "#e8e3d9",
+    walkingMinutes: null,
+    thumbnailColor: "#e8e3d9",
   };
 }
 
@@ -43,17 +37,24 @@ type PlaceState = {
   savedPlaceIds: string[];
   pendingPlaceIds: string[];
   isLoadingSavedPlaces: boolean;
+  loadingPlaceIds: string[];
+  loadedPlaceIds: string[];
+  placeDetailError: string | null;
   error: string | null;
   registerPlaces: (places: PlaceRecommendation[]) => void;
+  loadPlace: (placeId: string, signal?: AbortSignal) => Promise<PlaceDetail | null>;
   loadSavedPlaces: () => Promise<void>;
   toggleSavedPlace: (placeId: string) => Promise<boolean>;
 };
 
 export const usePlaceStore = create<PlaceState>((set, get) => ({
-  places: [...placeDetails],
-  savedPlaceIds: useApiMocks ? placeDetails.map((place) => place.id) : [],
+  places: [],
+  savedPlaceIds: [],
   pendingPlaceIds: [],
   isLoadingSavedPlaces: false,
+  loadingPlaceIds: [],
+  loadedPlaceIds: [],
+  placeDetailError: null,
   error: null,
 
   registerPlaces: (recommendations) =>
@@ -64,14 +65,10 @@ export const usePlaceStore = create<PlaceState>((set, get) => ({
           ...existing,
           ...place,
           name: existing?.name ?? place.name,
-          summary:
-            existing?.summary ??
-            "현재 룩과 분위기가 잘 어울리는 추천 장소예요.",
-          businessHours:
-            existing?.businessHours ?? "영업시간을 확인해 주세요",
+          summary: existing?.summary ?? null,
+          businessHours: existing?.businessHours ?? null,
           address: existing?.address ?? place.area,
           walkingMinutes: existing?.walkingMinutes ?? null,
-          recommendationCount: existing?.recommendationCount ?? 0,
           thumbnailColor: existing?.thumbnailColor ?? "#e8e3d9",
         } satisfies PlaceDetail;
       });
@@ -79,11 +76,47 @@ export const usePlaceStore = create<PlaceState>((set, get) => ({
       return { places: mergePlaces(state.places, details) };
     }),
 
-  loadSavedPlaces: async () => {
-    if (useApiMocks) {
-      return;
-    }
+  loadPlace: async (placeId, signal) => {
+    set((state) => ({
+      loadingPlaceIds: [...new Set([...state.loadingPlaceIds, placeId])],
+      placeDetailError: null,
+    }));
 
+    try {
+      const response = await backendApi.intelligence.getPlace(placeId, signal);
+      const apiPlace = response.data.data;
+      const place = mapApiPlace(apiPlace);
+
+      set((state) => ({
+        places: mergePlaces(state.places, [place]),
+        savedPlaceIds: apiPlace.saved
+          ? [...new Set([...state.savedPlaceIds, placeId])]
+          : state.savedPlaceIds.filter((id) => id !== placeId),
+      }));
+      return place;
+    } catch (loadError) {
+      if (signal?.aborted) {
+        return null;
+      }
+
+      set({
+        placeDetailError:
+          getApiErrorCode(loadError) === "PLACE_NOT_FOUND"
+            ? "장소를 찾을 수 없어요."
+            : "장소 상세 정보를 불러오지 못했습니다.",
+      });
+      return null;
+    } finally {
+      set((state) => ({
+        loadingPlaceIds: state.loadingPlaceIds.filter((id) => id !== placeId),
+        loadedPlaceIds: signal?.aborted
+          ? state.loadedPlaceIds
+          : [...new Set([...state.loadedPlaceIds, placeId])],
+      }));
+    }
+  },
+
+  loadSavedPlaces: async () => {
     set({ isLoadingSavedPlaces: true, error: null });
     try {
       const response = await backendApi.intelligence.getSavedPlaces({
@@ -116,12 +149,10 @@ export const usePlaceStore = create<PlaceState>((set, get) => ({
     }));
 
     try {
-      if (!useApiMocks) {
-        if (isSaved) {
-          await backendApi.intelligence.removeSavedPlace(placeId);
-        } else {
-          await backendApi.intelligence.savePlace(placeId);
-        }
+      if (isSaved) {
+        await backendApi.intelligence.removeSavedPlace(placeId);
+      } else {
+        await backendApi.intelligence.savePlace(placeId);
       }
 
       set((current) => ({

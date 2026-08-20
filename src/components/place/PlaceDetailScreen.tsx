@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
@@ -17,7 +17,11 @@ export function PlaceDetailScreen({ placeId }: PlaceDetailScreenProps) {
   const places = usePlaceStore((state) => state.places);
   const savedPlaceIds = usePlaceStore((state) => state.savedPlaceIds);
   const pendingPlaceIds = usePlaceStore((state) => state.pendingPlaceIds);
+  const loadingPlaceIds = usePlaceStore((state) => state.loadingPlaceIds);
+  const loadedPlaceIds = usePlaceStore((state) => state.loadedPlaceIds);
+  const placeDetailError = usePlaceStore((state) => state.placeDetailError);
   const storeError = usePlaceStore((state) => state.error);
+  const loadPlace = usePlaceStore((state) => state.loadPlace);
   const toggleSavedPlace = usePlaceStore((state) => state.toggleSavedPlace);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
@@ -25,6 +29,26 @@ export function PlaceDetailScreen({ placeId }: PlaceDetailScreenProps) {
     () => places.find((candidate) => candidate.id === placeId),
     [placeId, places],
   );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadPlace(placeId, controller.signal);
+    return () => controller.abort();
+  }, [loadPlace, placeId]);
+
+  const isLoadingPlace =
+    loadingPlaceIds.includes(placeId) || !loadedPlaceIds.includes(placeId);
+
+  if (!place && isLoadingPlace) {
+    return (
+      <MobileScreenLayout contentClassName="flex bg-white px-6 pt-[47px] pb-8">
+        <div className="flex min-h-full w-full flex-col">
+          <BackButton />
+          <p className="mt-8 text-[13px] text-[#777780]">장소 정보를 불러오고 있어요.</p>
+        </div>
+      </MobileScreenLayout>
+    );
+  }
 
   if (!place) {
     return (
@@ -34,8 +58,8 @@ export function PlaceDetailScreen({ placeId }: PlaceDetailScreenProps) {
           <div className="mt-6">
             <ScreenHeader
               eyebrow="PLACE DETAIL"
-              title="장소를 찾을 수 없어요"
-              description="추천 장소 목록에서 다시 선택해 주세요"
+              title={placeDetailError ?? "장소를 찾을 수 없어요"}
+              description="추천 장소 목록에서 다시 선택해 주세요."
             />
           </div>
           <Link
@@ -103,11 +127,9 @@ export function PlaceDetailScreen({ placeId }: PlaceDetailScreenProps) {
         </LuxuryReveal>
 
         <LuxuryReveal className="mt-8" delay={110}>
-          <h2 className="text-[14px] leading-5 font-bold text-[#0e0e12]">
-            {place.summary}
-          </h2>
+          {place.summary ? <h2 className="text-[14px] leading-5 font-bold text-[#0e0e12]">{place.summary}</h2> : null}
           <div className="mt-6 text-[13px] leading-[18px] text-[#6e707a]">
-            <p>영업시간 {place.businessHours}</p>
+            {place.businessHours ? <p>영업시간 {place.businessHours}</p> : null}
             <p>{place.address}</p>
           </div>
           {actionMessage || storeError ? (
@@ -129,12 +151,6 @@ export function PlaceDetailScreen({ placeId }: PlaceDetailScreenProps) {
           >
             {isSaving ? "처리 중..." : isSaved ? "저장 취소" : "장소 저장"}
           </button>
-          <Link
-            href={`/place/${encodeURIComponent(place.id)}/recommendations`}
-            className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-[#0e0e12] text-[14px] font-bold text-white"
-          >
-            이 장소에 맞는 제품 보기
-          </Link>
         </LuxuryReveal>
       </div>
     </MobileScreenLayout>

@@ -9,6 +9,7 @@ import type {
   OccasionTag,
   PageQuery,
   PlaceCategory,
+  StylePlanSliderContext,
   StylePlanSummary,
   StyleTag,
 } from "@/types/api";
@@ -24,13 +25,15 @@ type AiJobRequest =
     }
   | {
       type: "STYLE_PLAN";
-      context: {
-        occasion: OccasionTag;
-        styleTags: StyleTag[];
-        weatherCondition: string | null;
-        prioritizeOwnedItems: boolean;
-        language: "ko";
-      };
+      context:
+        | StylePlanSliderContext
+        | {
+            occasion: OccasionTag;
+            styleTags: StyleTag[];
+            weatherCondition: string | null;
+            prioritizeOwnedItems: boolean;
+            language: "ko";
+          };
     };
 
 type CreateStylePlanRequest = {
@@ -93,12 +96,34 @@ export const aiJobPollingPolicy = {
   maxAttempts: 15,
 } as const;
 
+function validateStylePlanRequest(body: AiJobRequest) {
+  if (body.type !== "STYLE_PLAN") {
+    return;
+  }
+
+  const context = body.context;
+
+  if ("styleTags" in context) {
+    if (context.styleTags.length < 1 || context.styleTags.length > 4) {
+      throw new Error("STYLE_PLAN styleTags는 1~4개여야 합니다.");
+    }
+    return;
+  }
+
+  const levels = [context.casualFormalLevel, context.neatGlamorousLevel];
+  if (levels.some((level) => !Number.isInteger(level) || level < 1 || level > 10)) {
+    throw new Error("STYLE_PLAN 스타일 강도는 두 축 모두 1~10 정수여야 합니다.");
+  }
+}
+
 export const intelligenceApi = {
-  createAiJob: (body: AiJobRequest, idempotencyKey: string) =>
-    api.post<ApiSuccessResponse<AiJobAccepted>>("/ai-jobs", body, {
+  createAiJob: (body: AiJobRequest, idempotencyKey: string) => {
+    validateStylePlanRequest(body);
+    return api.post<ApiSuccessResponse<AiJobAccepted>>("/ai-jobs", body, {
       headers: { "Idempotency-Key": idempotencyKey },
       timeout: 20_000,
-    }),
+    });
+  },
 
   getAiJob: (jobId: string, signal?: AbortSignal) =>
     api.get<ApiSuccessResponse<AiJob>>(`/ai-jobs/${jobId}`, { signal }),
@@ -135,6 +160,12 @@ export const intelligenceApi = {
 
   searchPlaces: (params: PlaceSearchQuery) =>
     api.get<ApiSuccessResponse<{ items: ApiPlace[] }>>("/places", { params }),
+
+  getPlace: (placeId: string, signal?: AbortSignal) =>
+    api.get<ApiSuccessResponse<ApiPlace>>(
+      `/places/${encodeURIComponent(placeId)}`,
+      { signal },
+    ),
 
   recommendPlaces: (
     stylePlanId: string,

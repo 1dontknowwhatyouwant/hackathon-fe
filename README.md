@@ -40,14 +40,12 @@ npm run dev
 ```env
 NEXT_PUBLIC_API_BASE_URL=/api
 BACKEND_API_ORIGIN=http://localhost:8080
-NEXT_PUBLIC_USE_API_MOCKS=true
 ```
 
 | 변수 | 설명 |
 | --- | --- |
 | `NEXT_PUBLIC_API_BASE_URL` | 브라우저가 호출할 API Prefix입니다. 운영·로컬 모두 `/api` 사용을 권장합니다. |
 | `BACKEND_API_ORIGIN` | Next.js가 `/api/**`를 전달할 백엔드 Origin입니다. 끝에 `/api`를 붙이지 않습니다. |
-| `NEXT_PUBLIC_USE_API_MOCKS` | `false`이면 구현된 화면에서 실제 API를 사용합니다. |
 
 `NEXT_PUBLIC_` 변수는 브라우저 번들에 노출됩니다. JWT Secret, OAuth Secret, Cloudinary Secret, Kakao REST Key, DB 비밀번호를 넣지 않습니다.
 
@@ -56,7 +54,6 @@ NEXT_PUBLIC_USE_API_MOCKS=true
 ```env
 NEXT_PUBLIC_API_BASE_URL=/api
 BACKEND_API_ORIGIN=https://api.example.com
-NEXT_PUBLIC_USE_API_MOCKS=false
 ```
 
 Next.js rewrite 흐름:
@@ -99,6 +96,8 @@ FRONTEND_REAUTHENTICATION_SUCCESS_URL=https://frontend.vercel.app/account/reauth
 - Refresh Token Cookie 이름은 `refresh_token`, Path는 `/api/auth`, 운영에서는 `Secure`입니다.
 - 인증 관련 민감 POST는 Backend Trusted Origin 검증 대상입니다.
 - 로그아웃은 `POST /auth/logout` 성공 여부와 무관하게 로컬 세션을 정리합니다.
+- LOCAL 자격 증명이 있는 계정만 `PATCH /users/me/password`로 비밀번호를 변경하며 성공 후 로그인 상태를 유지합니다.
+- 전역 알림·마케팅 설정은 `GET/PATCH /users/me/notification-settings`의 네 boolean 전체를 기준으로 동기화합니다.
 
 ### OAuth
 
@@ -141,8 +140,11 @@ GET /auth/oauth/{provider}
 | 이미지 | `POST /image-assets`, `PUT /my-items/{itemId}/images/{imageAssetId}` |
 | AI Job | `POST /ai-jobs`, `GET /ai-jobs/{jobId}` |
 | 구매 활용성 | `PURCHASE_UTILITY` Job 후 `GET /purchase-utility-analyses/{analysisId}` |
-| 장소 | `GET /places`, StylePlan 장소 추천·저장 API |
+| 사용자 설정 | `PATCH /users/me/password`, `GET/PATCH /users/me/notification-settings` |
+| 장소 | `GET /places`, `GET /places/{placeId}`, StylePlan 장소 추천·저장 API |
 | 홈 | `GET /home` |
+
+STYLE_PLAN의 새 슬라이더 UI는 `casualFormalLevel`과 `neatGlamorousLevel`을 함께 1~10 정수로 보내며 `styleTags`는 빈 배열이 아니라 필드 자체를 생략합니다. AI Polling은 2초 간격, 최대 30초입니다.
 
 현재 호출하지 않는 경로:
 
@@ -251,9 +253,15 @@ Backend Kakao Local 후보 조회
 | `/recommendations/[productId]` | 제품 상세 |
 | `/recommendations/[productId]/value-check` | 구매 전 활용 가능성 |
 | `/items`, `/items/new`, `/items/analysis` | 마이 아이템 |
+| `/items/[itemId]/passport` | 실제 내 아이템 제품 패스포트 |
+| `/wishlist` | 찜한 제품 |
 | `/place` | 장소 추천·지도 |
 | `/care/guide`, `/care/calendar` | 관리 가이드·캘린더 |
 | `/my` | 마이페이지·로그아웃 |
+| `/my/settings` | 계정 설정 |
+| `/my/settings/password` | 비밀번호 변경 |
+| `/my/settings/notifications` | 알림·마케팅 설정 |
+| `/my/settings/profile` | 프로필·저장된 취향 변경 |
 | `/my/account-deletion` | 재인증·회원 탈퇴 |
 | `/account/reauthentication/success` | 소셜 재인증 완료 |
 
@@ -263,13 +271,13 @@ Backend Kakao Local 후보 조회
 src/
 ├─ app/                    # App Router 경로
 ├─ components/             # 도메인 화면과 공통 UI
-├─ data/                   # API Mock 데이터
 ├─ lib/                    # Axios와 공통 오류 처리
 ├─ services/
 │  ├─ api/                 # 순수 Endpoint 호출
 │  ├─ aiJobPolling.ts      # AI Job Polling
 │  ├─ itemRegistrationWorkflow.ts
-│  └─ purchaseUtilityWorkflow.ts
+│  ├─ purchaseUtilityWorkflow.ts
+│  └─ stylePlanWorkflow.ts # STYLE_PLAN 생성·Polling
 ├─ store/                  # Zustand 상태
 └─ types/                  # API DTO와 화면 타입
 ```

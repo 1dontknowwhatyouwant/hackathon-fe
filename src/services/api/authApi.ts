@@ -6,6 +6,7 @@ import type {
   EmailVerificationPurpose,
   LoginRequest,
   OAuthProvider,
+  PasswordChangeRequest,
   SocialSignupRequest,
   SignupRequest,
 } from "@/types/api";
@@ -68,6 +69,9 @@ export const authApi = {
 
   login: (body: LoginRequest) =>
     api.post<ApiSuccessResponse<AuthTokenData>>("/auth/login", body),
+
+  changePassword: (body: PasswordChangeRequest) =>
+    api.patch<void>("/users/me/password", body),
 
   reauthenticateForAccountDeletion: (password: string) =>
     api.post<void>("/auth/reauthentications", { password }),

@@ -1,109 +1,37 @@
-import { DetailActionCard } from "@/components/common/card/DetailActionCard";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
-import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
-import { BottomNavigation } from "@/components/common/navigation/BottomNavigation";
+import { BackButton } from "@/components/common/navigation/BackButton";
 import { ScreenHeader } from "@/components/common/section/ScreenHeader";
-import { dummyCareCalendar, dummyCareGuide } from "@/data/closetCare";
+import { backendApi } from "@/services/api";
+import type { CareCalendar } from "@/types/api";
 
-const weekdayLabels = ["S", "M", "T", "W", "T", "F", "S"];
-const visibleDays = Array.from({ length: 28 }, (_, index) => index + 1);
+type CareScheduleScreenProps = { itemId?: string };
 
-function differenceInDays(from: string, to: string | null) {
-  if (!to) {
-    return null;
-  }
+export function CareScheduleScreen({ itemId }: CareScheduleScreenProps) {
+  const month = useMemo(() => new Date().toISOString().slice(0, 7), []);
+  const [calendar, setCalendar] = useState<CareCalendar | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const millisecondsPerDay = 24 * 60 * 60 * 1000;
-  return Math.max(
-    0,
-    Math.round((new Date(to).getTime() - new Date(from).getTime()) / millisecondsPerDay),
-  );
-}
+  useEffect(() => {
+    if (!itemId) return;
+    void backendApi.closet.getCareCalendar(itemId, month)
+      .then((response) => setCalendar(response.data.data))
+      .catch(() => setError("관리 캘린더를 불러오지 못했습니다."));
+  }, [itemId, month]);
 
-export function CareScheduleScreen() {
-  const daysUntilCare = differenceInDays(
-    dummyCareCalendar.referenceDate,
-    dummyCareGuide.schedule.recommendedNextCareAt,
-  );
+  const entries = calendar ? Object.entries(calendar).filter(([key, value]) => !["myItemId", "month", "available"].includes(key) && value !== null && value !== undefined) : [];
 
   return (
-    <MobileScreenLayout
-      figmaNodeId="96:536"
-      contentClassName="bg-white px-6 pt-[47px] pb-[102px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      bottomNavigation={<BottomNavigation activeItem="home" />}
-    >
-      <LuxuryReveal>
-        <ScreenHeader
-          eyebrow="REMINDER"
-          title="관리 캘린더"
-          description={
-            daysUntilCare === null
-              ? "다음 클리닝 일정을 계산 중이에요"
-              : `다음 클리닝까지 D-${daysUntilCare}`
-          }
-        />
-      </LuxuryReveal>
-
-      <LuxuryReveal className="mt-[31px]" delay={70}>
-        <section
-          aria-labelledby="care-calendar-title"
-          className="h-[308px] rounded-[20px] border border-[#dedee2] bg-[#f8f8f9] px-5 pt-6"
-        >
-          <h2
-            id="care-calendar-title"
-            className="text-center text-[14px] leading-[17px] font-bold text-[#15151a]"
-          >
-            {dummyCareCalendar.monthLabel}
-          </h2>
-
-          <div
-            aria-hidden="true"
-            className="mt-[19px] grid grid-cols-7 text-center text-[11px] leading-[13px] font-bold text-[#9999a1]"
-          >
-            {weekdayLabels.map((label, index) => (
-              <span key={`${label}-${index}`}>{label}</span>
-            ))}
-          </div>
-
-          <ol
-            aria-label={`${dummyCareCalendar.monthLabel} 관리 일정`}
-            className="mt-[12px] grid grid-cols-7 gap-y-3"
-          >
-            {visibleDays.map((day) => {
-              const isHighlighted = day === dummyCareCalendar.highlightedDay;
-
-              return (
-                <li
-                  key={day}
-                  aria-label={isHighlighted ? `${day}일 관리 일정 있음` : `${day}일`}
-                  className="flex h-[34px] items-center justify-center text-[12px] text-[#55555d]"
-                >
-                  <span
-                    className={
-                      isHighlighted
-                        ? "flex size-[34px] items-center justify-center rounded-full bg-[#bdbdbd] text-transparent"
-                        : undefined
-                    }
-                  >
-                    {day}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-      </LuxuryReveal>
-
-      <LuxuryReveal className="mt-[34px]" delay={130}>
-        <section aria-label="관리 일정 목록" className="space-y-5">
-          {dummyCareCalendar.reminders.map((reminder) => (
-            <DetailActionCard
-              key={reminder.id}
-              title={`${reminder.dateLabel} ${reminder.title}`}
-            />
-          ))}
-        </section>
-      </LuxuryReveal>
+    <MobileScreenLayout contentClassName="bg-white px-6 pt-4 pb-10">
+      <BackButton />
+      <div className="mt-5"><ScreenHeader eyebrow="REMINDER" title="관리 캘린더" description={`${month} 소재별 관리 일정`} /></div>
+      {!itemId ? <p className="mt-8 rounded-[16px] border border-[#dedee2] px-5 py-8 text-center text-[13px] text-[#777780]">내 아이템 상세에서 관리할 제품을 선택해 주세요.</p> : null}
+      {itemId && !calendar && !error ? <p className="mt-8 text-center text-[12px] text-[#777780]">관리 일정을 불러오는 중입니다.</p> : null}
+      {error ? <p role="alert" className="mt-8 rounded-[14px] bg-[#f8eeee] px-4 py-3 text-[12px] text-[#9a4545]">{error}</p> : null}
+      {calendar ? <section className="mt-8 space-y-4">{!calendar.available ? <p className="rounded-[16px] bg-[#f8f8f9] px-5 py-8 text-center text-[13px] text-[#777780]">구매일 또는 소재 정보가 없어 일정을 계산할 수 없습니다.</p> : null}{entries.map(([key, value]) => <div key={key} className="rounded-[16px] border border-[#dedee2] bg-[#f8f8f9] px-4 py-4"><p className="text-[10px] font-bold text-[#8b7355]">{key}</p><p className="mt-2 whitespace-pre-wrap text-[13px] leading-5 text-[#35353b]">{typeof value === "string" ? value : JSON.stringify(value, null, 2)}</p></div>)}</section> : null}
     </MobileScreenLayout>
   );
 }

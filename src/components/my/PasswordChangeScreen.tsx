@@ -7,12 +7,27 @@ import { PiCheckCircleFill, PiEyeBold, PiEyeSlashBold } from "react-icons/pi";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BackButton } from "@/components/common/navigation/BackButton";
+import {
+  getApiErrorCode,
+  getApiErrorMessage,
+  getApiFieldErrors,
+} from "@/lib/apiError";
+import { backendApi } from "@/services/api";
 
 type PasswordStep = "FORM" | "CONFIRM" | "COMPLETE";
 type PasswordField = "current" | "next" | "confirm";
 
-const useApiMocks = process.env.NEXT_PUBLIC_USE_API_MOCKS !== "false";
 const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{8,64}$/;
+const passwordErrorFieldByCode: Record<string, PasswordField> = {
+  CURRENT_PASSWORD_MISMATCH: "current",
+  NEW_PASSWORD_SAME_AS_CURRENT: "next",
+  PASSWORD_CONFIRM_MISMATCH: "confirm",
+};
+const passwordRequestFieldMap: Record<string, PasswordField | undefined> = {
+  currentPassword: "current",
+  newPassword: "next",
+  newPasswordConfirm: "confirm",
+};
 
 type PasswordFieldProps = {
   id: PasswordField;
@@ -140,13 +155,11 @@ export function PasswordChangeScreen() {
     setSubmitError(null);
 
     try {
-      if (useApiMocks) {
-        await new Promise((resolve) => window.setTimeout(resolve, 450));
-      } else {
-        // TODO(API): API v0.4에 비밀번호 변경 엔드포인트가 확정되면
-        // currentPassword/newPassword를 이 지점에서 전송합니다. 비밀번호는 저장소에 보관하지 않습니다.
-        throw new Error("비밀번호 변경 API가 아직 확정되지 않았습니다.");
-      }
+      await backendApi.auth.changePassword({
+        currentPassword,
+        newPassword,
+        newPasswordConfirm: passwordConfirm,
+      });
 
       setCurrentPassword("");
       setNewPassword("");
@@ -154,11 +167,44 @@ export function PasswordChangeScreen() {
       setStep("COMPLETE");
     } catch (error) {
       setStep("FORM");
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : "비밀번호를 변경하지 못했습니다. 다시 시도해 주세요.",
-      );
+      const errorCode = getApiErrorCode(error);
+      const errorField = errorCode
+        ? passwordErrorFieldByCode[errorCode]
+        : undefined;
+
+      if (errorField) {
+        setErrors({
+          [errorField]: getApiErrorMessage(
+            error,
+            "입력한 비밀번호를 다시 확인해 주세요.",
+          ),
+        });
+      } else if (errorCode === "VALIDATION_ERROR") {
+        const fieldErrors = getApiFieldErrors(error).reduce<
+          Partial<Record<PasswordField, string>>
+        >((result, fieldError) => {
+          const field = passwordRequestFieldMap[fieldError.field];
+          if (field) {
+            result[field] = fieldError.reason;
+          }
+          return result;
+        }, {});
+
+        if (Object.keys(fieldErrors).length > 0) {
+          setErrors(fieldErrors);
+        } else {
+          setSubmitError("입력한 비밀번호 형식을 다시 확인해 주세요.");
+        }
+      } else if (errorCode === "PASSWORD_CHANGE_NOT_AVAILABLE") {
+        setSubmitError("소셜 전용 계정은 비밀번호를 변경할 수 없어요.");
+      } else {
+        setSubmitError(
+          getApiErrorMessage(
+            error,
+            "비밀번호를 변경하지 못했습니다. 다시 시도해 주세요.",
+          ),
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -173,7 +219,7 @@ export function PasswordChangeScreen() {
             비밀번호를 변경할까요?
           </h1>
           <p className="mt-2 text-[13px] leading-5 text-[#6e707a]">
-            변경 후에는 새 비밀번호로 로그인해 주세요.
+            변경 후에도 현재 로그인 상태는 그대로 유지돼요.
           </p>
         </LuxuryReveal>
 
@@ -208,7 +254,7 @@ export function PasswordChangeScreen() {
             비밀번호 변경 완료
           </h1>
           <p className="mt-2 text-[13px] leading-5 text-[#6e707a]">
-            새로운 비밀번호로 안전하게 변경했어요.
+            현재 로그인 상태는 유지되며 다음 로그인부터 새 비밀번호를 사용해 주세요.
           </p>
         </LuxuryReveal>
         <button

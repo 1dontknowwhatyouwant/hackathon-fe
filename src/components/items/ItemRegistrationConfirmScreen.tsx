@@ -21,8 +21,6 @@ import { useItemRegistrationStore } from "@/store/useItemRegistrationStore";
 import { useMenuDataStore } from "@/store/useMenuDataStore";
 import type { ItemCategory } from "@/types/api";
 
-const useApiMocks = process.env.NEXT_PUBLIC_USE_API_MOCKS !== "false";
-
 const categories: ReadonlyArray<{ value: ItemCategory; label: string }> = [
   { value: "BAG", label: "가방" },
   { value: "LEATHER_GOODS", label: "가죽 소품" },
@@ -98,7 +96,6 @@ export function ItemRegistrationConfirmScreen() {
     (state) => state.clearPendingImageUpload,
   );
   const resetDraft = useItemRegistrationStore((state) => state.resetDraft);
-  const createPreviewItem = useMenuDataStore((state) => state.createItem);
   const addCreatedItem = useMenuDataStore((state) => state.addCreatedItem);
   const updateItemImage = useMenuDataStore((state) => state.updateItemImage);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -157,30 +154,6 @@ export function ItemRegistrationConfirmScreen() {
     const colorPresentation = getColorPresentation(primaryColor);
 
     try {
-      if (useApiMocks) {
-        const createdItem = await createPreviewItem({
-          name: normalizedName,
-          brandName: draft.brandName.trim() || null,
-          category: getCategoryLabel(draft.category),
-          color: colorPresentation.label,
-          colorHex: colorPresentation.hex,
-          material,
-          purchaseDate: draft.purchaseDate || null,
-          purchasePrice: draft.purchasePrice
-            ? Number(draft.purchasePrice)
-            : null,
-          memo: draft.memo.trim() || null,
-          imageUrl: photoPreviewUrl ?? undefined,
-        });
-        markItemCreated(createdItem.id);
-        if (photoPreviewUrl) {
-          updateItemImage(createdItem.id, photoPreviewUrl);
-        }
-        clearPendingImageUpload();
-        moveToItems(createdItem.id);
-        return;
-      }
-
       const response = await backendApi.closet.createItem({
         productId: null,
         name: normalizedName,

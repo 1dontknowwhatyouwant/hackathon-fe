@@ -160,6 +160,25 @@ Response data:
 
 OAuth Access Token은 URL Query/Fragment로 전달하지 않습니다.
 
+### 비밀번호 변경
+
+```text
+LOCAL 자격 증명 보유 계정 → PATCH /users/me/password
+성공                    → 204 No Content, 기존 Access/Refresh Token 유지
+소셜 전용 계정          → 409 PASSWORD_CHANGE_NOT_AVAILABLE
+```
+
+- Request는 `currentPassword`, `newPassword`, `newPasswordConfirm`을 모두 보냅니다.
+- 새 비밀번호는 trim하지 않으며 영문·숫자를 포함한 8~64자입니다.
+- 오류 문구가 아닌 `CURRENT_PASSWORD_MISMATCH`, `PASSWORD_CONFIRM_MISMATCH`, `NEW_PASSWORD_SAME_AS_CURRENT` code로 필드를 매핑합니다.
+
+### 사용자 알림·마케팅 설정
+
+- 조회: `GET /users/me/notification-settings`
+- 저장: `PATCH /users/me/notification-settings`
+- `careReminderEnabled`, `recommendationUpdateEnabled`, `marketingPushEnabled`, `emailMarketingEnabled` 네 필드는 PATCH에도 모두 필수입니다.
+- 특정 아이템의 `/my-items/{myItemId}/care-reminder-setting`과 구분합니다.
+
 Social signup Request:
 
 ```json
@@ -201,6 +220,8 @@ SOCIAL → GET /auth/oauth/{provider}/reauthentication
 | Auth | POST | `/auth/refresh` | 200 |
 | Auth | POST | `/auth/logout` | 204 |
 | User | GET·PATCH·DELETE | `/users/me` | 200·204 |
+| User | PATCH | `/users/me/password` | 204 |
+| User Settings | GET·PATCH | `/users/me/notification-settings` | 200 |
 | Preference | GET·PUT | `/preferences` | 200 |
 | Product | GET | `/products`, `/products/{productId}` | 200 |
 | Wishlist | GET | `/wishlists` | 200 |
@@ -226,7 +247,7 @@ SOCIAL → GET /auth/oauth/{provider}/reauthentication
 | Purchase Utility | GET | `/purchase-utility-analyses/{analysisId}` | 200 |
 | StylePlan | POST·GET | `/style-plans` | 201·200 |
 | StylePlan | GET·PATCH·DELETE | `/style-plans/{stylePlanId}` | 200·204 |
-| Place | GET | `/places`, `/places/saved` | 200 |
+| Place | GET | `/places`, `/places/{placeId}`, `/places/saved` | 200 |
 | Saved Place | PUT·DELETE | `/places/{placeId}/saved` | 200·204 |
 | Place Recommendation | POST | `/style-plans/{stylePlanId}/place-recommendations` | 200 |
 | Home | GET | `/home` | 200 |
@@ -243,7 +264,20 @@ FEATURE: COMPACT, SPACIOUS, MULTIWAY
 
 AiJobType: ITEM_ANALYSIS, PURCHASE_UTILITY, STYLE_PLAN
 AiJobStatus: PENDING, PROCESSING, SUCCEEDED, FAILED
+TermsType: SERVICE_TERMS, PRIVACY_POLICY, EMAIL_MARKETING, PUSH_MARKETING
 ```
+
+STYLE_PLAN 슬라이더 context:
+
+```text
+occasion: 필수
+casualFormalLevel: 1~10 정수
+neatGlamorousLevel: 1~10 정수
+prioritizeOwnedItems: 필수
+language: ko
+```
+
+두 스타일 강도는 항상 함께 보내며 슬라이더 방식에서는 `styleTags`를 생략합니다. `styleTags: []`는 보내지 않습니다. `POST /ai-jobs`의 `Idempotency-Key`와 2초 간격·최대 30초 Polling 정책은 그대로 유지합니다.
 
 ## 제품·홈 응답 주의
 

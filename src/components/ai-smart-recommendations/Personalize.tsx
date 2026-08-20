@@ -7,45 +7,21 @@ import Button from "@/components/common/button/Button";
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BackButton } from "@/components/common/navigation/BackButton";
+import { personalizeTagsStorageKey } from "@/lib/stylePlanDraft";
+import { occasionTags, productTagLabels, type OccasionTag } from "@/types/api";
 
-const preferenceTags = [
-  "미니멀",
-  "스트릿",
-  "클래식",
-  "Y2K",
-  "전시",
-  "카페",
-  "여행",
-  "데이트",
-];
-
-const PERSONALIZE_STORAGE_KEY = "personalize:selected-tags";
+const preferenceTags = occasionTags;
 
 export function Personalize() {
   const router = useRouter();
-  const [selectedTags, setSelectedTags] = useState<string[]>([
-    "미니멀",
-    "전시",
-  ]);
+  const [selectedTags, setSelectedTags] = useState<OccasionTag[]>([]);
   const selectedTagSet = useMemo(() => new Set(selectedTags), [selectedTags]);
 
-  const handleToggleTag = (tag: string) => {
-    setSelectedTags((current) => {
-      if (current.includes(tag)) {
-        return current.filter((item) => item !== tag);
-      }
-
-      if (current.length >= 3) {
-        return current;
-      }
-
-      return [...current, tag];
-    });
-  };
+  const handleToggleTag = (tag: OccasionTag) => setSelectedTags((current) => current.includes(tag) ? [] : [tag]);
 
   const handleComplete = () => {
     window.localStorage.setItem(
-      PERSONALIZE_STORAGE_KEY,
+      personalizeTagsStorageKey,
       JSON.stringify(selectedTags),
     );
     router.push("/personalize/condition");
@@ -68,7 +44,7 @@ export function Personalize() {
           좋아하는 무드는?
         </h1>
         <p className="mt-2 text-[13px] font-normal leading-none text-[#777780]">
-          최대 3개를 선택해 주세요
+          오늘의 상황을 하나 선택해 주세요
         </p>
       </LuxuryReveal>
 
@@ -86,7 +62,7 @@ export function Personalize() {
                   : "border-[#bfc3cc] bg-white text-[#55555d]"
               }`}
             >
-              {tag}
+              {productTagLabels.occasion[tag]}
             </button>
           ))}
         </section>
@@ -109,6 +85,7 @@ export function Personalize() {
             variant="cta"
             type="button"
             onClick={handleComplete}
+            disabled={selectedTags.length === 0}
             className="w-full"
           >
             선택 완료

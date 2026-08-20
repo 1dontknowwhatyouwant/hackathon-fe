@@ -14,7 +14,7 @@ import { ScreenHeader } from "@/components/common/section/ScreenHeader";
 import { useItemRegistrationStore } from "@/store/useItemRegistrationStore";
 import { useMenuDataStore } from "@/store/useMenuDataStore";
 
-const categoryFilters = ["전체", "상의", "하의", "아우터", "신발", "가방"] as const;
+const categoryFilters = ["전체", "가방", "가죽 소품", "패션 액세서리", "의류", "신발"] as const;
 
 type CategoryFilter = (typeof categoryFilters)[number];
 

@@ -3,14 +3,9 @@
 import { create } from "zustand";
 
 import { backendApi } from "@/services/api";
-import {
-  dummyClosetItems,
-  dummyUser,
-} from "@/data/menuPageDummies";
 import { useAuthStore, type UserInfo } from "@/store/useAuthStore";
 import type {
   ClosetItem,
-  ItemCreateInput,
   ItemUpdateInput,
 } from "@/types/menu";
 import type {
@@ -18,8 +13,6 @@ import type {
   MyItemDetail,
   MyItemSummary,
 } from "@/types/api";
-
-const useApiMocks = process.env.NEXT_PUBLIC_USE_API_MOCKS !== "false";
 
 const itemCategoryLabels: Record<ItemCategory, string> = {
   BAG: "가방",
@@ -83,7 +76,6 @@ type MenuDataState = {
   loadItems: () => Promise<void>;
   loadItem: (itemId: string) => Promise<ClosetItem | null>;
   loadProfile: () => Promise<void>;
-  createItem: (input: ItemCreateInput) => Promise<ClosetItem>;
   updateItem: (
     itemId: string,
     input: ItemUpdateInput,
@@ -93,8 +85,8 @@ type MenuDataState = {
 };
 
 export const useMenuDataStore = create<MenuDataState>((set, get) => ({
-  items: useApiMocks ? dummyClosetItems : [],
-  profile: useApiMocks ? dummyUser : null,
+  items: [],
+  profile: null,
   isLoading: false,
   error: null,
 
@@ -102,25 +94,8 @@ export const useMenuDataStore = create<MenuDataState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      if (!useApiMocks) {
-        const response = await backendApi.closet.getItems();
-        set({ items: response.data.data.items.map(mapApiItemToClosetItem) });
-        return;
-      }
-
-      set((state) => {
-        const currentItems = new Map(
-          state.items.map((item) => [item.id, item] as const),
-        );
-        const previewItems = state.items.filter((item) =>
-          item.id.startsWith("preview-"),
-        );
-        const mockItems = dummyClosetItems.map(
-          (item) => currentItems.get(item.id) ?? item,
-        );
-
-        return { items: [...previewItems, ...mockItems] };
-      });
+      const response = await backendApi.closet.getItems();
+      set({ items: response.data.data.items.map(mapApiItemToClosetItem) });
     } catch {
       set({ error: "아이템을 불러오지 못했습니다." });
     } finally {
@@ -132,22 +107,10 @@ export const useMenuDataStore = create<MenuDataState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      if (!useApiMocks) {
-        const response = await backendApi.closet.getItem(itemId);
-        const item = mapApiItemDetailToClosetItem(response.data.data);
-        set((state) => ({ items: replaceItem(state.items, item) }));
-        return item;
-      }
-
-      const stateItem = get().items.find((item) => item.id === itemId);
-      const item =
-        stateItem ?? dummyClosetItems.find((candidate) => candidate.id === itemId);
-
-      if (item) {
-        set((state) => ({ items: replaceItem(state.items, item) }));
-      }
-
-      return item ?? null;
+      const response = await backendApi.closet.getItem(itemId);
+      const item = mapApiItemDetailToClosetItem(response.data.data);
+      set((state) => ({ items: replaceItem(state.items, item) }));
+      return item;
     } catch {
       set({ error: "아이템 정보를 불러오지 못했습니다." });
       return null;
@@ -160,46 +123,12 @@ export const useMenuDataStore = create<MenuDataState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      if (!useApiMocks) {
-        const response = await backendApi.profile.getMe();
-        const user = response.data.data;
-        useAuthStore.getState().setUser(user);
-        set({ profile: user });
-        return;
-      }
-
-      const storedUser = useAuthStore.getState().user;
-      set({ profile: storedUser ?? dummyUser });
+      const response = await backendApi.profile.getMe();
+      const user = response.data.data;
+      useAuthStore.getState().setUser(user);
+      set({ profile: user });
     } catch {
       set({ error: "사용자 정보를 불러오지 못했습니다." });
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  createItem: async (input) => {
-    set({ isLoading: true, error: null });
-
-    try {
-      // 백엔드 연결 시 아래 호출 결과를 items에 추가합니다.
-      // const response = await backendApi.closet.createItem(toCreateMyItemRequest(input));
-      // const createdItem = await loadCreatedItem(response.data.data.myItemId);
-      const createdItem: ClosetItem = {
-        ...input,
-        id: `preview-${Date.now()}`,
-        colorHex: input.colorHex ?? "#d7cec2",
-        brandName: input.brandName ?? null,
-        material: input.material ?? "미입력",
-        purchaseDate: input.purchaseDate ?? null,
-        purchasePrice: input.purchasePrice ?? null,
-        memo: input.memo ?? null,
-      };
-
-      set((state) => ({ items: [createdItem, ...state.items] }));
-      return createdItem;
-    } catch (error) {
-      set({ error: "아이템을 등록하지 못했습니다." });
-      throw error;
     } finally {
       set({ isLoading: false });
     }
@@ -211,37 +140,18 @@ export const useMenuDataStore = create<MenuDataState>((set, get) => ({
     try {
       const currentItem = get().items.find((item) => item.id === itemId);
 
-      if (!useApiMocks) {
-        let version = currentItem?.version;
+      let version = currentItem?.version;
 
-        if (version === undefined) {
-          const detailResponse = await backendApi.closet.getItem(itemId);
-          version = detailResponse.data.data.version;
-        }
-
-        const response = await backendApi.closet.updateItem(itemId, {
-          ...input,
-          version,
-        });
-        const updatedItem = mapApiItemDetailToClosetItem(response.data.data);
-        set((state) => ({ items: replaceItem(state.items, updatedItem) }));
-        return updatedItem;
+      if (version === undefined) {
+        const detailResponse = await backendApi.closet.getItem(itemId);
+        version = detailResponse.data.data.version;
       }
 
-      const fallbackItem = dummyClosetItems.find((item) => item.id === itemId);
-      const sourceItem = currentItem ?? fallbackItem;
-
-      if (!sourceItem) {
-        throw new Error("수정할 아이템을 찾을 수 없습니다.");
-      }
-
-      const updatedItem: ClosetItem = {
-        ...sourceItem,
+      const response = await backendApi.closet.updateItem(itemId, {
         ...input,
-        category: itemCategoryLabels[input.category],
-        version: (sourceItem.version ?? 0) + 1,
-      };
-
+        version,
+      });
+      const updatedItem = mapApiItemDetailToClosetItem(response.data.data);
       set((state) => ({ items: replaceItem(state.items, updatedItem) }));
       return updatedItem;
     } catch (error) {
