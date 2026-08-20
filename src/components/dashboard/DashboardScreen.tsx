@@ -243,7 +243,7 @@ function ProductRowCard({
       className="flex h-[72px] items-center gap-3 rounded-[18px] border border-[#e5e2de] bg-[#faf9f7] px-[14px] transition-transform active:scale-[0.99]"
     >
       <div
-        className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-[14px] bg-[#ece6dc] bg-cover bg-center"
+        className="flex size-[52px] shrink-0 items-center justify-center rounded-[15px] bg-[#ece6dc] bg-cover bg-center"
         style={imageUrl ? { backgroundImage: `url("${imageUrl}")` } : undefined}
       />
       <div className="min-w-0 flex-1">
