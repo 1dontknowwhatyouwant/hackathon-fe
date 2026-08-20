@@ -1,3 +1,5 @@
+import type { ItemCategory } from "@/types/api";
+
 export type ClosetItem = {
   id: string;
   name: string;
@@ -10,6 +12,8 @@ export type ClosetItem = {
   purchaseDate: string | null;
   purchasePrice: number | null;
   memo: string | null;
+  createdAt?: string;
+  version?: number;
 };
 
 export type ItemCreateInput = Pick<
@@ -23,4 +27,12 @@ export type ItemCreateInput = Pick<
   purchaseDate?: string | null;
   purchasePrice?: number | null;
   memo?: string | null;
+};
+
+export type ItemUpdateInput = {
+  name: string;
+  brandName: string | null;
+  category: ItemCategory;
+  purchaseDate: string | null;
+  memo: string | null;
 };

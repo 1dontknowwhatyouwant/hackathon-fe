@@ -4,7 +4,7 @@ import { ImageGridCard, ImageGridSkeleton } from "@/components/common/card/Image
 import type { HomeData } from "@/types/api";
 
 type HomePreferenceProductsProps = {
-  products: HomeData["preferenceProducts"];
+  products: HomeData["recommendedProducts"];
   isLoading?: boolean;
 };
 
@@ -34,7 +34,7 @@ export function HomePreferenceProducts({
           <Link href={`/recommendations/${product.productId}`}>
             <ImageGridCard
               title={product.name}
-              subtitle={`취향 일치 ${product.preferenceMatchScore}점`}
+              subtitle={`추천 일치 ${product.matchScore}점`}
               imageAlt={`${product.name} 제품 이미지`}
               imageUrl={product.primaryImageUrl ?? undefined}
               fallbackLabel="MCM"

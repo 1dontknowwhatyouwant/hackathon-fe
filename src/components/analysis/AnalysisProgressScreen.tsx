@@ -167,13 +167,13 @@ export function AnalysisProgressScreen() {
 
       progressAnimation.stop();
       if (outcome.status === "FAILED") {
-        failAnalysis(outcome.message);
+        failAnalysis(outcome.message, outcome.image);
         setResultMessage(outcome.message);
         setResultStatus("FAILED");
         return;
       }
 
-      applyAnalysis(outcome.values, outcome.jobId);
+      applyAnalysis(outcome.values, outcome.jobId, outcome.image);
       progressAnimation = animate(progress, 100, {
         duration: prefersReducedMotion ? 0.01 : 0.45,
         ease: [0.22, 1, 0.36, 1],
@@ -278,7 +278,7 @@ export function AnalysisProgressScreen() {
             <button
               type="button"
               className="flex h-[52px] w-full items-center justify-center rounded-[16px] bg-[#15151a] text-[15px] font-bold text-white"
-              onClick={() => router.push("/items/new")}
+              onClick={() => router.push("/items/new/confirm")}
             >
               {isComplete ? "분석 결과 확인하고 등록하기" : "직접 입력해서 등록하기"}
             </button>

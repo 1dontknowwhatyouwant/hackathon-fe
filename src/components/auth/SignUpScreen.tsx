@@ -212,7 +212,7 @@ export function SignUpScreen() {
     try {
       await authApi.sendEmailVerification(normalizedEmail);
       setEmailCodeSent(true);
-      setNotice("인증번호를 발송했습니다. 5분 안에 입력해 주세요.");
+      setNotice("인증번호를 발송했습니다. 만료되기 전에 입력해 주세요.");
     } catch (sendError) {
       setError(
         getApiErrorMessage(sendError, "인증번호를 발송하지 못했습니다."),

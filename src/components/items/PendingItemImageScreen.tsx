@@ -88,7 +88,7 @@ export function PendingItemImageScreen() {
   if (!pendingImageUpload) {
     return (
       <MobileScreenLayout contentClassName="bg-white px-6 pt-[47px] pb-8">
-        <BackButton fallbackHref="/items" />
+        <BackButton />
         <div className="mt-6">
           <ScreenHeader
             eyebrow="IMAGE RETRY"
@@ -109,7 +109,7 @@ export function PendingItemImageScreen() {
   return (
     <MobileScreenLayout contentClassName="bg-white px-6 pt-[47px] pb-8">
       <LuxuryReveal>
-        <BackButton fallbackHref="/items" />
+        <BackButton />
       </LuxuryReveal>
       <LuxuryReveal className="mt-6" delay={40}>
         <ScreenHeader
@@ -130,7 +130,7 @@ export function PendingItemImageScreen() {
         >
           <input
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/jpeg,image/png"
             className="sr-only"
             onChange={(event) => void handleImageChange(event)}
           />

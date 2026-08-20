@@ -2,20 +2,26 @@
 
 import { create } from "zustand";
 
-import type { ItemCategory } from "@/types/api";
+import type {
+  ColorGroup,
+  ItemCategory,
+  MaterialGroup,
+} from "@/types/api";
 
 export type ItemAnalysisValues = {
+  name?: string;
+  brandName?: string;
   category: ItemCategory;
-  primaryColor: string;
-  material: string;
+  primaryColor: ColorGroup;
+  material: MaterialGroup;
 };
 
 export type ItemRegistrationDraft = {
   name: string;
   brandName: string;
   category: ItemCategory | "";
-  primaryColor: string;
-  material: string;
+  primaryColor: ColorGroup | "";
+  material: MaterialGroup | "";
   purchaseDate: string;
   purchasePrice: string;
   memo: string;
@@ -31,6 +37,11 @@ export type PendingItemImageUpload = {
 
 type AnalysisStatus = "IDLE" | "PROCESSING" | "SUCCEEDED" | "FAILED";
 
+type AnalyzedImageAsset = {
+  imageAssetId: string;
+  url: string;
+};
+
 type ItemRegistrationState = {
   draft: ItemRegistrationDraft;
   photoFile: File | null;
@@ -39,16 +50,21 @@ type ItemRegistrationState = {
   analysisStatus: AnalysisStatus;
   analysisMessage: string | null;
   aiJobId: string | null;
+  analysisImage: AnalyzedImageAsset | null;
   materialSource: "USER_CONFIRMED" | "AI_ESTIMATED";
   createdItemId: string | null;
   pendingImageUpload: PendingItemImageUpload | null;
   updateDraft: (patch: Partial<ItemRegistrationDraft>) => void;
-  updateMaterial: (material: string) => void;
+  updateMaterial: (material: MaterialGroup) => void;
   setPhoto: (file: File, previewUrl: string) => void;
   clearPhoto: () => void;
   startAnalysis: () => void;
-  applyAnalysis: (values: ItemAnalysisValues, aiJobId: string) => void;
-  failAnalysis: (message: string) => void;
+  applyAnalysis: (
+    values: ItemAnalysisValues,
+    aiJobId: string,
+    image: AnalyzedImageAsset,
+  ) => void;
+  failAnalysis: (message: string, image?: AnalyzedImageAsset | null) => void;
   markItemCreated: (myItemId: string) => void;
   markImageUploadPending: (myItemId: string) => void;
   setPendingImageFile: (file: File, previewUrl: string) => void;
@@ -94,6 +110,7 @@ export const useItemRegistrationStore = create<ItemRegistrationState>((set) => (
   analysisStatus: "IDLE",
   analysisMessage: null,
   aiJobId: null,
+  analysisImage: null,
   materialSource: "USER_CONFIRMED",
   createdItemId: null,
   pendingImageUpload: null,
@@ -116,6 +133,8 @@ export const useItemRegistrationStore = create<ItemRegistrationState>((set) => (
         state.analysisStatus === "SUCCEEDED"
           ? {
               ...state.draft,
+              name: "",
+              brandName: "",
               category: "",
               primaryColor: "",
               material: "",
@@ -127,6 +146,7 @@ export const useItemRegistrationStore = create<ItemRegistrationState>((set) => (
       analysisStatus: "IDLE",
       analysisMessage: null,
       aiJobId: null,
+      analysisImage: null,
       materialSource: "USER_CONFIRMED",
     })),
 
@@ -138,27 +158,30 @@ export const useItemRegistrationStore = create<ItemRegistrationState>((set) => (
       analysisStatus: "IDLE",
       analysisMessage: null,
       aiJobId: null,
+      analysisImage: null,
       materialSource: "USER_CONFIRMED",
     }),
 
   startAnalysis: () =>
     set({ analysisStatus: "PROCESSING", analysisMessage: null }),
 
-  applyAnalysis: (values, aiJobId) =>
+  applyAnalysis: (values, aiJobId, image) =>
     set((state) => ({
       draft: { ...state.draft, ...values },
       analysisStatus: "SUCCEEDED",
       analysisMessage:
         "AI가 카테고리·대표 색상·소재를 채웠어요. 모든 값은 수정할 수 있어요.",
       aiJobId,
+      analysisImage: image,
       materialSource: "AI_ESTIMATED",
     })),
 
-  failAnalysis: (message) =>
+  failAnalysis: (message, image = null) =>
     set({
       analysisStatus: "FAILED",
       analysisMessage: message,
       aiJobId: null,
+      analysisImage: image,
       materialSource: "USER_CONFIRMED",
     }),
 
@@ -240,6 +263,7 @@ export const useItemRegistrationStore = create<ItemRegistrationState>((set) => (
       analysisStatus: "IDLE",
       analysisMessage: null,
       aiJobId: null,
+      analysisImage: null,
       materialSource: "USER_CONFIRMED",
       createdItemId: null,
     }),

@@ -19,7 +19,7 @@ const actionCards = [
   },
   {
     title: "내 제품 관리 알림",
-    description: "활용도와 소재별 관리 안내를 확인하세요",
+    description: "소재별 관리 안내와 일정을 확인하세요",
     href: "/care/guide",
   },
   {
@@ -131,7 +131,7 @@ export function DashboardScreen() {
             <p className="mb-3 text-[10px] leading-4 text-[#9a6d45]">{homeError}</p>
           ) : null}
           <HomePreferenceProducts
-            products={homeData?.preferenceProducts ?? []}
+            products={homeData?.recommendedProducts ?? []}
             isLoading={isHomeLoading}
           />
         </LuxuryReveal>
