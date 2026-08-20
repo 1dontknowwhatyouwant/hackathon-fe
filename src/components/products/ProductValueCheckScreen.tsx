@@ -13,7 +13,7 @@ import {
   requestPurchaseUtilityAnalysis,
 } from "@/services/purchaseUtilityWorkflow";
 import type { PurchaseUtilityAnalysis } from "@/types/api";
-type ProductValueCheckScreenProps = { productId: string };
+type ProductValueCheckScreenProps = { productId?: string };
 
 type UtilityViewModel = {
   score: number;
@@ -49,6 +49,10 @@ export function ProductValueCheckScreen({ productId }: ProductValueCheckScreenPr
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!productId) {
+      return;
+    }
+
     const controller = new AbortController();
 
     void requestPurchaseUtilityAnalysis(productId, controller.signal)
@@ -83,7 +87,15 @@ export function ProductValueCheckScreen({ productId }: ProductValueCheckScreenPr
         />
       </LuxuryReveal>
 
-      {!analysis && !error ? (
+      {!productId ? (
+        <div className="mt-12 space-y-3 rounded-[18px] border border-[#dedee2] bg-[#f8f8f9] px-4 py-4">
+          <p className="text-[13px] font-bold text-[#15151a]">제품이 없어도 확인할 수 있어요</p>
+          <p className="text-[12px] leading-5 text-[#777780]">
+            지금은 특정 제품 없이 진입한 상태예요. 제품 상세에서 다시 들어오면
+            아이템 기준으로 활용 가능성을 계산합니다.
+          </p>
+        </div>
+      ) : !analysis && !error ? (
         <p className="mt-12 text-center text-[12px] text-[#777780]">활용 가능성을 계산하고 있습니다.</p>
       ) : null}
 

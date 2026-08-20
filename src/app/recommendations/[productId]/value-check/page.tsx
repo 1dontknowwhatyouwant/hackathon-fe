@@ -8,5 +8,5 @@ export default async function ProductValueCheckPage({
   params,
 }: ProductValueCheckPageProps) {
   const { productId } = await params;
-  return <ProductValueCheckScreen productId={productId} />;
+  return <ProductValueCheckScreen key={productId} productId={productId} />;
 }
