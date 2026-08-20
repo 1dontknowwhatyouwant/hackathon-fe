@@ -50,8 +50,6 @@ export function ProductValueCheckScreen({ productId }: ProductValueCheckScreenPr
 
   useEffect(() => {
     if (!productId) {
-      setAnalysis(null);
-      setError(null);
       return;
     }
 
