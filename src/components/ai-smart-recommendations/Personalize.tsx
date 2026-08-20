@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
-import { BottomNavigation } from "@/components/common/navigation/BottomNavigation";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { backendApi } from "@/services/api";
 import {
@@ -124,7 +123,11 @@ function PreferenceChip({
   );
 }
 
-export function Personalize() {
+type PersonalizeProps = {
+  isEditMode?: boolean;
+};
+
+export function Personalize({ isEditMode = false }: PersonalizeProps) {
   const router = useRouter();
   const [preferredColors, setPreferredColors] = useState<ColorGroup[]>([]);
   const [preferredCategories, setPreferredCategories] = useState<ItemCategory[]>([]);
@@ -213,14 +216,15 @@ export function Personalize() {
     <MobileScreenLayout
       figmaNodeId="142:123"
       contentClassName="bg-white px-6 pb-8 pt-6 text-[#131210]"
-      bottomNavigation={<BottomNavigation activeItem="recommendation" />}
     >
       <LuxuryReveal>
         <p className="text-[11px] font-bold tracking-[0.01em] text-[#9c754a]">
           PERSONALIZE
         </p>
         <h1 className="mt-4 text-[27px] font-bold leading-[1.15] tracking-[-0.04em]">
-          어떤 제품을 찾고 있나요?
+          {isEditMode
+            ? "제품 취향을 수정하시겠어요?"
+            : "어떤 제품을 찾고 있나요?"}
         </h1>
         <p className="mt-2 text-[14px] leading-5 text-[#78736b]">
           저장한 스타일 취향과 선택 조건을 반영해요.

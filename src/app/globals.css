@@ -30,6 +30,17 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* iOS Safari는 16px 미만인 입력 요소에 포커스하면 화면을 자동 확대합니다. */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 640px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+}
+
 .luxury-reveal {
   animation: luxury-reveal 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: var(--luxury-reveal-delay, 0ms);

@@ -1,4 +1,12 @@
 import Link from "next/link";
+import type { IconType } from "react-icons";
+import {
+  PiHandbag,
+  PiHouse,
+  PiPlus,
+  PiSparkle,
+  PiUser,
+} from "react-icons/pi";
 
 export type BottomNavigationKey =
   | "home"
@@ -11,20 +19,20 @@ export type BottomNavigationItem = {
   key: BottomNavigationKey;
   label: string;
   href: string;
-  icon: string;
+  icon: IconType;
 };
 
 export const defaultBottomNavigationItems: BottomNavigationItem[] = [
-  { key: "home", label: "홈", href: "/dashboard", icon: "⌂"},
+  { key: "home", label: "홈", href: "/dashboard", icon: PiHouse },
   {
     key: "recommendation",
     label: "추천",
     href: "/recommendations",
-    icon: "◇",
+    icon: PiSparkle,
   },
-  { key: "register", label: "등록", href: "/items/new", icon: "＋" },
-  { key: "items", label: "아이템", href: "/items", icon: "▣" },
-  { key: "my", label: "MY", href: "/my", icon: "○" },
+  { key: "register", label: "등록", href: "/items/new", icon: PiPlus },
+  { key: "items", label: "아이템", href: "/items", icon: PiHandbag },
+  { key: "my", label: "MY", href: "/my", icon: PiUser },
 ];
 
 type BottomNavigationProps = {
@@ -47,6 +55,7 @@ export function BottomNavigation({
       >
         {items.map((item) => {
           const isActive = item.key === activeItem;
+          const Icon = item.icon;
 
           return (
             <li key={item.key}>
@@ -59,15 +68,10 @@ export function BottomNavigation({
                     : "font-normal text-[#9999a1] hover:text-[#5f5f68]"
                 }`}
               >
-                <span
-                  aria-hidden="true"
-                  className={`flex h-6 items-center justify-center font-black leading-none [-webkit-text-stroke:1.45px_currentColor] ${
-                    item.key === "home" ? "text-[21px]" : "text-[19px]"
-                  }`}
-                >
-                  {item.icon}
+                <span aria-hidden="true" className="flex h-6 items-center justify-center">
+                  <Icon className="size-5" />
                 </span>
-                <span className="text-[11px] leading-[13px]">{item.label}</span>
+                <span className="text-[9px] leading-[14px]">{item.label}</span>
               </Link>
             </li>
           );

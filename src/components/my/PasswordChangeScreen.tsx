@@ -212,7 +212,8 @@ export function PasswordChangeScreen() {
 
   if (step === "CONFIRM") {
     return (
-      <MobileScreenLayout contentClassName="flex min-h-full flex-col bg-white px-6 pt-6 pb-[88px] text-[#0e0e12]">
+      <MobileScreenLayout contentClassName="flex min-h-full flex-col bg-white px-6 pt-6 pb-8 text-[#0e0e12]">
+        <div className="flex min-h-full flex-col">
         <LuxuryReveal>
           <p className="text-[17px] font-bold">비밀번호 변경</p>
           <h1 className="mt-[58px] text-[28px] leading-[36px] font-bold tracking-[-0.04em]">
@@ -241,13 +242,15 @@ export function PasswordChangeScreen() {
             다시 입력하기
           </button>
         </LuxuryReveal>
+        </div>
       </MobileScreenLayout>
     );
   }
 
   if (step === "COMPLETE") {
     return (
-      <MobileScreenLayout contentClassName="flex min-h-full flex-col bg-white px-6 pt-6 pb-[88px] text-[#0e0e12]">
+      <MobileScreenLayout contentClassName="flex min-h-full flex-col bg-white px-6 pt-6 pb-8 text-[#0e0e12]">
+        <div className="flex min-h-full flex-col">
         <LuxuryReveal className="flex flex-1 flex-col items-center justify-center text-center">
           <PiCheckCircleFill aria-hidden="true" className="size-14 text-[#0e0e12]" />
           <h1 className="mt-6 text-[28px] leading-[36px] font-bold tracking-[-0.04em]">
@@ -264,12 +267,14 @@ export function PasswordChangeScreen() {
         >
           계정 설정으로 돌아가기
         </button>
+        </div>
       </MobileScreenLayout>
     );
   }
 
   return (
-    <MobileScreenLayout contentClassName="flex min-h-full flex-col bg-white px-6 pt-4 pb-[88px] text-[#121217]">
+    <MobileScreenLayout contentClassName="flex min-h-full flex-col bg-white px-6 pt-4 pb-8 text-[#121217]">
+      <div className="flex min-h-full flex-col">
       <LuxuryReveal>
         <BackButton variant="plain" />
         <h1 className="mt-2 text-[28px] leading-[34px] font-bold tracking-[-0.04em]">
@@ -334,10 +339,11 @@ export function PasswordChangeScreen() {
             type="submit"
             className="h-[52px] w-full rounded-[14px] bg-[#0e0e12] text-[14px] font-bold text-white transition-colors hover:bg-[#26262c]"
           >
-            변경 확인
+            비밀번호 변경
           </button>
         </LuxuryReveal>
       </form>
+      </div>
     </MobileScreenLayout>
   );
 }
