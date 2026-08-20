@@ -47,7 +47,6 @@ const openMeteoWeatherCodeMap: Record<number, { label: string; icon: string }> =
     99: { label: "강한 뇌우", icon: "⛈" },
   };
 
-
 function getGeolocationErrorMessage(error: GeolocationPositionError) {
   if (error.code === error.PERMISSION_DENIED) {
     return "위치 권한이 허용되지 않았습니다.";
@@ -184,7 +183,7 @@ const actionCards = [
   {
     title: "내 제품 관리 알림",
     description: "소재별 관리 안내와 일정을 확인하세요",
-    href: "/items",
+    href: "/care/calendar",
   },
   {
     title: "구매 전 활용 체크",
@@ -279,6 +278,9 @@ export function DashboardScreen() {
   );
   const [weather, setWeather] = useState<WeatherSummary | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
+  const purchaseUtilityHref = products[0]
+    ? `/recommendations/${products[0].id}/value-check`
+    : "/recommendations/value-check";
 
   useEffect(() => {
     if (hasHydrated && !profile) {
@@ -307,17 +309,17 @@ export function DashboardScreen() {
           latitude: number;
           longitude: number;
         }>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          (position) =>
-            resolve({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            }),
-          (error) => reject(new Error(getGeolocationErrorMessage(error))),
-          {
-            enableHighAccuracy: false,
-            timeout: 10_000,
-            maximumAge: 30 * 60 * 1_000,
+          navigator.geolocation.getCurrentPosition(
+            (position) =>
+              resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+              }),
+            (error) => reject(new Error(getGeolocationErrorMessage(error))),
+            {
+              enableHighAccuracy: false,
+              timeout: 10_000,
+              maximumAge: 30 * 60 * 1_000,
             },
           );
         });
@@ -384,7 +386,7 @@ export function DashboardScreen() {
                   {weather.locationLabel}
                 </span>
               ) : (
-                weatherError ?? "위치 허용 시 현재 날씨를 보여드려요."
+                (weatherError ?? "위치 허용 시 현재 날씨를 보여드려요.")
               )}
             </p>
           </div>
@@ -405,7 +407,14 @@ export function DashboardScreen() {
         <div className="mt-8 space-y-4">
           {actionCards.map((card, index) => (
             <LuxuryReveal key={card.title} delay={160 + index * 70}>
-              <ActionCard {...card} />
+              <ActionCard
+                {...card}
+                href={
+                  card.title === "구매 전 활용 체크"
+                    ? purchaseUtilityHref
+                    : card.href
+                }
+              />
             </LuxuryReveal>
           ))}
         </div>
@@ -421,7 +430,7 @@ export function DashboardScreen() {
               </p>
             </div>
             <Link
-              href="/recommendations"
+              href="/products"
               className="text-[11px] font-bold text-[#777780]"
             >
               더보기
