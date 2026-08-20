@@ -320,7 +320,7 @@ export function SignUpScreen() {
       });
 
       setSession(response.data.data);
-      router.replace("/dashboard");
+      router.replace("/signup/preferences");
     } catch (submitError) {
       setError(
         getApiErrorMessage(

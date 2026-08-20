@@ -2,11 +2,11 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BottomNavigation } from "@/components/common/navigation/BottomNavigation";
 import { HomePreferenceProducts } from "@/components/dashboard/HomePreferenceProducts";
+import { dummyRecommendedProducts } from "@/data/productRecommendations";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useHomeStore } from "@/store/useHomeStore";
 import { useMenuDataStore } from "@/store/useMenuDataStore";
@@ -50,6 +50,41 @@ function ActionCard({
         </p>
         <p className="mt-[3px] text-[12px] leading-[14px] text-[#9898a0]">
           {description}
+        </p>
+      </div>
+      <span aria-hidden="true" className="text-[28px] leading-none text-[#7d7d86]">
+        ›
+      </span>
+    </Link>
+  );
+}
+
+function ProductRowCard({
+  title,
+  subtitle,
+  href,
+  imageUrl,
+}: {
+  title: string;
+  subtitle: string;
+  href: string;
+  imageUrl?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex h-[72px] items-center gap-3 rounded-[18px] border border-[#e5e2de] bg-[#faf9f7] px-[14px] transition-transform active:scale-[0.99]"
+    >
+      <div
+        className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-[14px] bg-[#ece6dc] bg-cover bg-center"
+        style={imageUrl ? { backgroundImage: `url("${imageUrl}")` } : undefined}
+      />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[15px] font-bold leading-[18px] text-[#15151a]">
+          {title}
+        </p>
+        <p className="mt-[3px] truncate text-[12px] leading-[14px] text-[#9898a0]">
+          {subtitle}
         </p>
       </div>
       <span aria-hidden="true" className="text-[28px] leading-none text-[#7d7d86]">
@@ -120,6 +155,37 @@ export function DashboardScreen() {
         </div>
 
         <LuxuryReveal className="mt-10" delay={390}>
+          <div className="mb-4 flex items-end justify-between">
+            <div>
+              <p className="text-[10px] font-bold tracking-[0.04em] text-[#8b7355]">
+                ALL MCM PRODUCTS
+              </p>
+              <h2 className="mt-1 text-[20px] font-bold tracking-[-0.035em]">
+                전체 MCM 제품
+              </h2>
+            </div>
+            <Link
+              href="/recommendations"
+              className="text-[11px] font-bold text-[#777780]"
+            >
+              더보기
+            </Link>
+          </div>
+          <ul className="space-y-[10px]">
+            {dummyRecommendedProducts.map((product) => (
+              <li key={product.id}>
+                <ProductRowCard
+                  href={`/recommendations/${product.id}`}
+                  title={product.displayName}
+                  subtitle={product.modelName}
+                  imageUrl={product.imageUrl}
+                />
+              </li>
+            ))}
+          </ul>
+        </LuxuryReveal>
+
+        <LuxuryReveal className="mt-10" delay={460}>
           <div className="mb-4 flex items-end justify-between">
             <div>
               <p className="text-[10px] font-bold tracking-[0.04em] text-[#8b7355]">FOR YOUR TASTE</p>
