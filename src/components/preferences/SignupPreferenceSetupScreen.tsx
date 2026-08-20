@@ -226,9 +226,6 @@ export function SignupPreferenceSetupScreen() {
           <p className="mt-2 text-[14px] leading-5 text-[#78736b]">
             저장한 스타일 취향과 선택 조건을 반영해요.
           </p>
-          <div className="mt-6 h-1 rounded-full bg-[#e5e3e0]">
-            <div className="h-1 w-[75%] rounded-full bg-[#b89463]" />
-          </div>
         </LuxuryReveal>
 
         <div className="mt-8 space-y-8">
