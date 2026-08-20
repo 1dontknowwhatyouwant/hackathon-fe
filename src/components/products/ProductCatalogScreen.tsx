@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
-import { BottomNavigation } from "@/components/common/navigation/BottomNavigation";
+import { BackButton } from "@/components/common/navigation/BackButton";
 import { ScreenHeader } from "@/components/common/section/ScreenHeader";
 import { ChoiceChipGroup } from "@/components/common/selection/ChoiceChipGroup";
 import { ProductList } from "@/components/products/ProductList";
@@ -62,10 +62,11 @@ export function ProductCatalogScreen() {
   }, [page, category]);
 
   return (
-    <MobileScreenLayout
-      contentClassName="px-6 pt-[47px] pb-8"
-      bottomNavigation={<BottomNavigation activeItem="recommendation" />}
-    >
+    <MobileScreenLayout contentClassName="px-6 pt-[72px] pb-8">
+      <div className="absolute left-6 top-[22px] z-20">
+        <BackButton />
+      </div>
+
       <ScreenHeader
         eyebrow="DISCOVER MORE"
         title="전체 제품"
