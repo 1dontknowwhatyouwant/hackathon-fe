@@ -252,7 +252,7 @@ export function ProductPassportScreen({ product }: ProductPassportScreenProps) {
   ] as const;
 
   return (
-    <MobileScreenLayout contentClassName="bg-[#f7f5f1] px-6 pt-4 pb-10">
+    <MobileScreenLayout contentClassName="bg-white px-6 pt-4 pb-10">
       <LuxuryReveal>
         <BackButton />
       </LuxuryReveal>
