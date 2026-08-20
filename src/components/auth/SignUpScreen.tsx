@@ -1,9 +1,11 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
+import { SignupTermsDialog } from "@/components/auth/SignupTermsDialog";
+import type { SignupTermId } from "@/content/signupTerms";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { authApi } from "@/services/api";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -86,25 +88,28 @@ function CheckboxRow({
   required,
   checked,
   onChange,
+  onOpenDetails,
 }: {
   label: string;
   required?: boolean;
   checked: boolean;
   onChange: (value: boolean) => void;
+  onOpenDetails: () => void;
 }) {
   return (
-    <label className="flex items-start gap-3 rounded-[16px] border border-[#d8d6dd] bg-white px-4 py-4 text-[13px] leading-5 text-[#55555d]">
+    <div className="flex items-center gap-3 rounded-[16px] border border-[#d8d6dd] bg-white px-4 py-4 text-[13px] leading-5 text-[#55555d]">
       <input
         type="checkbox"
+        aria-label={`${label} ${required ? "필수" : "선택"} 동의`}
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
         className="mt-0.5 size-4 shrink-0 rounded border-[#c8c8d0] text-[#15151a]"
       />
-      <span>
-        {label}
-        {required ? " (필수)" : " (선택)"}
-      </span>
-    </label>
+      <button type="button" onClick={onOpenDetails} className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
+        <span>{label}{required ? " (필수)" : " (선택)"}</span>
+        <span className="shrink-0 text-[11px] font-bold text-[#8b7355]">보기 ›</span>
+      </button>
+    </div>
   );
 }
 
@@ -196,6 +201,8 @@ export function SignUpScreen() {
   const [notice, setNotice] = useState("");
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTermId, setActiveTermId] = useState<SignupTermId | null>(null);
+  const closeTerms = useCallback(() => setActiveTermId(null), []);
 
   const handleSendCode = async () => {
     const normalizedEmail = email.trim();
@@ -407,17 +414,20 @@ export function SignUpScreen() {
                   required
                   checked={serviceConsent}
                   onChange={setServiceConsent}
+                  onOpenDetails={() => setActiveTermId("service")}
                 />
                 <CheckboxRow
-                  label="개인정보 처리방침 동의"
+                  label="개인정보 수집·이용 동의"
                   required
                   checked={privacyConsent}
                   onChange={setPrivacyConsent}
+                  onOpenDetails={() => setActiveTermId("privacy")}
                 />
                 <CheckboxRow
                   label="마케팅 수신동의"
                   checked={marketingConsent}
                   onChange={setMarketingConsent}
+                  onOpenDetails={() => setActiveTermId("marketing")}
                 />
               </div>
             </div>
@@ -437,6 +447,7 @@ export function SignUpScreen() {
           </div>
         </form>
       </section>
+      <SignupTermsDialog activeTermId={activeTermId} onClose={closeTerms} />
     </MobileScreenLayout>
   );
 }
