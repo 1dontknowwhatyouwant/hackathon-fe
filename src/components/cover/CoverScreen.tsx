@@ -23,6 +23,7 @@ const CoverScreen = () => {
 
   return (
     <MobileScreenLayout
+      animateContent={false}
       contentClassName="relative bg-[#0e0e12] text-white"
       frameClassName="bg-[#0e0e12] sm:rounded-[28px]"
     >
