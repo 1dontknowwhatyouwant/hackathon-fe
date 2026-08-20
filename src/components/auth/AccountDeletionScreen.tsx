@@ -7,6 +7,7 @@ import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayou
 import { LuxuryReveal } from "@/components/common/motion/LuxuryReveal";
 import { BackButton } from "@/components/common/navigation/BackButton";
 import { ScreenHeader } from "@/components/common/section/ScreenHeader";
+import { AccountConfirmationScreen } from "@/components/my/AccountConfirmationScreen";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { backendApi } from "@/services/api";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -17,6 +18,7 @@ import type {
 } from "@/types/api";
 
 type ReauthenticationStatus = "IDLE" | "PROCESSING" | "READY";
+const useApiMocks = process.env.NEXT_PUBLIC_USE_API_MOCKS !== "false";
 
 function toOAuthProvider(
   method: AuthenticationMethod,
@@ -36,6 +38,10 @@ export function AccountDeletionScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const clearSession = useAuthStore((state) => state.clearSession);
+  const storedUser = useAuthStore((state) => state.user);
+  const [hasConfirmedDeletion, setHasConfirmedDeletion] = useState(
+    searchParams.get("reauthenticated") === "true",
+  );
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<ReauthenticationStatus>(
@@ -49,7 +55,15 @@ export function AccountDeletionScreen() {
   );
 
   useEffect(() => {
+    if (!hasConfirmedDeletion) {
+      return;
+    }
+
     let active = true;
+
+    if (useApiMocks) {
+      return;
+    }
 
     void backendApi.profile
       .getMe()
@@ -72,7 +86,7 @@ export function AccountDeletionScreen() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [hasConfirmedDeletion]);
 
   const handleLocalReauthentication = async (event: FormEvent) => {
     event.preventDefault();
@@ -85,7 +99,9 @@ export function AccountDeletionScreen() {
     setError(null);
 
     try {
-      await backendApi.auth.reauthenticateForAccountDeletion(password);
+      if (!useApiMocks) {
+        await backendApi.auth.reauthenticateForAccountDeletion(password);
+      }
       setPassword("");
       setStatus("READY");
     } catch (reauthError) {
@@ -122,7 +138,9 @@ export function AccountDeletionScreen() {
     setError(null);
 
     try {
-      await backendApi.profile.deleteMe();
+      if (!useApiMocks) {
+        await backendApi.profile.deleteMe();
+      }
       clearSession();
       router.replace("/login?accountDeleted=true");
     } catch (deleteError) {
@@ -138,11 +156,38 @@ export function AccountDeletionScreen() {
     }
   };
 
-  const isLocal = profile?.authenticationMethods.includes("LOCAL") ?? false;
+  const effectiveProfile =
+    profile ??
+    (useApiMocks && hasConfirmedDeletion
+      ? {
+          userId: storedUser?.userId ?? "mock-user",
+          nickname: storedUser?.nickname ?? "SUJEONG",
+          gender: storedUser?.gender ?? "NOT_SPECIFIED",
+          authenticationMethods: ["LOCAL"] as AuthenticationMethod[],
+        }
+      : null);
+  const isLocal =
+    effectiveProfile?.authenticationMethods.includes("LOCAL") ?? false;
   const socialProviders =
-    profile?.authenticationMethods
+    effectiveProfile?.authenticationMethods
       .map(toOAuthProvider)
       .filter((provider): provider is OAuthProvider => provider !== null) ?? [];
+
+  if (!hasConfirmedDeletion) {
+    return (
+      <AccountConfirmationScreen
+        figmaNodeId="390:444"
+        sectionTitle="회원 탈퇴"
+        title="정말 탈퇴하시겠어요?"
+        description="등록한 아이템과 패스포트 정보가 삭제되며 복구할 수 없어요."
+        cancelLabel="계속 이용하기"
+        confirmLabel="회원 탈퇴하기"
+        danger
+        onCancel={() => router.back()}
+        onConfirm={() => setHasConfirmedDeletion(true)}
+      />
+    );
+  }
 
   return (
     <MobileScreenLayout contentClassName="bg-white px-6 pt-4 pb-9">
@@ -160,11 +205,11 @@ export function AccountDeletionScreen() {
 
       <LuxuryReveal className="mt-8" delay={90}>
         <section className="rounded-[22px] border border-[#e2ded8] bg-[#f8f6f3] p-5">
-          {!profile && !error ? (
+          {!effectiveProfile && !error ? (
             <p className="text-[13px] text-[#777780]">로그인 방식을 확인하고 있습니다.</p>
           ) : null}
 
-          {profile && status !== "READY" && isLocal ? (
+          {effectiveProfile && status !== "READY" && isLocal ? (
             <form onSubmit={handleLocalReauthentication}>
               <label className="block text-[12px] font-bold text-[#35353b]">
                 현재 비밀번호
@@ -186,7 +231,7 @@ export function AccountDeletionScreen() {
             </form>
           ) : null}
 
-          {profile && status !== "READY" && socialProviders.length > 0 ? (
+          {effectiveProfile && status !== "READY" && socialProviders.length > 0 ? (
             <div className={isLocal ? "mt-6 border-t border-[#dedee2] pt-5" : ""}>
               <p className="text-[13px] leading-5 text-[#55555d]">
                 연결된 소셜 계정으로 다시 로그인해 주세요.
