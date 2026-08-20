@@ -39,8 +39,11 @@ const emptyDraft: EditDraft = {
   memo: "",
 };
 
-const fieldClassName =
-  "mt-2 h-14 w-full rounded-[14px] border border-[#dedee2] bg-white px-4 text-[13px] text-[#15151a] outline-none transition-colors placeholder:text-[#aaaab1] focus:border-[#8b7355]";
+const fieldShellClassName =
+  "flex h-14 items-center rounded-[12px] border border-[#dbdee3] bg-white px-4 text-[13px] leading-4 transition-colors focus-within:border-[#8b7355]";
+
+const fieldControlClassName =
+  "min-w-0 flex-1 bg-transparent text-[13px] text-[#15151a] outline-none placeholder:text-[#aaaab1]";
 
 function findCategory(item: ClosetItem): ItemCategory {
   return (
@@ -131,45 +134,47 @@ export function ItemEditScreen({ itemId }: ItemEditScreenProps) {
   return (
     <MobileScreenLayout
       figmaNodeId="390:337"
-      contentClassName="bg-white px-6 pt-4 pb-8 text-[#121217]"
+      contentClassName="bg-white px-6 pt-4 pb-[88px] text-[#121217]"
     >
       <form className="flex min-h-full flex-col" onSubmit={handleSubmit}>
         <LuxuryReveal>
-          <BackButton variant="plain" />
-          <h1 className="mt-2 text-[28px] leading-[34px] font-bold tracking-[-0.04em]">
-            제품 정보 수정
-          </h1>
+          <div className="flex items-center gap-2">
+            <BackButton variant="plain" />
+            <h1 className="text-[17px] leading-5 font-bold tracking-[-0.02em]">
+              제품 정보 수정
+            </h1>
+          </div>
         </LuxuryReveal>
 
         {!hasLoaded ? (
-          <div className="mt-9 space-y-4" aria-label="제품 정보 불러오는 중">
+          <div className="mt-[60px] space-y-3" aria-label="제품 정보 불러오는 중">
             {Array.from({ length: 5 }, (_, index) => (
               <div
                 key={index}
-                className="h-14 animate-pulse rounded-[14px] bg-[#efede9]"
+                className="h-14 animate-pulse rounded-[12px] bg-[#efede9]"
               />
             ))}
           </div>
         ) : (
-          <LuxuryReveal className="mt-9 space-y-4" delay={60}>
-            <label className="block text-[11px] font-bold text-[#55555d]">
-              제품명
+          <LuxuryReveal className="mt-[60px] space-y-3" delay={60}>
+            <label className={fieldShellClassName}>
+              <span className="mr-1 shrink-0 text-[#85858f]">제품명 ·</span>
               <input
                 required
                 maxLength={50}
                 value={draft.name}
-                className={fieldClassName}
+                className={fieldControlClassName}
                 placeholder="제품명을 입력해 주세요"
                 onChange={(event) => updateDraft({ name: event.target.value })}
               />
             </label>
 
-            <label className="block text-[11px] font-bold text-[#55555d]">
-              브랜드
+            <label className={fieldShellClassName}>
+              <span className="mr-1 shrink-0 text-[#85858f]">브랜드 ·</span>
               <input
                 maxLength={50}
                 value={draft.brandName}
-                className={fieldClassName}
+                className={fieldControlClassName}
                 placeholder="브랜드를 입력해 주세요"
                 onChange={(event) =>
                   updateDraft({ brandName: event.target.value })
@@ -177,11 +182,11 @@ export function ItemEditScreen({ itemId }: ItemEditScreenProps) {
               />
             </label>
 
-            <label className="block text-[11px] font-bold text-[#55555d]">
-              카테고리
+            <label className={fieldShellClassName}>
+              <span className="mr-1 shrink-0 text-[#85858f]">카테고리 ·</span>
               <select
                 value={draft.category}
-                className={fieldClassName}
+                className={fieldControlClassName}
                 onChange={(event) =>
                   updateDraft({ category: event.target.value as ItemCategory })
                 }
@@ -194,24 +199,24 @@ export function ItemEditScreen({ itemId }: ItemEditScreenProps) {
               </select>
             </label>
 
-            <label className="block text-[11px] font-bold text-[#55555d]">
-              구매일
+            <label className={fieldShellClassName}>
+              <span className="mr-1 shrink-0 text-[#85858f]">구매일 ·</span>
               <input
                 type="date"
                 value={draft.purchaseDate}
-                className={fieldClassName}
+                className={fieldControlClassName}
                 onChange={(event) =>
                   updateDraft({ purchaseDate: event.target.value })
                 }
               />
             </label>
 
-            <label className="block text-[11px] font-bold text-[#55555d]">
-              메모
-              <textarea
+            <label className={fieldShellClassName}>
+              <span className="mr-1 shrink-0 text-[#85858f]">메모 ·</span>
+              <input
                 maxLength={200}
                 value={draft.memo}
-                className="mt-2 min-h-20 w-full resize-none rounded-[14px] border border-[#dedee2] bg-white px-4 py-3 text-[13px] leading-5 text-[#15151a] outline-none transition-colors placeholder:text-[#aaaab1] focus:border-[#8b7355]"
+                className={fieldControlClassName}
                 placeholder="제품에 대해 기억할 내용을 적어 주세요"
                 onChange={(event) => updateDraft({ memo: event.target.value })}
               />

@@ -34,12 +34,22 @@ export function ItemDetailScreen({ itemId }: ItemDetailScreenProps) {
 
   if (!item && isLoading) {
     return (
-      <MobileScreenLayout contentClassName="px-6 pt-4 pb-8">
-        <BackButton variant="plain" />
-        <div className="mt-8 animate-pulse">
-          <div className="h-8 w-44 rounded bg-[#e9e5df]" />
-          <div className="mt-4 h-4 w-32 rounded bg-[#efede9]" />
-          <div className="mt-8 h-[300px] rounded-[20px] bg-[#e9e5df]" />
+      <MobileScreenLayout contentClassName="bg-white px-6 pt-4 pb-[88px]">
+        <div className="flex min-h-full flex-col">
+          <div className="flex items-center gap-2">
+            <BackButton variant="plain" />
+            <div className="h-5 w-36 animate-pulse rounded bg-[#e9e5df]" />
+          </div>
+          <div className="mt-4 h-4 w-40 animate-pulse rounded bg-[#efede9]" />
+          <div className="mt-8 h-[260px] animate-pulse rounded-[18px] bg-[#e9e5df]" />
+          <div className="mt-auto space-y-4 pt-8">
+            {Array.from({ length: 3 }, (_, index) => (
+              <div
+                key={index}
+                className="h-[52px] animate-pulse rounded-[14px] bg-[#efede9]"
+              />
+            ))}
+          </div>
         </div>
       </MobileScreenLayout>
     );
@@ -78,53 +88,57 @@ export function ItemDetailScreen({ itemId }: ItemDetailScreenProps) {
   return (
     <MobileScreenLayout
       figmaNodeId="390:327"
-      contentClassName="flex min-h-full flex-col bg-white px-6 pt-4 pb-8 text-[#121217]"
+      contentClassName="bg-white px-6 pt-4 pb-[88px] text-[#121217]"
     >
-      <LuxuryReveal>
-        <BackButton variant="plain" />
-        <h1 className="mt-2 text-[28px] leading-[34px] font-bold tracking-[-0.04em]">
-          {item.name}
-        </h1>
-        <p className="mt-3 text-[13px] leading-4 text-[#7a7a85]">
-          {item.brandName || "브랜드 미입력"} · {formatRegisteredDate(item.createdAt)}
-        </p>
-      </LuxuryReveal>
+      <div className="flex min-h-full flex-col">
+        <LuxuryReveal>
+          <div className="flex items-center gap-2">
+            <BackButton variant="plain" />
+            <h1 className="min-w-0 truncate text-[17px] leading-5 font-bold tracking-[-0.02em]">
+              {item.name}
+            </h1>
+          </div>
+          <p className="mt-4 text-[13px] leading-4 text-[#85858f]">
+            {item.brandName || "브랜드 미입력"} · {formatRegisteredDate(item.createdAt)}
+          </p>
+        </LuxuryReveal>
 
-      <LuxuryReveal className="mt-8" delay={70}>
-        <div
-          role="img"
-          aria-label={`${item.name} 제품 이미지`}
-          className="flex h-[300px] w-full items-center justify-center rounded-[20px] bg-cover bg-center shadow-[inset_0_0_0_1px_rgba(21,21,26,0.04)]"
-          style={imageStyle}
-        >
-          {!item.imageUrl ? (
-            <span className="text-[11px] font-bold tracking-[0.12em] text-black/35">
-              MY ITEM
-            </span>
-          ) : null}
-        </div>
-      </LuxuryReveal>
+        <LuxuryReveal className="mt-8" delay={70}>
+          <div
+            role="img"
+            aria-label={`${item.name} 제품 이미지`}
+            className="flex h-[260px] w-full items-center justify-center rounded-[18px] bg-cover bg-center shadow-[inset_0_0_0_1px_rgba(21,21,26,0.04)]"
+            style={imageStyle}
+          >
+            {!item.imageUrl ? (
+              <span className="text-[11px] font-bold tracking-[0.12em] text-black/35">
+                MY ITEM
+              </span>
+            ) : null}
+          </div>
+        </LuxuryReveal>
 
-      <LuxuryReveal className="mt-auto space-y-4 pt-10" delay={140}>
-        <Link
-          href={`/items/${encodeURIComponent(item.id)}/edit`}
-          className="flex h-[52px] w-full items-center justify-center rounded-[14px] border border-[#dedee2] bg-white text-[14px] font-bold text-[#15151a] transition-colors hover:bg-[#f8f8f9]"
-        >
-          제품 정보 수정
-        </Link>
-        <Link
-          href={`/care/guide?itemId=${encodeURIComponent(item.id)}`}
-          className="flex h-[52px] w-full items-center justify-center rounded-[14px] border border-[#dedee2] bg-white text-[14px] font-bold text-[#15151a] transition-colors hover:bg-[#f8f8f9]"
-        >
-          맞춤 관리 가이드
-        </Link>
-        <Link
-          href={`/items/${encodeURIComponent(item.id)}/passport`}
-          className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-[#15151a] text-[14px] font-bold text-white transition-colors hover:bg-[#2a2a30]"
-        >
-          제품 패스포트 보기
-        </Link>
-      </LuxuryReveal>
+        <LuxuryReveal className="mt-auto space-y-4 pt-8" delay={140}>
+          <Link
+            href={`/items/${encodeURIComponent(item.id)}/edit`}
+            className="flex h-[52px] w-full items-center justify-center rounded-[14px] border border-[#dedee2] bg-white text-[14px] font-bold text-[#15151a] transition-colors hover:bg-[#f8f8f9]"
+          >
+            제품 정보 수정
+          </Link>
+          <Link
+            href={`/care/guide?itemId=${encodeURIComponent(item.id)}`}
+            className="flex h-[52px] w-full items-center justify-center rounded-[14px] border border-[#dedee2] bg-white text-[14px] font-bold text-[#15151a] transition-colors hover:bg-[#f8f8f9]"
+          >
+            맞춤 관리 가이드
+          </Link>
+          <Link
+            href={`/items/${encodeURIComponent(item.id)}/passport`}
+            className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-[#15151a] text-[14px] font-bold text-white transition-colors hover:bg-[#2a2a30]"
+          >
+            제품 패스포트 보기
+          </Link>
+        </LuxuryReveal>
+      </div>
     </MobileScreenLayout>
   );
 }
