@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useCallback, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { MobileScreenLayout } from "@/components/common/layout/MobileScreenLayout";
+import { SignupTermsDialog } from "@/components/auth/SignupTermsDialog";
+import type { SignupTermId } from "@/content/signupTerms";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { authApi } from "@/services/api";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -22,6 +24,8 @@ export function OAuthOnboardingScreen() {
   const [marketingTerms, setMarketingTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTermId, setActiveTermId] = useState<SignupTermId | null>(null);
+  const closeTerms = useCallback(() => setActiveTermId(null), []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -125,23 +129,30 @@ export function OAuthOnboardingScreen() {
 
         <div className="space-y-3 pt-2">
           {[
-            ["서비스 이용약관 동의 (필수)", serviceTerms, setServiceTerms],
-            ["개인정보 처리방침 동의 (필수)", privacyTerms, setPrivacyTerms],
-            ["이메일 마케팅 동의 (선택)", marketingTerms, setMarketingTerms],
-          ].map(([label, checked, onChange]) => (
-            <label
-              key={String(label)}
+            { id: "service", label: "서비스 이용약관 동의 (필수)", checked: serviceTerms, onChange: setServiceTerms },
+            { id: "privacy", label: "개인정보 처리방침 동의 (필수)", checked: privacyTerms, onChange: setPrivacyTerms },
+            { id: "marketing", label: "이메일 마케팅 동의 (선택)", checked: marketingTerms, onChange: setMarketingTerms },
+          ].map((term) => (
+            <div
+              key={term.id}
               className="flex items-center gap-3 rounded-[14px] border border-[#dedee2] px-4 py-3 text-[12px] text-[#55555d]"
             >
-              <input
-                type="checkbox"
-                checked={Boolean(checked)}
-                onChange={(event) =>
-                  (onChange as (value: boolean) => void)(event.target.checked)
-                }
-              />
-              {String(label)}
-            </label>
+              <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={term.checked}
+                  onChange={(event) => term.onChange(event.target.checked)}
+                />
+                <span>{term.label}</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setActiveTermId(term.id as SignupTermId)}
+                className="shrink-0 text-[11px] font-bold text-[#8b7355] underline underline-offset-2"
+              >
+                보기
+              </button>
+            </div>
           ))}
         </div>
 
@@ -159,6 +170,7 @@ export function OAuthOnboardingScreen() {
           {isSubmitting ? "가입 완료 중" : "가입 완료"}
         </button>
       </form>
+      <SignupTermsDialog activeTermId={activeTermId} onClose={closeTerms} />
     </MobileScreenLayout>
   );
 }

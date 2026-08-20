@@ -35,7 +35,7 @@ export function AccountConfirmationScreen({
   return (
     <MobileScreenLayout
       figmaNodeId={figmaNodeId}
-      contentClassName="flex min-h-full flex-col bg-white px-6 pt-6 pb-2 text-[#0e0e12]"
+      contentClassName="relative flex min-h-full flex-col bg-white px-6 pt-6 pb-0 text-[#0e0e12]"
     >
       <div className="flex min-h-full flex-col">
       <LuxuryReveal>
@@ -48,7 +48,7 @@ export function AccountConfirmationScreen({
         </div>
       </LuxuryReveal>
 
-      <LuxuryReveal className="mt-auto space-y-4" delay={90}>
+      <LuxuryReveal className="absolute right-6 bottom-0 left-6 space-y-4" delay={90}>
         <button
           type="button"
           disabled={isPending}
